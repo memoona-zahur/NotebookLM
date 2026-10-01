@@ -1,0 +1,32 @@
+{
+  "service": "telemetry-ingest",
+  "version": 4,
+  "limits": {
+    "requests_per_minute": 600,
+    "burst": 1200,
+    "max_payload_bytes": 8388608,
+    "max_channels": 4096
+  },
+  "retention": {
+    "hot_days": 7,
+    "warm_days": 90,
+    "archive_years": 7
+  },
+  "regions": [
+    "eu-west-1",
+    "us-east-1",
+    "ap-southeast-2"
+  ],
+  "alerts": {
+    "ingest_lag_seconds": 300,
+    "drop_rate_threshold": 0.01,
+    "pager_rotation": [
+      "primary",
+      "secondary"
+    ]
+  },
+  "backpressure": {
+    "strategy": "shed_low_priority",
+    "queue_depth": 5000
+  }
+}

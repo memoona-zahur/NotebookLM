@@ -1,0 +1,29 @@
+2024-03-01 09:14:02 INFO  boot: telemetry-ingest starting, version 4
+2024-03-01 09:14:03 INFO  config: loaded limits from /etc/telemetry/limits.json
+2024-03-01 09:14:03 WARN  config: region ap-southeast-2 not in allowlist, disabled
+2024-03-01 09:14:05 INFO  net: bound listener on 0.0.0.0:8443
+2024-03-01 09:15:44 WARN  queue: ingest depth 4820 of 5000, shedding low priority
+2024-03-01 09:15:45 INFO  queue: shed 214 low-priority frames
+2024-03-01 09:16:10 ERROR db: query timeout after 30s on shard 3
+2024-03-01 09:16:10 ERROR db: retrying shard 3 query, attempt 2
+2024-03-01 09:16:41 ERROR db: retry exhausted for shard 3, failing request
+2024-03-01 09:17:02 INFO  db: connection pool recovered, healthy 8 of 8
+2024-03-01 09:20:18 WARN  auth: token for client edge-07 expires in 300s
+2024-03-01 09:20:19 INFO  auth: token for client edge-07 renewed
+2024-03-01 09:25:31 ERROR net: upstream 10.4.2.9 refused connection
+2024-03-01 09:25:33 INFO  net: retrying upstream 10.4.2.9, attempt 1
+2024-03-01 09:25:36 INFO  net: upstream 10.4.2.9 recovered
+2024-03-01 09:31:07 INFO  ingest: flushed 12000 records to hot store
+2024-03-01 09:31:08 INFO  ingest: retention job scheduled, hot 7 warm 90
+2024-03-01 09:38:52 WARN  metrics: drop rate 0.014 exceeds threshold 0.01
+2024-03-01 09:38:53 WARN  alert: paging secondary on drop rate
+2024-03-01 09:44:19 INFO  ingest: backpressure cleared, queue depth 12
+2024-03-01 09:51:03 ERROR auth: client edge-11 presented expired certificate
+2024-03-01 09:51:04 WARN  auth: client edge-11 rejected for 300s
+2024-03-01 10:02:44 INFO  ingest: compacted 4.2GB of hot records
+2024-03-01 10:03:01 INFO  scheduler: archive job started for warm tier
+2024-03-01 10:11:29 WARN  net: latency p99 1840ms exceeds 1000ms budget
+2024-03-01 10:12:00 INFO  net: latency recovered, p99 210ms
+2024-03-01 10:20:17 INFO  boot: graceful shutdown requested by operator
+2024-03-01 10:20:18 INFO  ingest: final flush complete, 380 records
+2024-03-01 10:20:19 INFO  boot: telemetry-ingest stopped cleanly

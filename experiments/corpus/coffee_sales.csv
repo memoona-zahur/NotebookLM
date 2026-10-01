@@ -1,0 +1,16 @@
+item,region,category,units_sold,unit_price,revenue,return_rate_pct
+Espresso Blend,EMEA,Beverage,1240,12.50,15500.00,2.1
+Espresso Blend,APAC,Beverage,1402,12.50,17525.00,5.8
+Espresso Blend,AMER,Beverage,1610,12.50,20125.00,1.9
+Filter Papers,EMEA,Accessory,3200,3.20,10240.00,0.8
+Filter Papers,APAC,Accessory,2870,3.20,9184.00,2.4
+Filter Papers,AMER,Accessory,3480,3.20,11136.00,0.6
+Burr Grinder,EMEA,Equipment,64,289.00,18496.00,3.9
+Burr Grinder,APAC,Equipment,41,289.00,11849.00,7.6
+Burr Grinder,AMER,Equipment,88,289.00,25432.00,2.2
+Cupping Spoon,EMEA,Accessory,910,7.40,6734.00,1.2
+Cupping Spoon,APAC,Accessory,760,7.40,5624.00,3.3
+Cupping Spoon,AMER,Accessory,1020,7.40,7548.00,0.9
+Scale 2kg,EMEA,Equipment,112,145.00,16240.00,2.6
+Scale 2kg,APAC,Equipment,95,145.00,13775.00,5.1
+Scale 2kg,AMER,Equipment,134,145.00,19430.00,1.8

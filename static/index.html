@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Local NotebookLM</title>
+<link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <h1>NotebookLM<span>local</span></h1>
+
+    <label class="drop" id="drop">
+      <input type="file" id="file" multiple hidden />
+      <strong>Upload sources</strong>
+      <small>PDF, DOCX, TXT, MD, HTML, CSV</small>
+    </label>
+
+    <div class="sources-head">
+      <span>Sources</span>
+      <button id="clear" class="link">clear all</button>
+    </div>
+    <ul id="sources" class="sources"></ul>
+
+    <div class="meta" id="meta"></div>
+  </aside>
+
+  <main class="chat">
+    <header>
+      <span id="title">Ask anything about your sources</span>
+    </header>
+    <div id="messages" class="messages"></div>
+    <form id="form" class="composer">
+      <textarea id="q" rows="1" placeholder="Ask a question... (Enter to send, Shift+Enter for new line)"></textarea>
+      <button type="submit" id="send">Send</button>
+    </form>
+  </main>
+</div>
+<script src="/static/app.js"></script>
+</body>
+</html>

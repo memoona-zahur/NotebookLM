@@ -1,0 +1,12 @@
+2024-11-03 06:00:01 INFO  scheduler: harvest plan run starting
+2024-11-03 06:00:01 INFO  scheduler: loaded 14 fields from parcels_v3.parquet
+2024-11-03 06:00:04 WARN  io: field soil_ph missing for 38 of 12480 rows
+2024-11-03 06:00:04 INFO  io: imputed soil_ph with field median 6.4
+2024-11-03 06:00:09 INFO  gis: reprojected 12480 geometries to EPSG:4326
+2024-11-03 06:00:12 ERROR gis: 6 geometries failed self-intersection repair
+2024-11-03 06:00:12 ERROR gis: rows 8811-8816 excluded from yield model
+2024-11-03 06:00:18 INFO  model: training on 11864 rows, 22 features
+2024-11-03 06:00:41 INFO  model: rmse 412.7 kg/ha, r2 0.71
+2024-11-03 06:00:41 WARN  model: drift check flagged precipitation feature
+2024-11-03 06:00:42 INFO  alert: posted summary to ops-primary
+2024-11-03 06:00:42 INFO  scheduler: harvest plan run finished in 41s

@@ -1,0 +1,13 @@
+sensor_id	zone	reading	unit	timestamp
+TH-001	storefront	21.4	C	2024-05-01T08:00:00
+TH-002	storefront	21.6	C	2024-05-01T08:00:00
+TH-003	warehouse	17.9	C	2024-05-01T08:00:00
+TH-004	warehouse	18.1	C	2024-05-01T08:00:00
+TH-005	coldroom	3.2	C	2024-05-01T08:00:00
+TH-006	coldroom	3.4	C	2024-05-01T08:00:00
+TH-007	coldroom	-19.5	C	2024-05-01T08:00:00
+TH-008	delivery_bay	14.0	C	2024-05-01T08:00:00
+TH-009	delivery_bay	14.3	C	2024-05-01T08:00:00
+TH-010	storefront	22.1	C	2024-05-01T12:00:00
+TH-011	warehouse	19.4	C	2024-05-01T12:00:00
+TH-012	coldroom	-19.1	C	2024-05-01T12:00:00

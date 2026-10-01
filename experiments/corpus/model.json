@@ -1,0 +1,41 @@
+{
+  "model": "wide-residual-cascade",
+  "version": 7,
+  "training": {
+    "epochs": 140,
+    "batch_size": 512,
+    "optimizer": "adamw",
+    "learning_rate": 0.001,
+    "weight_decay": 0.0001,
+    "early_stopping_patience": 12
+  },
+  "data": {
+    "train_rows": 4820000,
+    "validation_rows": 320000,
+    "test_rows": 310000,
+    "positive_rate": 0.042
+  },
+  "features": {
+    "categorical": [
+      "merchant_category",
+      "country",
+      "device_type"
+    ],
+    "numerical": [
+      "amount",
+      "hour_of_day",
+      "days_since_signup"
+    ],
+    "text": [
+      "description"
+    ]
+  },
+  "thresholds": {
+    "review": 0.35,
+    "decline": 0.82
+  },
+  "monitoring": {
+    "drift_alert_auc_drop": 0.03,
+    "retrain_frequency_days": 14
+  }
+}

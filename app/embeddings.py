@@ -1,0 +1,38 @@
+from functools import lru_cache
+
+from sentence_transformers import SentenceTransformer
+
+from . import config
+
+
+@lru_cache(maxsize=1)
+def get_model() -> SentenceTransformer:
+    return SentenceTransformer(config.EMBED_MODEL)
+
+
+def embed_texts(texts: list[str]) -> list[list[float]]:
+    vectors = get_model().encode(
+        texts,
+        batch_size=32,
+        convert_to_numpy=True,
+        normalize_embeddings=True,
+        show_progress_bar=False,
+    )
+    return vectors.tolist()
+
+
+def embed_query(text: str) -> list[float]:
+    return embed_texts([text])[0]
+
+
+def score_against_query(query_vector: list[float], texts: list[str]) -> list[float]:
+    """Cosine similarity of already-normalised query against new texts.
+
+    Needed when a candidate is surfaced by lexical search but sits outside the
+    dense candidate pool. Its dense score is still required, because the
+    relevance decision is made on the dense scale.
+    """
+    if not texts:
+        return []
+    vectors = embed_texts(texts)
+    return [float(sum(a * b for a, b in zip(query_vector, vector))) for vector in vectors]

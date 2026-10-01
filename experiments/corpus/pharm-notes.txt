@@ -1,0 +1,20 @@
+Pharmacology Study Notes: Antimicrobials
+
+Beta-lactam antibiotics require an intact beta-lactam ring. Penicillins are
+destroyed by penicillinase, so isoxazolyl penicillins such as oxacillin are used
+against Staphylococcus aureus. There is no cross reactivity between the
+penicillins and the cephalosporins, so a penicillin allergy does not imply a
+cephalosporin allergy.
+
+Aminoglycosides are concentration dependent killers. They require a high peak
+to achieve killing, and they are ineffective against anaerobes because uptake
+depends on oxygen dependent transport. They are ototoxic and nephrotoxic, so
+monitoring of both drug level and renal function is required.
+
+Vancomycin must be infused slowly over at least one hour to avoid red man
+syndrome, which is a histamine mediated reaction rather than true allergy.
+Trough levels should be checked for renally impaired patients.
+
+Fluoroquinolones inhibit DNA gyrase and topoisomerase IV. They are associated
+with tendinitis, peripheral neuropathy and aortic aneurysm, so they are now
+reserved for infections with no safer alternative.

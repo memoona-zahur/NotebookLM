@@ -1,0 +1,18 @@
+Heterogeneous Catalysis Notes
+
+The rate of a heterogeneous reaction depends on the fraction of surface atoms
+that are active sites. Turnover frequency, defined as molecules converted per
+active site per second, separates intrinsic activity from surface area.
+
+Sabatier's principle states that a catalyst is best when it binds the reactant
+and the product neither too strongly nor too weakly. Binding too weakly leaves
+the activation barrier intact; binding too strongly poisons the site and stops
+the cycle.
+
+The Langmuir Hinshelwood mechanism assumes both reactants adsorb before
+reacting, and is distinguished from the Eley Rideal mechanism, in which a gas
+phase species collides directly with an adsorbed species.
+
+Deactivation of a catalyst occurs by coking, sintering, poisoning by sulfur or
+lead, or by hydrothermal degradation. Sintering is driven by the migration of
+small particles that merge into larger ones, reducing surface area irreversibly.
