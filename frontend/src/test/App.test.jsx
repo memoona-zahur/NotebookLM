@@ -270,3 +270,43 @@ describe("failure modes", () => {
     expect(await screen.findByText(/Could not reach the server/)).toBeInTheDocument();
   });
 });
+
+describe("chat-first layout", () => {
+  // Sources left the rail and moved into a drawer, so the conversation is
+  // what occupies the screen. This is the part that can break silently: the
+  // drawer exists as a component but nothing reaches it.
+  it("keeps the rail to sessions and hides sources until asked", async () => {
+    const user = await boot();
+    const rail = screen.getByRole("complementary");
+
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(within(rail).queryByText(/Add sources/i)).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: /sources/i }));
+
+    expect(await screen.findByRole("dialog")).toBeInTheDocument();
+    expect(within(rail).queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
+  it("reports the source count on the toggle and again in the drawer", async () => {
+    const user = await boot();
+    const toggle = screen.getByRole("button", { name: /sources/i });
+
+    expect(toggle).toHaveTextContent(/2 sources/);
+
+    await user.click(toggle);
+
+    expect(await screen.findByText("kepler.pdf")).toBeInTheDocument();
+  });
+
+  it("closes the drawer again and leaves the thread reachable", async () => {
+    const user = await boot();
+    await user.click(screen.getByRole("button", { name: /sources/i }));
+    await screen.findByRole("dialog");
+
+    await user.keyboard("{Escape}");
+
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+    expect(screen.getByRole("textbox")).toBeEnabled();
+  });
+});

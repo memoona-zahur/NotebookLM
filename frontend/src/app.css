@@ -1,8 +1,11 @@
 /* Layout ------------------------------------------------------------------ */
 
+/* Chat-first: the rail holds session switching and nothing else. Sources live
+   in a drawer that opens over the thread, because during a conversation they are
+   something you check, not something you read. */
 .app {
   display: grid;
-  grid-template-columns: 288px minmax(0, 1fr);
+  grid-template-columns: 248px minmax(0, 1fr);
   height: 100%;
 }
 
@@ -12,42 +15,45 @@
   display: flex;
   flex-direction: column;
   min-height: 0;
-  background: var(--surface);
+  background: var(--surface-2);
   border-right: 1px solid var(--line);
+  font-family: var(--font-ui);
 }
 
 .brand {
   display: flex;
   align-items: baseline;
-  gap: 8px;
-  padding: 20px 20px 16px;
-  font-size: 16px;
+  gap: 7px;
+  padding: 22px 20px 18px;
+  font-family: var(--font);
+  font-size: 17px;
   font-weight: 600;
   letter-spacing: -0.01em;
 }
 .brand span {
-  font-size: 11px;
-  font-weight: 500;
-  letter-spacing: 0.08em;
+  font-family: var(--font-ui);
+  font-size: 9.5px;
+  font-weight: 600;
+  letter-spacing: 0.11em;
   text-transform: uppercase;
   color: var(--accent);
 }
 
 .rail-section {
-  padding: 0 12px;
+  padding: 0 10px;
 }
 .rail-section + .rail-section {
-  margin-top: 18px;
+  margin-top: 20px;
 }
 
 .rail-label {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 8px 7px;
-  font-size: 10.5px;
-  font-weight: 600;
-  letter-spacing: 0.09em;
+  padding: 0 8px 6px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--faint);
 }
@@ -58,40 +64,33 @@
   display: flex;
   flex-direction: column;
   gap: 1px;
-  max-height: 34vh;
+  max-height: 60vh;
   overflow-y: auto;
 }
 
 .session {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 7px;
   width: 100%;
-  padding: 7px 8px;
-  border-radius: 7px;
+  padding: 7px 8px 7px 10px;
+  border-radius: 6px;
   text-align: left;
   font-size: 13.5px;
   color: var(--text-2);
   transition: background 0.12s, color 0.12s;
 }
 .session:hover {
-  background: var(--surface-2);
+  background: var(--surface);
   color: var(--text);
 }
+/* The active session is marked with a rule in the margin, the way a bookmark
+   sits in a book, rather than a filled block that competes with the thread. */
 .session[aria-current="true"] {
-  background: var(--surface-3);
+  background: var(--surface);
   color: var(--text);
-}
-.session[aria-current="true"] .session-name {
   font-weight: 550;
-}
-.session[aria-current="true"]::before {
-  content: "";
-  width: 2px;
-  height: 15px;
-  margin-left: -8px;
-  border-radius: 2px;
-  background: var(--accent);
+  box-shadow: inset 2px 0 0 var(--accent);
 }
 .session-name {
   flex: 1;
@@ -104,8 +103,8 @@
 .icon-btn {
   display: grid;
   place-items: center;
-  width: 22px;
-  height: 22px;
+  width: 21px;
+  height: 21px;
   flex: 0 0 auto;
   border-radius: 5px;
   color: var(--faint);
@@ -113,14 +112,18 @@
   transition: opacity 0.12s, color 0.12s, background 0.12s;
 }
 .session:hover .icon-btn,
-.session:focus-within .icon-btn {
+.session:focus-within .icon-btn,
+.rail-label:hover .icon-btn,
+.rail-label:focus-within .icon-btn,
+.sources-toggle:hover .icon-btn {
   opacity: 1;
 }
 .icon-btn:hover {
-  background: var(--line);
+  background: var(--surface-3);
   color: var(--text);
 }
 .icon-btn.danger:hover {
+  background: #a63f3f14;
   color: var(--warn);
 }
 
@@ -130,52 +133,12 @@
   color: var(--faint);
 }
 
-/* Source list ------------------------------------------------------------- */
-
-.sources {
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
-  overflow-y: auto;
-}
-
-.source {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 8px;
-  border-radius: 6px;
-  font-size: 12.5px;
-  color: var(--text-2);
-}
-.source:hover {
-  background: var(--surface-2);
-}
-.source-kind {
-  flex: 0 0 auto;
-  padding: 1px 5px;
-  border-radius: 4px;
-  background: var(--surface-3);
-  color: var(--faint);
-  font-family: var(--mono);
-  font-size: 9.5px;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-}
-.source-name {
-  flex: 1;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
 /* Dropzone ---------------------------------------------------------------- */
 
 .drop {
   display: block;
-  margin: 0 12px;
-  padding: 16px 12px;
+  margin: 0 10px;
+  padding: 14px 12px;
   border: 1.5px dashed var(--line-strong);
   border-radius: var(--radius);
   text-align: center;
@@ -185,14 +148,14 @@
 }
 .drop:hover,
 .drop.over {
-  border-color: var(--accent-line);
+  border-color: var(--accent);
   background: var(--accent-soft);
   color: var(--accent-text);
 }
 .drop strong {
   display: block;
-  font-size: 13px;
-  font-weight: 550;
+  font-size: 12.5px;
+  font-weight: 600;
   color: var(--text-2);
 }
 .drop:hover strong,
@@ -200,7 +163,7 @@
   color: var(--accent-text);
 }
 .drop small {
-  font-size: 11.5px;
+  font-size: 11px;
 }
 
 /* Rail footer ------------------------------------------------------------- */
@@ -209,14 +172,14 @@
   margin-top: auto;
   padding: 14px 20px 16px;
   border-top: 1px solid var(--line);
-  font-size: 11.5px;
-  line-height: 1.7;
+  font-size: 11px;
+  line-height: 1.75;
   color: var(--faint);
 }
 .rail-foot dl {
   display: grid;
   grid-template-columns: auto 1fr;
-  gap: 1px 10px;
+  gap: 0 10px;
   margin: 0;
 }
 .rail-foot dt {
@@ -238,22 +201,26 @@
   flex-direction: column;
   min-width: 0;
   min-height: 0;
-  background: var(--bg);
+  background: var(--paper);
 }
 
 .topbar {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 14px 28px;
+  padding: 12px 32px;
   border-bottom: 1px solid var(--line);
-  background: #0c0d10cc;
-  backdrop-filter: blur(8px);
+  background: #faf7f2e8;
+  backdrop-filter: blur(10px);
+  font-family: var(--font-ui);
 }
+/* The session name is the page title, so it is set in the reading face at
+   reading size rather than as chrome. */
 .topbar h1 {
   margin: 0;
-  font-size: 15px;
-  font-weight: 550;
+  font-family: var(--font);
+  font-size: 17px;
+  font-weight: 600;
   letter-spacing: -0.01em;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -271,17 +238,172 @@
   white-space: nowrap;
 }
 
+.sources-toggle {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 11px;
+  border: 1px solid var(--line-strong);
+  border-radius: 99px;
+  background: var(--surface);
+  font-size: 12px;
+  font-weight: 550;
+  color: var(--text-2);
+  transition: border-color 0.15s, background 0.15s, color 0.15s;
+}
+.sources-toggle:hover {
+  border-color: var(--accent-line);
+  background: var(--accent-soft);
+  color: var(--accent-text);
+}
+
 .pill {
-  padding: 3px 8px;
+  padding: 2px 9px;
   border: 1px solid var(--line);
   border-radius: 99px;
-  background: var(--surface-2);
+  background: var(--surface);
   font-size: 11px;
   color: var(--muted);
 }
 .pill.live {
-  border-color: #5ddba433;
+  border-color: #3f7d5233;
   color: var(--good);
+}
+
+/* Source drawer ----------------------------------------------------------- */
+
+.scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  background: #2c282333;
+  animation: fade 0.18s var(--ease);
+}
+@keyframes fade {
+  from {
+    opacity: 0;
+  }
+}
+
+.drawer {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 31;
+  display: flex;
+  flex-direction: column;
+  width: min(400px, 92vw);
+  background: var(--surface);
+  border-left: 1px solid var(--line);
+  box-shadow: var(--shadow-lg);
+  animation: slide 0.22s var(--ease);
+  font-family: var(--font-ui);
+}
+@keyframes slide {
+  from {
+    transform: translateX(16px);
+    opacity: 0;
+  }
+}
+
+.drawer-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 16px 18px 13px;
+  border-bottom: 1px solid var(--line);
+}
+.drawer-head h2 {
+  flex: 1;
+  margin: 0;
+  font-family: var(--font);
+  font-size: 17px;
+  font-weight: 600;
+}
+.drawer-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 16px 18px;
+}
+.drawer-body .drop {
+  margin: 0 0 16px;
+}
+
+.drawer-foot {
+  padding: 12px 18px 16px;
+  border-top: 1px solid var(--line);
+  font-size: 11px;
+  line-height: 1.75;
+  color: var(--faint);
+}
+.drawer-foot dl {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0 10px;
+  margin: 0;
+}
+.drawer-foot dd {
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--muted);
+  text-align: right;
+}
+
+/* Source list ------------------------------------------------------------- */
+
+.sources {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.source {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 8px 8px 8px 10px;
+  border-radius: 6px;
+  font-size: 13px;
+  color: var(--text-2);
+}
+.source:hover {
+  background: var(--surface-2);
+}
+.source-kind {
+  flex: 0 0 auto;
+  padding: 1px 6px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: var(--surface-2);
+  color: var(--muted);
+  font-family: var(--mono);
+  font-size: 9.5px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+.source-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.source-meta {
+  flex: 0 0 auto;
+  font-family: var(--mono);
+  font-size: 10.5px;
+  color: var(--faint);
+}
+
+.sources-empty {
+  padding: 22px 4px;
+  text-align: center;
+  font-size: 13px;
+  color: var(--muted);
 }
 
 /* Thread ------------------------------------------------------------------ */
@@ -293,23 +415,25 @@
   scroll-behavior: smooth;
 }
 
+/* A 34rem measure: roughly 70 characters at this size, which is the width a
+   serif face stays readable at. Wider and the eye loses the line. */
 .thread-inner {
-  max-width: 760px;
+  max-width: 34rem;
   margin: 0 auto;
-  padding: 34px 28px 8px;
+  padding: 40px 32px 12px;
 }
 
 .turn {
-  animation: rise 0.28s var(--ease) both;
+  animation: rise 0.3s var(--ease) both;
 }
 .turn + .turn {
-  margin-top: 30px;
+  margin-top: 34px;
 }
 
 @keyframes rise {
   from {
     opacity: 0;
-    transform: translateY(6px);
+    transform: translateY(5px);
   }
 }
 
@@ -317,10 +441,11 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-bottom: 7px;
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.07em;
+  margin-bottom: 8px;
+  font-family: var(--font-ui);
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.09em;
   text-transform: uppercase;
   color: var(--faint);
 }
@@ -330,58 +455,61 @@
   border-radius: 99px;
   background: var(--muted);
 }
-.turn.bot .who .dot {
+.turn.assistant .who .dot {
   background: var(--accent);
 }
 
-.turn.user .body {
-  padding-left: 15px;
+/* The question is set slightly larger and darker than the answer, so the eye
+   reads question-then-response without needing the labels. */
+.turn.user .answer {
+  padding-left: 16px;
   border-left: 2px solid var(--line-strong);
   color: var(--text);
+  font-size: 17px;
+  line-height: 1.55;
 }
 
-.turn.bot .body {
-  color: var(--text-2);
+.turn.assistant .answer {
+  font-size: 16.5px;
+  line-height: 1.7;
 }
 
-/* Answer text. Citations are rendered as inline superscript chips. */
+/* Answer text. Citations render as inline markers in the accent colour. */
 .answer {
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
 .answer .ref {
   display: inline-block;
-  min-width: 17px;
+  min-width: 16px;
   padding: 0 4px;
   margin: 0 1px;
-  border-radius: 4px;
+  border-radius: 3px;
   background: var(--accent-soft);
   color: var(--accent-text);
-  font-family: var(--mono);
-  font-size: 11px;
-  font-weight: 600;
-  line-height: 17px;
+  font-family: var(--font-ui);
+  font-size: 10.5px;
+  font-weight: 700;
+  line-height: 16px;
   text-align: center;
-  vertical-align: 1px;
+  vertical-align: 2px;
   text-decoration: none;
   transition: background 0.12s, color 0.12s;
 }
-.answer .ref:hover {
-  background: var(--accent);
-  color: #14161b;
-}
+.answer .ref:hover,
 .answer .ref.active {
   background: var(--accent);
-  color: #14161b;
+  color: #fffdfa;
 }
 
 .answer .uncited-note {
   display: block;
-  margin-top: 12px;
-  padding: 9px 12px;
+  margin-top: 14px;
+  padding: 9px 13px;
   border-left: 2px solid var(--mid);
-  background: #f0c6740f;
+  background: #9a6b1f0f;
   color: var(--mid);
+  font-family: var(--font-ui);
   font-size: 12.5px;
 }
 
@@ -390,14 +518,19 @@
   white-space: pre-wrap;
 }
 
-/* Evidence bar ------------------------------------------------------------ */
+/* Evidence strip ---------------------------------------------------------- */
 
+/* Set as a footnote-like line under the answer rather than a row of pills: it
+   is provenance, not a status dashboard. */
 .evidence {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 7px;
-  margin-top: 14px;
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px dotted var(--line-strong);
+  font-family: var(--font-ui);
   font-size: 11.5px;
   color: var(--muted);
 }
@@ -405,12 +538,12 @@
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  padding: 2px 8px;
+  padding: 1px 9px;
   border-radius: 99px;
   border: 1px solid var(--line);
   background: var(--surface-2);
   font-size: 11px;
-  font-weight: 550;
+  font-weight: 600;
 }
 .chip::before {
   content: "";
@@ -420,19 +553,19 @@
   background: currentcolor;
 }
 .chip.high {
-  border-color: #5ddba440;
+  border-color: #3f7d5240;
   color: var(--good);
 }
 .chip.medium {
-  border-color: #f0c67440;
+  border-color: #9a6b1f40;
   color: var(--mid);
 }
 .chip.low {
-  border-color: #f2777a40;
+  border-color: #a63f3f40;
   color: var(--warn);
 }
 .chip.warn {
-  border-color: #f2777a40;
+  border-color: #a63f3f40;
   color: var(--warn);
 }
 .chip.warn::before {
@@ -442,48 +575,53 @@
   color: var(--mid);
 }
 
-/* Source cards ------------------------------------------------------------ */
+/* Source passages --------------------------------------------------------- */
 
+/* Set as marginalia: an indented, serif block with a rule down the side, the
+   way a footnote is set on a page. That is what these are - quotations. */
 .cites {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  margin-top: 12px;
+  gap: 2px;
+  margin-top: 16px;
 }
 
 .cite {
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  background: var(--surface);
-  overflow: hidden;
+  border-left: 2px solid var(--line-strong);
+  background: transparent;
   transition: border-color 0.15s, background 0.15s;
 }
 .cite:hover {
-  border-color: var(--line-strong);
+  border-left-color: var(--line-strong);
+  background: var(--surface-2);
 }
 .cite.open {
-  border-color: var(--accent-line);
+  border-left-color: var(--accent);
+  background: var(--surface-2);
 }
+/* Retrieved but never cited. Dimmed, still present: hiding it would imply the
+   system did not consider it. */
 .cite.uncited {
-  opacity: 0.62;
+  border-left-style: dotted;
+  color: var(--muted);
 }
 .cite.flash {
-  animation: flash 1.1s var(--ease);
+  animation: flash 1.4s var(--ease);
 }
 @keyframes flash {
   0%,
-  40% {
-    background: var(--accent-soft);
-    border-color: var(--accent);
+  35% {
+    background: var(--flash);
+    border-left-color: var(--accent);
   }
 }
 
 .cite-head {
   display: flex;
-  align-items: center;
-  gap: 9px;
+  align-items: baseline;
+  gap: 10px;
   width: 100%;
-  padding: 9px 12px;
+  padding: 7px 12px;
   text-align: left;
 }
 .cite-src {
@@ -492,8 +630,10 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 12.5px;
-  font-weight: 550;
+  font-family: var(--font-ui);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-2);
 }
 .cite-src .page {
   color: var(--faint);
@@ -501,8 +641,8 @@
 }
 .cite-score {
   flex: 0 0 auto;
-  font-family: var(--mono);
-  font-size: 11px;
+  font-family: var(--font-ui);
+  font-size: 10.5px;
   color: var(--faint);
 }
 .cite-caret {
@@ -524,16 +664,13 @@
 
 .cite .snippet {
   display: none;
-  margin: 0;
-  padding: 0 12px 12px 30px;
-  border-top: 1px solid var(--line);
-  padding-top: 10px;
-  margin-top: 2px;
+  margin: 0 12px 11px 24px;
+  padding-left: 12px;
+  border-left: 1px solid var(--line);
   white-space: pre-wrap;
   overflow-wrap: anywhere;
-  font-family: var(--mono);
-  font-size: 12px;
-  line-height: 1.65;
+  font-size: 15px;
+  line-height: 1.6;
   color: var(--text-2);
 }
 .cite.open .snippet {
@@ -547,25 +684,26 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  min-height: 62vh;
+  min-height: 60vh;
   padding: 20px;
   text-align: center;
 }
 .empty h2 {
-  margin: 0 0 8px;
-  font-size: 21px;
-  font-weight: 550;
+  margin: 0 0 10px;
+  font-size: 25px;
+  font-weight: 600;
   letter-spacing: -0.02em;
 }
 .empty p {
-  max-width: 420px;
-  margin: 0 0 26px;
+  max-width: 30rem;
+  margin: 0 0 28px;
   color: var(--muted);
-  font-size: 14px;
+  font-size: 15.5px;
+  line-height: 1.65;
 }
 .empty ul {
   display: grid;
-  gap: 7px;
+  gap: 8px;
   margin: 0;
   padding: 0;
   list-style: none;
@@ -573,42 +711,43 @@
 }
 .empty li {
   display: flex;
-  gap: 9px;
+  gap: 10px;
   align-items: baseline;
-  padding: 8px 12px;
+  padding: 11px 14px;
   border: 1px solid var(--line);
-  border-radius: 8px;
+  border-radius: var(--radius);
   background: var(--surface);
-  font-size: 13px;
+  font-size: 14.5px;
   color: var(--text-2);
 }
 .empty li b {
   color: var(--accent-text);
-  font-weight: 550;
+  font-weight: 600;
 }
 
 /* Composer ---------------------------------------------------------------- */
 
 .composer-wrap {
-  padding: 10px 28px 20px;
-  background: linear-gradient(to top, var(--bg) 62%, #0c0d1000);
+  padding: 10px 32px 22px;
+  background: linear-gradient(to top, var(--paper) 60%, #faf7f200);
 }
 
 .composer {
   display: flex;
   align-items: flex-end;
   gap: 10px;
-  max-width: 760px;
+  max-width: 34rem;
   margin: 0 auto;
-  padding: 10px 10px 10px 16px;
+  padding: 10px 10px 10px 17px;
   border: 1px solid var(--line-strong);
   border-radius: var(--radius-lg);
   background: var(--surface);
+  box-shadow: var(--shadow);
   transition: border-color 0.15s, box-shadow 0.15s;
 }
 .composer:focus-within {
   border-color: var(--accent-line);
-  box-shadow: 0 0 0 3px var(--accent-soft);
+  box-shadow: 0 0 0 3px var(--accent-soft), var(--shadow);
 }
 
 .composer textarea {
@@ -620,6 +759,7 @@
   background: none;
   color: var(--text);
   font: inherit;
+  font-size: 16px;
   resize: none;
 }
 .composer textarea:focus {
@@ -635,9 +775,9 @@
   width: 34px;
   height: 34px;
   flex: 0 0 auto;
-  border-radius: 9px;
+  border-radius: 8px;
   background: var(--accent);
-  color: #14161b;
+  color: #fffdfa;
   transition: opacity 0.15s, transform 0.15s;
 }
 .send:hover:not(:disabled) {
@@ -650,16 +790,19 @@
 }
 
 .hint {
-  max-width: 760px;
-  margin: 8px auto 0;
+  max-width: 34rem;
+  margin: 9px auto 0;
   text-align: center;
+  font-family: var(--font-ui);
   font-size: 11px;
   color: var(--faint);
 }
 .hint kbd {
-  padding: 1px 4px;
-  border: 1px solid var(--line);
+  padding: 1px 5px;
+  border: 1px solid var(--line-strong);
+  border-bottom-width: 2px;
   border-radius: 3px;
+  background: var(--surface);
   font-family: var(--mono);
   font-size: 10px;
 }
@@ -669,9 +812,10 @@
 .thinking {
   display: flex;
   align-items: center;
-  gap: 7px;
+  gap: 8px;
   color: var(--muted);
-  font-size: 13px;
+  font-style: italic;
+  font-size: 15px;
 }
 .thinking .dots {
   display: flex;
@@ -714,19 +858,21 @@
   gap: 8px;
   z-index: 40;
   max-width: 380px;
+  font-family: var(--font-ui);
 }
 .toast {
-  padding: 10px 14px;
+  padding: 11px 15px;
   border: 1px solid var(--line-strong);
   border-radius: var(--radius);
-  background: var(--surface-2);
-  box-shadow: var(--shadow);
+  background: var(--surface);
+  box-shadow: var(--shadow-lg);
   font-size: 13px;
   animation: rise 0.2s var(--ease) both;
 }
 .toast.error {
-  border-color: #f2777a55;
-  color: #ffb3b5;
+  border-color: #a63f3f55;
+  background: #fdf6f5;
+  color: var(--warn);
 }
 
 /* Narrow screens ---------------------------------------------------------- */
@@ -738,8 +884,11 @@
   .rail {
     display: none;
   }
-  .thread-inner,
-  .composer {
+  .thread-inner {
+    padding-left: 20px;
+    padding-right: 20px;
+  }
+  .composer-wrap {
     padding-left: 16px;
     padding-right: 16px;
   }

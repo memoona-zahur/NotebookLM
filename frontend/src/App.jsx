@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { api, setApiBase } from "./api.js";
 import { Rail } from "./Rail.jsx";
+import { SourcesDrawer } from "./SourcesDrawer.jsx";
 import { Thread } from "./Thread.jsx";
 import { Composer } from "./Composer.jsx";
 
@@ -18,6 +19,7 @@ export default function App() {
   const [pendingFor, setPendingFor] = useState(null);
   const pending = pendingFor === activeId;
   const [uploading, setUploading] = useState(false);
+  const [sourcesOpen, setSourcesOpen] = useState(false);
   const [toasts, setToasts] = useState([]);
 
   // Guards against a slow response for a session the user has already left
@@ -188,27 +190,29 @@ export default function App() {
   return (
     <div className="app">
       <Rail
-        status={status}
         sessions={sessions}
         activeId={activeId}
         onSelect={selectSession}
         onCreate={createSession}
         onDelete={deleteSession}
-        onUpload={upload}
-        onDeleteSource={deleteSource}
-        onClearSources={clearSources}
-        uploading={uploading}
       />
 
       <main className="main">
         <header className="topbar">
           <h1>{active ? active.name : "NotebookLM"}</h1>
           <div className="spacer" />
+          <button
+            className="sources-toggle"
+            onClick={() => setSourcesOpen(true)}
+            aria-haspopup="dialog"
+          >
+            <span>
+              {status ? status.sources.length : 0} source
+              {status && status.sources.length === 1 ? "" : "s"}
+            </span>
+          </button>
           {status ? (
             <div className="topbar-meta">
-              <span className="pill">
-                {status.sources.length} source{status.sources.length === 1 ? "" : "s"}
-              </span>
               <span className="pill live">{status.provider}</span>
             </div>
           ) : null}
@@ -217,6 +221,17 @@ export default function App() {
         <Thread turns={turns} pending={pending} />
         <Composer onSend={send} busy={pending} />
       </main>
+
+      {sourcesOpen ? (
+        <SourcesDrawer
+          status={status}
+          uploading={uploading}
+          onClose={() => setSourcesOpen(false)}
+          onUpload={upload}
+          onDeleteSource={deleteSource}
+          onClearSources={clearSources}
+        />
+      ) : null}
 
       <div className="toasts">
         {toasts.map((t) => (

@@ -1,43 +1,58 @@
 /* Design tokens.
 
-One accent, a neutral ramp, and semantic confidence colours. Everything below
-references these, so the whole surface retunes from this block.
+One accent, a warm paper ramp, and semantic confidence colours. Everything
+below references these, so the whole surface retunes from this block.
 */
 
 :root {
-  /* Neutral ramp, warm-neutral rather than blue-grey: long reading sessions on
-     a pure grey background are fatiguing. */
-  --bg: #0c0d10;
-  --surface: #121419;
-  --surface-2: #171a21;
-  --surface-3: #1e222b;
-  --line: #262b36;
-  --line-strong: #343a48;
+  /* Paper, not screen. A document you are reading should look like it is on
+     paper: warm off-white rather than #fff (which glares on a light background
+     for long stretches) and never blue-grey, which reads as "application". */
+  --paper: #faf7f2;
+  --surface: #fffdfa;
+  --surface-2: #f4f0e8;
+  --surface-3: #ebe5d9;
 
-  --text: #e9ecf3;
-  --text-2: #b3bacb;
-  --muted: #7c8497;
-  --faint: #565e70;
+  /* Warm grey ramp. Text needs more contrast on light than dark: #333 on white
+     is roughly what #bbb on black looks like, so these sit darker than instinct
+     suggests. */
+  --line: #e6dfd2;
+  --line-strong: #d5cbb8;
 
-  /* A single amber accent. Chosen over blue because it reads as "reference
-     material" and stays legible against neutral surfaces without the cold
-     clinical feel. */
-  --accent: #e0a458;
-  --accent-soft: #e0a4581f;
-  --accent-line: #e0a45859;
-  --accent-text: #f2c288;
+  --text: #2c2823;
+  --text-2: #565049;
+  --muted: #7d766c;
+  --faint: #a8a094;
 
-  --good: #5ddba4;
-  --mid: #f0c674;
-  --warn: #f2777a;
+  /* A single terracotta accent. Reads as annotation on a page, and it is the
+     colour of the citation marks, so provenance and emphasis are the same
+     colour - which is the point. */
+  --accent: #b4552d;
+  --accent-soft: #b4552d14;
+  --accent-line: #b4552d45;
+  --accent-text: #8f4223;
 
-  --radius: 10px;
-  --radius-lg: 14px;
+  /* Highlight for a passage a citation scrolled to. Warm yellow, low alpha, so
+     it reads as a marker pen rather than a system alert. */
+  --flash: #f2d99a66;
 
-  --font: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  --good: #3f7d52;
+  --mid: #9a6b1f;
+  --warn: #a63f3f;
+
+  --radius: 8px;
+  --radius-lg: 12px;
+
+  /* Serif for anything the model wrote or that came out of a document: the
+     answer should look like prose. Sans for chrome, so the two never blur
+     together. */
+  --font: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia,
+    "Times New Roman", serif;
+  --font-ui: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
   --mono: "SF Mono", "JetBrains Mono", "Fira Code", ui-monospace, Menlo, monospace;
 
-  --shadow: 0 1px 2px #0006, 0 8px 24px -12px #000a;
+  --shadow: 0 1px 2px #2c28230a, 0 6px 20px -14px #2c282326;
+  --shadow-lg: 0 2px 4px #2c28230f, 0 16px 40px -20px #2c282333;
   --ease: cubic-bezier(0.32, 0.72, 0, 1);
 }
 
@@ -53,11 +68,11 @@ body,
 
 body {
   margin: 0;
-  background: var(--bg);
+  background: var(--paper);
   color: var(--text);
   font-family: var(--font);
-  font-size: 14.5px;
-  line-height: 1.6;
+  font-size: 16px;
+  line-height: 1.65;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
 }
@@ -77,6 +92,12 @@ textarea:focus-visible {
   outline-offset: 2px;
 }
 
+input,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+
 /* Thin scrollbars, so the rail and evidence panes do not get loud. */
 * {
   scrollbar-width: thin;
@@ -93,7 +114,7 @@ textarea:focus-visible {
   background-clip: content-box;
 }
 *::-webkit-scrollbar-thumb:hover {
-  background: #475064;
+  background: #c0b5a0;
   background-clip: content-box;
 }
 

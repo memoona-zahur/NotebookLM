@@ -108,7 +108,7 @@ export function Thread({ turns, pending }) {
           <Turn key={i} turn={turn} />
         ))}
         {pending ? (
-          <article className="turn bot">
+          <article className="turn assistant">
             <div className="who">
               <span className="dot" aria-hidden="true" />
               NotebookLM
