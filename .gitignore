@@ -3,3 +3,9 @@ data/
 __pycache__/
 *.pyc
 .venv/
+
+# Frontend: node_modules is reproducible from package-lock.json. The built
+# bundle in static/ is committed on purpose, so `pip install -r
+# requirements.txt` and `python run.py` work without a Node toolchain.
+node_modules/
+frontend/.vite/

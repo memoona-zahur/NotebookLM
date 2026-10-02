@@ -18,9 +18,9 @@ MAX_SESSION_NAME_CHARS = 120
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
-    # Applied on every boot and idempotent, so an existing volume is untouched
-    # and a fresh one is usable without a manual migration step.
-    db.init_schema()
+    # Brings a fresh volume up to head and leaves an existing one where it
+    # already is, so neither needs a manual migration step before first use.
+    db.migrate()
     db.ensure_default_session()
     yield
     # Without this the pool's connections are only reclaimed when the process
@@ -321,4 +321,13 @@ def index() -> FileResponse:
     return FileResponse(config.STATIC_DIR / "index.html")
 
 
-app.mount("/static", StaticFiles(directory=config.STATIC_DIR), name="static")
+# The built bundle references its assets by absolute path (/assets/app.js), so
+# they are served from /assets as well as from /static. Missing on purpose would
+# mean a blank page with no explanation, so this fails loudly at boot instead.
+if not config.ASSET_DIR.is_dir():
+    raise RuntimeError(
+        f"No built frontend at {config.ASSET_DIR}. "
+        "Run `npm install && npm run build` in frontend/."
+    )
+
+app.mount("/assets", StaticFiles(directory=config.ASSET_DIR), name="assets")

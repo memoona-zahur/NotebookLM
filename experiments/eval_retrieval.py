@@ -307,7 +307,7 @@ def sensitivity(stores):
 
 
 if __name__ == "__main__":
-    db.init_schema()
+    db.migrate()
     stores = build_stores()
     evaluate_from(stores)
     sensitivity(stores)

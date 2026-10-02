@@ -1,8 +1,11 @@
-"""Database access: connection pool, schema, and session-scoped queries.
+"""Database access: connection pool, migrations, and session-scoped queries.
 
 Everything persistent lives in one Postgres: source records, chunk text, chunk
 vectors (pgvector), chat messages, and session metadata. One store means one
 backup and one thing to reason about at 3am.
+
+The schema is owned by Alembic in `migrations/`, not by this module; see
+`migrate()` below.
 """
 
 from __future__ import annotations
@@ -65,85 +68,50 @@ def connection() -> Iterator:
             yield conn
 
 
-SCHEMA = """
-CREATE EXTENSION IF NOT EXISTS vector;
-CREATE EXTENSION IF NOT EXISTS pgcrypto;
-
--- A session is the unit of work: its own sources and its own chat history.
-CREATE TABLE IF NOT EXISTS sessions (
-    id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    name        TEXT NOT NULL,
-    -- At most one row may carry this, enforced by the partial unique index
-    -- below. Identifying the default session by a flag rather than by name
-    -- means a user can call their own session whatever they like without
-    -- colliding with it.
-    is_default  BOOLEAN NOT NULL DEFAULT FALSE,
-    created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
-    updated_at  TIMESTAMPTZ NOT NULL DEFAULT now()
-);
-
-ALTER TABLE sessions ADD COLUMN IF NOT EXISTS is_default BOOLEAN NOT NULL DEFAULT FALSE;
-CREATE UNIQUE INDEX IF NOT EXISTS sessions_one_default_idx
-    ON sessions (is_default) WHERE is_default;
-
-CREATE TABLE IF NOT EXISTS sources (
-    id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    session_id    UUID NOT NULL REFERENCES sessions(id) ON DELETE CASCADE,
-    name          TEXT NOT NULL,
-    kind          TEXT NOT NULL,
-    pages         INTEGER NOT NULL DEFAULT 0,
-    chunk_count   INTEGER NOT NULL DEFAULT 0,
-    numeric_count INTEGER NOT NULL DEFAULT 0,
-    storage_path  TEXT NOT NULL DEFAULT '',
-    created_at    TIMESTAMPTZ NOT NULL DEFAULT now()
-);
-CREATE INDEX IF NOT EXISTS sources_session_idx ON sources(session_id);
-
--- Applied after the CREATE TABLE statements so a database created by an older
--- version picks the column up. IF NOT EXISTS keeps this safe to re-run.
-ALTER TABLE sources ADD COLUMN IF NOT EXISTS storage_path TEXT NOT NULL DEFAULT '';
-
--- One row per indexed chunk. `embedding` is the pgvector column searched by
--- ANN index; `text` is kept so a retrieved row needs no second lookup.
-CREATE TABLE IF NOT EXISTS chunks (
-    id            BIGSERIAL PRIMARY KEY,
-    source_id     UUID NOT NULL REFERENCES sources(id) ON DELETE CASCADE,
-    position      INTEGER NOT NULL,
-    page          INTEGER NOT NULL DEFAULT 0,
-    heading       TEXT NOT NULL DEFAULT '',
-    text          TEXT NOT NULL,
-    numeric_heavy BOOLEAN NOT NULL DEFAULT FALSE,
-    embedding     vector({dim}) NOT NULL,
-    UNIQUE (source_id, position)
-);
-CREATE INDEX IF NOT EXISTS chunks_source_idx ON chunks(source_id);
-
--- Chat history, per session. role is constrained so a row can never hold a
--- 'system' turn that would compete with the grounding instructions.
-CREATE TABLE IF NOT EXISTS messages (
-    id         BIGSERIAL PRIMARY KEY,
-    session_id UUID NOT NULL REFERENCES sessions(id) ON DELETE CASCADE,
-    role       TEXT NOT NULL CHECK (role IN ('user', 'assistant')),
-    content    TEXT NOT NULL,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
-);
-CREATE INDEX IF NOT EXISTS messages_session_idx ON messages(session_id, id);
-"""
+# The schema itself lives in migrations/versions, not here. Alembic applies it in
+# order and records what it did, so a column rename or a data backfill is
+# expressible and a deployment knows which revision a database is on. Boot-time
+# DDL cannot do either.
 
 
-def init_schema() -> None:
-    """Apply the schema. Idempotent, so it is safe on every boot."""
+def alembic_config():
+    """Alembic config bound to this application's DSN."""
+    from alembic.config import Config
+
+    cfg = Config(str(config.BASE_DIR / "alembic.ini"))
+    # Left unset on purpose: env.py falls back to dsn(), which reads DATABASE_URL
+    # and so follows the same environment the app does.
+    cfg.set_main_option("sqlalchemy.url", "")
+    return cfg
+
+
+def migrate() -> str:
+    """Apply every pending migration. Returns the revision now at head.
+
+    Called on boot so a fresh volume is usable with no manual step and an
+    existing one is upgraded in place. Alembic is a no-op when already current,
+    so this is safe on every start.
+    """
+    from alembic import command
+
+    cfg = alembic_config()
+    command.upgrade(cfg, "head")
+    return current_revision() or ""
+
+
+def current_revision() -> str | None:
+    """Which revision this database is on, or None if it has never been migrated."""
     with pool().connection() as conn:
-        conn.execute(SCHEMA.format(dim=config.EMBED_DIM))
-        # HNSW gives approximate nearest-neighbour search over the vectors.
-        # Created outside the DDL string because IF NOT EXISTS on an index that
-        # already exists is still fine, but the vector() cast needs the column
-        # to exist first.
-        conn.execute(
-            "CREATE INDEX IF NOT EXISTS chunks_embedding_hnsw "
-            "ON chunks USING hnsw (embedding vector_cosine_ops)"
-        )
-        conn.commit()
+        row = conn.execute(
+            "SELECT version_num FROM alembic_version"
+        ).fetchone()
+    return row[0] if row else None
+
+
+def head_revision() -> str | None:
+    from alembic.script import ScriptDirectory
+
+    return ScriptDirectory.from_config(alembic_config()).get_current_head()
 
 
 # ---------------------------------------------------------------------------

@@ -44,13 +44,19 @@ services:
     ports:
       - "${APP_PORT:-8000}:8000"
     healthcheck:
-      # Deliberately hits /api/status, not "/": that endpoint touches the
-      # database, so this also proves the schema was applied successfully.
-      test: ["CMD-SHELL", "python -c \"import urllib.request;urllib.request.urlopen('http://localhost:8000/api/status').read()\""]
+      # Hits /api/status, not "/": that endpoint touches the database, so this
+      # proves the schema was applied and migrations ran, not just that a port
+      # is open. urllib is used because slim images carry no curl.
+      test:
+        - CMD
+        - python
+        - -c
+        - import urllib.request;urllib.request.urlopen('http://localhost:8000/api/status').read()
       interval: 10s
       timeout: 5s
       retries: 12
-      start_period: 90s
+      # Generous: the first boot downloads the embedding model, which is slow.
+      start_period: 120s
     restart: unless-stopped
 
 volumes:

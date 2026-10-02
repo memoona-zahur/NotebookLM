@@ -1,3 +1,5 @@
+frontend/node_modules
+frontend/.vite
 .git
 .gitignore
 data
@@ -18,3 +20,6 @@ __pycache__
 .mypy_cache
 .ruff_cache
 .DS_Store
+
+# Nothing below is excluded: frontend/package*.json, index.html, vite.config.js
+# and src/ all reach the build stage, which is the whole point of it.

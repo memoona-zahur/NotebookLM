@@ -3,6 +3,9 @@ from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 STATIC_DIR = BASE_DIR / "static"
+# Vite writes the compiled bundle to static/assets; the HTML references it by
+# absolute path, so the directory has to exist before the app serves anything.
+ASSET_DIR = STATIC_DIR / "assets"
 DATA_DIR = BASE_DIR / "data"
 
 

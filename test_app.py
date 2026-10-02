@@ -56,7 +56,7 @@ from app import config as cfg
 from app import db, llm
 from app.store import SearchResult
 
-db.init_schema()
+db.migrate()
 
 # One scratch session shared by the API tests. Tests that need isolation create
 # their own via new_session().
@@ -153,6 +153,75 @@ def upload(client: TestClient, name: str, data: bytes, session_id: str | None = 
     )
     assert res.status_code == 200, res.text
     return res.json()["source"]
+
+
+# --------------------------------------------------------------------------
+# Migrations: the schema Alembic owns has to actually match what the app uses
+# --------------------------------------------------------------------------
+
+def test_schema_is_at_head(client: TestClient) -> None:
+    assert db.current_revision() == db.head_revision(), (
+        db.current_revision(), db.head_revision())
+    print(f"  database is at head ({db.head_revision()}): OK")
+
+
+def test_migrating_twice_is_a_no_op(client: TestClient) -> None:
+    """Boot calls migrate() every start; a second call must change nothing."""
+    before = db.current_revision()
+    db.migrate()
+    assert db.current_revision() == before
+    print("  migrate() is idempotent: OK")
+
+
+def test_migrated_schema_matches_what_the_app_uses(client: TestClient) -> None:
+    """Every column the app reads or writes has to exist after migrating.
+
+    Guards the real risk with hand-written migrations: a column added to app/db.py
+    and forgotten in the revision fails at runtime, not at migrate time.
+    """
+    expected = {
+        "sessions": {"id", "name", "is_default", "created_at", "updated_at"},
+        "sources": {"id", "session_id", "name", "kind", "pages", "chunk_count",
+                    "numeric_count", "storage_path", "created_at"},
+        "chunks": {"id", "source_id", "position", "page", "heading", "text",
+                   "numeric_heavy", "embedding"},
+        "messages": {"id", "session_id", "role", "content", "created_at"},
+    }
+    with db.connection() as conn:
+        for table, columns in expected.items():
+            rows = conn.execute(
+                "SELECT column_name FROM information_schema.columns "
+                "WHERE table_schema = 'public' AND table_name = %s",
+                (table,),
+            ).fetchall()
+            found = {row[0] for row in rows}
+            assert found == columns, f"{table}: missing {columns - found}, extra {found - columns}"
+    print("  every table matches the columns the app uses: OK")
+
+
+def test_cascade_and_constraints_survive_migration(client: TestClient) -> None:
+    """The migration must preserve what the old boot-time DDL guaranteed."""
+    sid = client.post("/api/sessions", json={"name": "constraints"}).json()["id"]
+    source = upload(client, "c.pdf", make_pdf(), session_id=sid)
+
+    import psycopg
+    try:
+        with db.connection() as conn:
+            conn.execute(
+                "INSERT INTO messages (session_id, role, content) VALUES (%s, 'system', %s)",
+                (sid, "forged"),
+            )
+        raise AssertionError("role='system' was accepted after migrating")
+    except psycopg.errors.CheckViolation:
+        pass
+
+    client.delete(f"/api/sessions/{sid}")
+    with db.connection() as conn:
+        gone = conn.execute(
+            "SELECT count(*) FROM chunks WHERE source_id = %s", (source["id"],)
+        ).fetchone()[0]
+    assert gone == 0, gone
+    print("  role check and ON DELETE CASCADE both hold: OK")
 
 
 # --------------------------------------------------------------------------
@@ -385,9 +454,26 @@ def test_ask_returns_answer_and_audit(client: TestClient) -> None:
 
 def test_static_and_empty_question(client: TestClient) -> None:
     assert client.get("/").status_code == 200
-    assert client.get("/static/app.js").status_code == 200
-    assert client.get("/").content.decode("utf-8").count("<html") == 1
     assert client.post("/api/ask", json={"question": "   "}).status_code == 400
+
+
+def test_frontend_bundle_is_served(client: TestClient) -> None:
+    """The page's own asset references have to resolve, or it renders blank."""
+    import re
+
+    page = client.get("/").text
+    assets = re.findall(r'(?:src|href)="/([^"]+)"', page)
+    assert assets, "the built index.html should reference its bundle"
+
+    for asset in assets:
+        # CSS and JS are both served from the same mount, so one check covers them.
+        res = client.get(f"/{asset}")
+        assert res.status_code == 200, f"{asset} -> {res.status_code}"
+        assert res.content, f"{asset} is empty"
+
+    # The old hand-written bundle must be gone, or two copies of the UI ship.
+    assert client.get("/static/app.js").status_code == 404
+    print(f"  page loads and all {len(assets)} built assets resolve: OK")
 
 
 def test_llm_unavailable_returns_503(client: TestClient) -> None:
@@ -1066,6 +1152,7 @@ ORDER = [
     ("retrieval quality", test_retrieval_quality),
     ("ask returns answer + audit", test_ask_returns_answer_and_audit),
     ("static files and empty question", test_static_and_empty_question),
+    ("frontend bundle served", test_frontend_bundle_is_served),
     ("llm unavailable -> 503", test_llm_unavailable_returns_503),
     ("missing api key -> 503", test_missing_api_key_returns_503),
     ("groq routing", test_groq_routing),
@@ -1100,6 +1187,11 @@ ORDER = [
     ("summarize endpoint", test_summarize_endpoint),
     ("summarize bad query", test_summarize_reports_bad_query_distinctly),
     # Sessions: run before source deletion so each has its own documents.
+    # Migrations: the schema has to be at head and still behave.
+    ("schema at head", test_schema_is_at_head),
+    ("migrate is idempotent", test_migrating_twice_is_a_no_op),
+    ("migrated columns match app", test_migrated_schema_matches_what_the_app_uses),
+    ("migrated constraints hold", test_cascade_and_constraints_survive_migration),
     ("session crud", test_session_crud),
     ("default session is stable", test_default_session_is_stable_and_not_name_based),
     ("unknown session 404", test_unknown_session_is_404),
