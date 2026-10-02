@@ -426,7 +426,6 @@ def _parse_python(text: str) -> list[Block]:
 
     lines = text.splitlines()
     blocks: list[Block] = []
-    stack: list[str] = []
 
     def visit(node, prefix: str) -> None:
         for child in ast.iter_child_nodes(node):
@@ -435,7 +434,6 @@ def _parse_python(text: str) -> list[Block]:
                 path = f"{prefix}{name}"
                 start = child.lineno - 1
                 end = getattr(child, "end_lineno", start + 1)
-                signature = lines[start] if start < len(lines) else name
                 body = "\n".join(lines[start:end]).rstrip()
                 if body:
                     blocks.append(Block(text=f"{path}\n{body}", heading=path))

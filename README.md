@@ -8,12 +8,41 @@ answers with inline citations that link back to the exact source passage.
 | Piece | Choice |
 |---|---|
 | API | FastAPI |
+| Database | PostgreSQL 16 with `pgvector` |
 | Embeddings | `sentence-transformers/all-MiniLM-L6-v2` (runs locally) |
-| Vector store | Qdrant, in-memory (`:memory:`) |
 | LLM | Groq (`openai/gpt-oss-120b`) by default, or OpenAI / Ollama |
 | UI | Vanilla HTML/CSS/JS served by FastAPI |
+| Deployment | Docker Compose |
 
-## Setup
+One Postgres holds everything persistent: sessions, source records, chunk text,
+chunk vectors, and chat history. No separate vector database, so there is one
+store to back up and one thing to reason about.
+
+## Run with Docker
+
+```bash
+cp .env.example .env       # paste your GROQ_API_KEY into .env
+docker compose up --build
+```
+
+Open http://127.0.0.1:8000
+
+The `db` service health-gates the app, so the app never starts against a
+database that cannot accept queries. The schema is applied on boot and is
+idempotent, so an existing volume is upgraded in place.
+
+Data survives `docker compose down`: source vectors live in the `pgdata`
+volume and uploaded files in the `uploads` volume. Use
+`docker compose down -v` to delete both.
+
+## Run without Docker
+
+You need a PostgreSQL 16 server with the `vector` extension available
+(`pgvector`):
+
+```bash
+docker compose up -d db      # just the database, if you prefer to run the app locally
+```
 
 Windows:
 
@@ -21,6 +50,7 @@ Windows:
 python -m venv .venv
 .venv\Scripts\pip install -r requirements.txt
 copy .env.example .env      # then paste your GROQ_API_KEY into .env
+.venv\Scripts\python run.py
 ```
 
 Linux / macOS:
@@ -29,7 +59,11 @@ Linux / macOS:
 python3 -m venv .venv
 .venv/bin/pip install -r requirements.txt
 cp .env.example .env        # then paste your GROQ_API_KEY into .env
+.venv/bin/python run.py
 ```
+
+Point `DATABASE_URL` in `.env` at your server if it is not on
+`localhost:5432` with the default credentials.
 
 The venv is strongly recommended: `sentence-transformers` pulls in PyTorch, and the
 default wheel is the CUDA build (~6 GB). On a CPU-only machine, install the CPU
@@ -39,13 +73,20 @@ wheel instead:
 .venv/bin/pip install --index-url https://download.pytorch.org/whl/cpu torch
 ```
 
-## Run
+Open http://127.0.0.1:8000
 
-```powershell
-.venv\Scripts\python run.py
+## Tests
+
+The suite needs a real Postgres: it creates a scratch database, runs against it,
+and drops it, so it can never touch real data.
+
+```bash
+docker compose up -d db
+.venv/bin/python test_app.py
 ```
 
-Open http://127.0.0.1:8000
+To use a database elsewhere, set `TEST_DATABASE_ADMIN_URL` and
+`TEST_DATABASE_NAME`.
 
 ## Configuration
 
@@ -59,23 +100,43 @@ Everything is set in `.env` (all optional):
 | `OPENAI_API_KEY` | – | Fallback provider |
 | `OLLAMA_MODEL` | `llama3.1` | Used when no API key is set |
 | `LLM_PROVIDER` | auto | Force `groq` / `openai` / `ollama` |
+| `DATABASE_URL` | `postgresql://notebooklm:notebooklm@localhost:5432/notebooklm` | Use host `db` under Compose |
+| `DB_POOL_MAX` | `8` | Connection pool size |
+| `UPLOAD_DIR` | `./data/uploads` | Where originals are kept for re-indexing |
+| `BASE_URL` | derived from the request | Set when the browser cannot infer the API origin |
 | `CHUNK_SIZE` | `900` | Characters per chunk |
 | `CHUNK_OVERLAP` | `150` | |
 | `TOP_K` | `6` | Passes retrieved to the model |
 | `MAX_CONTEXT_CHARS` | `14000` | Truncation guard |
 | `MIN_SCORE` | `0.25` | Relevance floor - see below |
 | `MAX_PER_SOURCE` | `3` | Max chunks from one source, so answers can span sources |
-| `HISTORY_TURNS` | `6` | Prior turns sent for follow-ups (`0` disables) |
+| `HISTORY_TURNS` | `6` | Prior turns read for follow-ups (`0` disables) |
+
+## Sessions
+
+Everything lives inside a session: its own sources and its own chat history. Create
+one from the sidebar, switch between them, and two sessions never see each other's
+documents or transcript. History is stored server-side, so a chat survives a refresh
+or a different browser.
 
 ## API
 
+Every route below accepts an optional `session_id` query parameter and acts on that
+session; without one it uses the default session.
+
 | Method | Route | Purpose |
 |---|---|---|
+| `GET` | `/api/sessions` | List sessions |
+| `POST` | `/api/sessions` | Create a session (`{name}`) |
+| `GET` | `/api/sessions/{id}` | One session plus its stored transcript |
+| `PATCH` | `/api/sessions/{id}` | Rename |
+| `DELETE` | `/api/sessions/{id}` | Delete it with its sources and history |
+| `POST` | `/api/sessions/{id}/messages/clear` | Clear the transcript, keep sources |
 | `GET` | `/api/status` | Provider, model, source/chunk counts, tuning |
 | `POST` | `/api/sources` | Upload a file (multipart `file`) |
 | `DELETE` | `/api/sources/{id}` | Remove one source |
-| `DELETE` | `/api/sources` | Clear the notebook |
-| `POST` | `/api/ask` | `{question, history}` → `{answer, citations, evidence}` |
+| `DELETE` | `/api/sources` | Clear the session's sources |
+| `POST` | `/api/ask` | `{question}` → `{answer, citations, evidence}` |
 | `POST` | `/api/summarize` | `{instruction}` → `{summary, citations, evidence}` |
 
 If the LLM backend is unreachable, `/api/ask` returns `503` with a message telling you
@@ -103,9 +164,11 @@ Four rules enforce that, all server-side:
 
 3. **History is context, never evidence.** Prior turns are passed in a block explicitly
    labelled *not a source*, placed **before** the SOURCES block so the passages that may
-   be cited are the freshest thing in the context window. `role` is validated against
-   `user | assistant` by the request schema, so a client cannot inject a `system` turn to
-   override the grounding rules (that attempt returns `422`).
+   be cited are the freshest thing in the context window. The transcript is read from
+   Postgres, not from the request: there is no `history` field on `/api/ask`, so a client
+   cannot supply turns it never asked. The `messages` table also constrains `role` to
+   `user | assistant`, so no `system` turn can be stored to compete with the grounding
+   rules.
 
 4. Cross-source diversity.** At most `MAX_PER_SOURCE` chunks come from any one source,
    so a single long document cannot crowd out the rest of the notebook. This is a
@@ -205,7 +268,8 @@ and a floor of `0` disables relevance gating altogether.
 .venv\Scripts\python experiments\eval_retrieval.py
 ```
 
-Builds **20 documents across 15 file formats and 19 unrelated subjects** - brewing,
+Creates one session per document, then builds **20 documents across 15 file formats
+and 19 unrelated subjects** - brewing,
 pharmacology, glaciology, catalysis, contract law, music theory, horticulture, football,
 mining, agriculture, retail data, IoT telemetry, ML configs - plus any real PDF in
 `data/uploads`, and reports per-question verdicts, per-format aggregates, a threshold
@@ -237,13 +301,14 @@ precautions, not validated wins, and are documented as such.
 
 ## How grounding works
 
-1. Files are parsed per format by `app/parsers.py` (36 suffixes, see above) into blocks that
+1. Files are parsed per format by `app/parsers.py` (39 suffixes, see above) into blocks that
    carry a page number and a heading, then split into overlapping chunks on paragraph,
    sentence, line or word boundaries depending on content.
 2. Numeric-flat chunks are flagged `numeric_heavy`. **Nothing is discarded.**
-3. Each chunk is embedded with MiniLM and upserted into Qdrant with payload
-   `{source_id, source, page, heading, text, numeric_heavy, chunk_id}`. A BM25 index over the
-   same chunks is kept in memory alongside it.
+3. Each chunk is embedded with MiniLM and inserted into `chunks` with its text, page,
+   heading, and a `vector(384)` column searched through an HNSW cosine index. A BM25
+   index over the same chunks is built on demand and cached in memory per session,
+   rebuilt only when that session's chunk count changes.
 4. A question is embedded and cosine-searched, and separately scored by BM25. The candidate
    set is the **union** of both, over-fetching 4x so the per-source cap has choices, and the
    two rankings are fused with RRF.
@@ -266,23 +331,22 @@ precautions, not validated wins, and are documented as such.
 
 ## Tests
 
-```powershell
-.venv\Scripts\python test_app.py
-```
-
-38 checks covering upload, per-format parsing (including YAML/TOML/INI and hard-wrapped
+48 checks covering upload, per-format parsing (including YAML/TOML/INI and hard-wrapped
 text), chunking, hybrid retrieval, numeric damping, citations, the 503 LLM-down path, Groq
-routing, BOM handling, and the grounding guarantees above (relevance floor, citation
-validation, history hardening, cross-source diversity). The LLM is stubbed, so no API key is
-needed to run them.
+routing, BOM handling, sessions (CRUD, source scoping, retrieval isolation, transcript
+persistence, cascading deletes, and surviving a restart), and the grounding guarantees
+above (relevance floor, citation validation, history hardening, cross-source diversity).
+The LLM is stubbed, so no API key is needed to run them.
 
 A failed check no longer stops the run: every check is reported and the process exits
 non-zero if any failed.
 
 ## Known limitations
 
-- The index is **in-memory**. Restarting the server clears it; uploaded files stay in
-  `data/uploads` but must be re-added (and are never cleaned up automatically).
+- Schema changes rely on idempotent DDL rather than a versioned migration tool. Adding a
+  column is fine; a rewrite or a backfill would want `alembic`.
+- Uploads are kept on disk so a source can be re-indexed without re-uploading. Each delete
+  path cleans up its own files; a hard crash mid-session can still leave an orphan.
 - No reranking. Fused dense + BM25 order goes straight to the prompt. See the entity-overlap
   note above for the one case that measurably needs a cross-encoder.
 - Table content is **dropped rather than parsed**. Structured extraction (repeating the

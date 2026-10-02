@@ -1,11 +1,53 @@
 const $ = (id) => document.getElementById(id);
-const history = [];
-const MAX_CLIENT_HISTORY = 16;
+const MAX_TRANSCRIPT_ROWS = 200;
 
 const pct = (score) => `${Math.round((score || 0) * 100)}%`;
 
+// The active session is server state, not browser state. Every call carries it,
+// so switching sessions in another tab cannot make this tab ask the wrong
+// question of the wrong documents.
+let sessionId = null;
+let apiBase = "";
+
+function url(path) {
+  // `apiBase` is derived from the page origin unless the server overrides it,
+  // which keeps the app working when it is served from a subpath.
+  return `${apiBase || ""}${path}${path.includes("?") ? "&" : "?"}session_id=${encodeURIComponent(sessionId)}`;
+}
+
+async function loadSessions() {
+  const res = await fetch(`${apiBase}/api/sessions`);
+  const data = await res.json();
+  const select = $("session-select");
+  select.innerHTML = "";
+  data.sessions.forEach((s) => {
+    const option = document.createElement("option");
+    option.value = s.id;
+    option.textContent = s.name;
+    select.appendChild(option);
+  });
+  return data.sessions;
+}
+
+async function openSession(id) {
+  sessionId = id;
+  const res = await fetch(`${apiBase}/api/sessions/${encodeURIComponent(id)}`);
+  const data = await res.json();
+  apiBase = data.api_base || "";
+  $("session-select").value = id;
+
+  // Replay the stored transcript instead of keeping it in this tab, so a
+  // refresh or a different browser shows the same conversation.
+  const box = $("messages");
+  box.innerHTML = "";
+  (data.history || []).forEach((turn) => {
+    addMessage(turn.role === "assistant" ? "bot" : "user", turn.content);
+  });
+  await refresh();
+}
+
 async function refresh() {
-  const data = await (await fetch("/api/status")).json();
+  const data = await (await fetch(url("/api/status"))).json();
   const list = $("sources");
   list.innerHTML = "";
   if (!data.sources.length) {
@@ -15,7 +57,7 @@ async function refresh() {
     const li = document.createElement("li");
     li.innerHTML = `<span class="name" title="${s.name}">${s.name}</span><button class="x">&times;</button>`;
     li.querySelector(".x").onclick = async () => {
-      await fetch(`/api/sources/${s.id}`, { method: "DELETE" });
+      await fetch(url(`/api/sources/${s.id}`), { method: "DELETE" });
       refresh();
     };
     list.appendChild(li);
@@ -168,7 +210,7 @@ $("file").onchange = async (e) => {
   for (const file of files) {
     const fd = new FormData();
     fd.append("file", file);
-    const res = await fetch("/api/sources", { method: "POST", body: fd });
+    const res = await fetch(url("/api/sources"), { method: "POST", body: fd });
     const out = await res.json();
     if (!res.ok) addMessage("bot", `Failed: ${out.detail}`);
   }
@@ -187,8 +229,38 @@ drop.ondrop = (e) => {
 };
 
 $("clear").onclick = async () => {
-  await fetch("/api/sources", { method: "DELETE" });
+  await fetch(url("/api/sources"), { method: "DELETE" });
   refresh();
+};
+
+$("session-select").onchange = async (e) => {
+  await openSession(e.target.value);
+};
+
+$("session-new").onclick = async () => {
+  const name = prompt("Name this session", "New session");
+  if (name === null) return;
+  const res = await fetch(`${apiBase}/api/sessions`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ name }),
+  });
+  const data = await res.json();
+  await loadSessions();
+  await openSession(data.id);
+};
+
+$("session-delete").onclick = async () => {
+  if (!confirm("Delete this session, its sources and its chat history?")) return;
+  await fetch(`${apiBase}/api/sessions/${encodeURIComponent(sessionId)}`, {
+    method: "DELETE",
+  });
+  const sessions = await loadSessions();
+  if (!sessions.length) {
+    addMessage("bot", "All sessions deleted.");
+    return;
+  }
+  await openSession(sessions[0].id);
 };
 
 $("form").onsubmit = async (e) => {
@@ -200,10 +272,12 @@ $("form").onsubmit = async (e) => {
   addMessage("user", q);
   const pending = addMessage("bot", "Thinking...");
 
-  const res = await fetch("/api/ask", {
+  const res = await fetch(url("/api/ask"), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ question: q, history }),
+    // No history in the body: the server owns the transcript, so a question
+    // cannot be answered against a conversation this tab made up.
+    body: JSON.stringify({ question: q }),
   });
   const out = await res.json();
   pending.innerHTML = '<div class="who">Assistant</div>';
@@ -215,12 +289,6 @@ $("form").onsubmit = async (e) => {
     addEvidence(pending, out.evidence);
     const cards = addCitations(pending, out.citations, out.evidence && out.evidence.cited);
     linkifyCitations(body, cards);
-    // A refused question has no real answer, so keep it out of the thread
-    // rather than teaching the model its own canned text.
-    if (out.evidence && out.evidence.verdict === "answered") {
-      history.push({ role: "user", content: q }, { role: "assistant", content: out.answer });
-      while (history.length > MAX_CLIENT_HISTORY) history.shift();
-    }
   }
   $("messages").scrollTop = $("messages").scrollHeight;
 };
@@ -233,4 +301,18 @@ $("q").addEventListener("keydown", (e) => {
   if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); $("form").requestSubmit(); }
 });
 
-refresh();
+(async function boot() {
+  const sessions = await loadSessions();
+  if (sessions.length) {
+    await openSession(sessions[0].id);
+  } else {
+    const res = await fetch(`${apiBase}/api/sessions`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: "My session" }),
+    });
+    const data = await res.json();
+    await loadSessions();
+    await openSession(data.id);
+  }
+})();

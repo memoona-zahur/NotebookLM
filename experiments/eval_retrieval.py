@@ -18,7 +18,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from app import config, parsers  # noqa: E402
+from app import config, db, parsers  # noqa: E402
 from app.store import VectorStore  # noqa: E402
 from experiments import corpus  # noqa: E402
 
@@ -49,7 +49,7 @@ def _agronomy_questions():
 QUESTION_SETS["agronomy.docx"] = _agronomy_questions()
 
 
-def query_store(store, questions):
+def query_store(store, questions, session_id):
     """Run every question against an already-built index.
 
     Separate from indexing so a config sweep can vary the retrieval settings and
@@ -58,7 +58,7 @@ def query_store(store, questions):
     results = []
     for kind in ("relevant", "trap"):
         for question in questions[kind]:
-            outcome = store.search_detailed(question, top_k=5)
+            outcome = store.search_detailed(question, session_id=session_id, top_k=5)
             results.append(
                 {
                     "kind": kind,
@@ -81,9 +81,13 @@ def build_stores():
             print(f"  missing corpus file: {name}")
             continue
         store = VectorStore()
-        source = store.add(path, display_name=name)
+        # One session per document: each document is retrieved in isolation, so
+        # a hit can only come from the document under test.
+        session = db.create_session(f"eval: {name}")
+        source = store.add(path, display_name=name, session_id=str(session.id))
         stores[name] = {
             "store": store,
+            "session_id": str(session.id),
             "display": name,
             "format": path.suffix.lower().lstrip("."),
             "chunks": source.chunks,
@@ -92,9 +96,11 @@ def build_stores():
         }
     if REAL_PDF is not None:
         store = VectorStore()
-        source = store.add(REAL_PDF, display_name="uploaded PDF")
+        session = db.create_session("eval: uploaded PDF")
+        source = store.add(REAL_PDF, display_name="uploaded PDF", session_id=str(session.id))
         stores["uploaded PDF"] = {
             "store": store,
+            "session_id": str(session.id),
             "display": "uploaded PDF",
             "format": "pdf",
             "chunks": source.chunks,
@@ -114,7 +120,7 @@ def collect(stores):
                 "format": info["format"],
                 "chunks": info["chunks"],
                 "numeric": info["numeric"],
-                "results": query_store(info["store"], info["questions"]),
+                "results": query_store(info["store"], info["questions"], info["session_id"]),
             }
         )
     return rows
@@ -134,9 +140,10 @@ def _entity_traps():
         if not path.exists():
             continue
         store = VectorStore()
-        store.add(path, display_name=doc)
+        session = db.create_session(f"eval-trap: {doc}")
+        store.add(path, display_name=doc, session_id=str(session.id))
         for q in pairs:
-            outcome = store.search_detailed(q, top_k=5)
+            outcome = store.search_detailed(q, session_id=str(session.id), top_k=5)
             found.append(
                 {
                     "doc": doc,
@@ -190,7 +197,6 @@ def report(rows, verbose=True):
     trap_ok = sum(1 for _, _, x in trap if not x["answered"])
 
     by_format = defaultdict(lambda: [0, 0, 0, 0])
-    by_doc = {r["name"]: r for r in rows}
     for name, fmt, x in rel:
         b = by_format[fmt]
         b[0] += x["answered"]
@@ -301,6 +307,7 @@ def sensitivity(stores):
 
 
 if __name__ == "__main__":
+    db.init_schema()
     stores = build_stores()
     evaluate_from(stores)
     sensitivity(stores)

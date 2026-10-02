@@ -1,10 +1,8 @@
-import re
-import threading
-import uuid
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
 
 from . import config
+from . import db
 from . import parsers
 from .embeddings import embed_query, embed_texts, score_against_query
 from .lexical import BM25, fuse
@@ -18,18 +16,6 @@ class Source:
     pages: int = 0
     chunks: int = 0
     numeric: int = 0
-
-
-@dataclass
-class Notebook:
-    sources: dict[str, Source] = field(default_factory=dict)
-
-    def stats(self) -> dict:
-        return {
-            "sources": [vars(s) for s in self.sources.values()],
-            "chunks": sum(s.chunks for s in self.sources.values()),
-            "numeric": sum(s.numeric for s in self.sources.values()),
-        }
 
 
 @dataclass
@@ -61,131 +47,181 @@ class SearchResult:
 
 
 class VectorStore:
+    """Chunks, embeddings and BM25, scoped to one session.
+
+    Dense search is a pgvector query; lexical search is an in-memory BM25 over
+    the session's chunks, rebuilt lazily and invalidated when the chunk set
+    changes. BM25 has no natural persistent form, and the sessions here are
+    small enough that rebuilding is cheaper than maintaining an index.
+    """
+
     def __init__(self) -> None:
-        from qdrant_client import QdrantClient
+        self._lexical: dict[str, BM25] = {}
+        self._revision: dict[str, int] = {}
 
-        self._client = QdrantClient(":memory:")
-        self._ready = False
-        self._lock = threading.Lock()
-        self.notebook = Notebook()
-        self._lexical = BM25()
-        self._chunks: dict[str, str] = {}
-        self._meta: dict[str, dict] = {}
+    # -- caching -----------------------------------------------------------
 
-    def stats(self) -> dict:
-        return self.notebook.stats()
+    def _session_revision(self, session_id: str) -> int:
+        with db.connection() as conn:
+            row = conn.execute(
+                "SELECT count(*)::bigint FROM chunks WHERE source_id IN "
+                "(SELECT id FROM sources WHERE session_id = %s)",
+                (session_id,),
+            ).fetchone()
+        return int(row[0])
 
-    def _ensure(self) -> None:
-        if self._ready:
-            return
-        from qdrant_client.models import Distance, VectorParams
+    def _lexical_for(self, session_id: str) -> BM25:
+        """BM25 over the session's chunks, rebuilt only when it changed."""
+        revision = self._session_revision(session_id)
+        if self._revision.get(session_id) != revision:
+            with db.connection() as conn:
+                rows = conn.execute(
+                    "SELECT c.id::text, c.text FROM chunks c "
+                    "JOIN sources s ON s.id = c.source_id WHERE s.session_id = %s",
+                    (session_id,),
+                ).fetchall()
+            index = BM25()
+            index.fit([row[0] for row in rows], [row[1] for row in rows])
+            self._lexical[session_id] = index
+            self._revision[session_id] = revision
+        return self._lexical[session_id]
 
-        with self._lock:
-            if self._ready:
-                return
-            self._client.create_collection(
-                collection_name=config.COLLECTION,
-                vectors_config=VectorParams(
-                    size=config.EMBED_DIM, distance=Distance.COSINE
-                ),
-            )
-            self._ready = True
+    # -- writes ------------------------------------------------------------
 
-    def add(self, path: Path, display_name: str | None = None) -> Source:
-        from qdrant_client.models import PointStruct
-
-        self._ensure()
+    def add(self, path: Path, display_name: str, session_id: str) -> Source:
         blocks = parsers.parse(path)
-        source_id = uuid.uuid4().hex[:12]
         name = display_name or path.name
 
-        payloads: list[dict] = []
-        vectors: list[list[float]] = []
+        keep: list[tuple] = []
         numeric = 0
-
         for position, block in enumerate(blocks):
             if not block.text.strip():
                 continue
             heavy = parsers.is_numeric_heavy(block.text)
             if heavy:
                 numeric += 1
-            payloads.append(
-                {
-                    "source_id": source_id,
-                    "source": name,
-                    "page": block.page,
-                    "heading": block.heading,
-                    "text": block.text,
-                    "numeric_heavy": heavy,
-                    "chunk_id": f"{source_id}:{position}",
-                }
+            keep.append((position, block.page, block.heading, block.text, heavy))
+
+        chunk_count = 0
+        source_id = None
+        with db.connection() as conn:
+            source = conn.execute(
+                "INSERT INTO sources (session_id, name, kind, pages, storage_path) "
+                "VALUES (%s, %s, %s, %s, %s) RETURNING id",
+                (session_id, name, path.suffix.lower().lstrip("."),
+                 len(blocks), str(path)),
+            ).fetchone()
+            source_id = source[0]
+            if keep:
+                vectors = embed_texts([row[3] for row in keep])
+                with conn.cursor() as cur:
+                    cur.executemany(
+                        "INSERT INTO chunks (source_id, position, page, heading, text, "
+                        "numeric_heavy, embedding) VALUES (%s, %s, %s, %s, %s, %s, %s)",
+                        [
+                            (source_id, row[0], row[1], row[2], row[3], row[4], vector)
+                            for row, vector in zip(keep, vectors)
+                        ],
+                    )
+                chunk_count = len(keep)
+            conn.execute(
+                "UPDATE sources SET chunk_count = %s, numeric_count = %s WHERE id = %s",
+                (chunk_count, numeric, source_id),
             )
 
-        if payloads:
-            vectors = embed_texts([p["text"] for p in payloads])
-            self._client.upsert(
-                collection_name=config.COLLECTION,
-                points=[
-                    PointStruct(id=uuid.uuid4().hex, vector=vector, payload=payload)
-                    for vector, payload in zip(vectors, payloads)
-                ],
-            )
-            self._chunks.update({p["chunk_id"]: p["text"] for p in payloads})
-            self._meta.update({p["chunk_id"]: p for p in payloads})
-            self._reindex_lexical()
-
-        source = Source(
-            id=source_id,
+        self._invalidate(session_id)
+        return Source(
+            id=str(source_id),
             name=name,
             kind=path.suffix.lower().lstrip("."),
-            pages=sum(1 for block in blocks if block.page),
-            chunks=len(payloads),
+            pages=len(blocks),
+            chunks=chunk_count,
             numeric=numeric,
         )
-        self.notebook.sources[source_id] = source
-        return source
 
-    def remove(self, source_id: str) -> bool:
-        if source_id not in self.notebook.sources:
+    def remove(self, source_id: str, session_id: str) -> bool:
+        with db.connection() as conn:
+            row = conn.execute(
+                "DELETE FROM sources WHERE id = %s AND session_id = %s "
+                "RETURNING id, storage_path",
+                (source_id, session_id),
+            ).fetchone()
+        self._invalidate(session_id)
+        if row is None:
             return False
-        from qdrant_client.models import FieldCondition, Filter, FilterSelector, MatchValue
-
-        self._ensure()
-        self._client.delete(
-            collection_name=config.COLLECTION,
-            points_selector=FilterSelector(
-                filter=Filter(
-                    must=[FieldCondition(key="source_id", match=MatchValue(value=source_id))]
-                )
-            ),
-        )
-        del self.notebook.sources[source_id]
-        prefix = f"{source_id}:"
-        self._chunks = {k: v for k, v in self._chunks.items() if not k.startswith(prefix)}
-        self._meta = {k: v for k, v in self._meta.items() if not k.startswith(prefix)}
-        self._reindex_lexical()
+        # The database row is gone; drop the uploaded file with it so the
+        # volume does not quietly fill up.
+        if row[1]:
+            Path(row[1]).unlink(missing_ok=True)
         return True
 
-    def clear(self) -> None:
-        self._ensure()
-        self._client.delete_collection(collection_name=config.COLLECTION)
-        self._ready = False
-        self.notebook = Notebook()
-        self._chunks = {}
-        self._meta = {}
-        self._lexical = BM25()
+    def clear(self, session_id: str) -> None:
+        with db.connection() as conn:
+            # ON DELETE CASCADE drops the chunk rows too.
+            paths = conn.execute(
+                "DELETE FROM sources WHERE session_id = %s RETURNING storage_path",
+                (session_id,),
+            ).fetchall()
+        self._invalidate(session_id)
+        for (path,) in paths:
+            if path:
+                Path(path).unlink(missing_ok=True)
 
-    def _reindex_lexical(self) -> None:
-        ids = list(self._chunks)
-        self._lexical.fit(ids, [self._chunks[i] for i in ids])
+    def _invalidate(self, session_id: str) -> None:
+        self._lexical.pop(session_id, None)
+        self._revision.pop(session_id, None)
 
-    def search(self, query: str, top_k: int | None = None) -> list[dict]:
+    def forget(self, session_id: str) -> None:
+        """Drop every cache for a deleted session."""
+        self._invalidate(session_id)
+
+    def storage_path(self, source_id: str, session_id: str) -> Path | None:
+        """Where the original upload for a source lives, if we still have it."""
+        with db.connection() as conn:
+            row = conn.execute(
+                "SELECT storage_path FROM sources WHERE id = %s AND session_id = %s",
+                (source_id, session_id),
+            ).fetchone()
+        return Path(row[0]) if row and row[0] else None
+
+    # -- reads -------------------------------------------------------------
+
+    def sources(self, session_id: str) -> list[Source]:
+        with db.connection() as conn:
+            rows = conn.execute(
+                "SELECT id::text, name, kind, pages, chunk_count, numeric_count "
+                "FROM sources WHERE session_id = %s ORDER BY created_at",
+                (session_id,),
+            ).fetchall()
+        return [Source(*row) for row in rows]
+
+    def stats(self, session_id: str) -> dict:
+        records = self.sources(session_id)
+        return {
+            "sources": [vars(s) for s in records],
+            "chunks": sum(s.chunks for s in records),
+            "numeric": sum(s.numeric for s in records),
+        }
+
+    # -- retrieval ---------------------------------------------------------
+
+    def search(
+        self,
+        query: str,
+        session_id: str,
+        top_k: int | None = None,
+        min_score: float | None = None,
+        max_per_source: int | None = None,
+    ) -> list[dict]:
         """Relevant chunks only, best first. See search_detailed for metadata."""
-        return self.search_detailed(query, top_k).hits
+        return self.search_detailed(
+            query, session_id, top_k, min_score, max_per_source
+        ).hits
 
     def search_detailed(
         self,
         query: str,
+        session_id: str,
         top_k: int | None = None,
         min_score: float | None = None,
         max_per_source: int | None = None,
@@ -200,68 +236,80 @@ class VectorStore:
             ),
         )
 
-        if not self._ready or not self.notebook.sources:
-            return SearchResult(
-                hits=[], best_score=0.0, considered=0, min_score=floor
-            )
+        pool_size = max(limit, limit * 4)
+        query_vector = embed_query(query)
 
-        pool = max(limit, limit * 4)
-        points = self._client.query_points(
-            collection_name=config.COLLECTION,
-            query=embed_query(query),
-            limit=pool,
-            with_payload=True,
-        ).points
+        # Dense candidates from pgvector. Scoped to the session so one session's
+        # documents can never surface in another's answers.
+        with db.connection() as conn:
+            dense_rows = conn.execute(
+                "SELECT c.id::text, c.text, c.page, c.heading, c.numeric_heavy, "
+                "       s.id::text AS source_id, s.name, "
+                "       c.embedding <=> %s::vector AS distance "
+                "FROM chunks c JOIN sources s ON s.id = c.source_id "
+                "WHERE s.session_id = %s "
+                "ORDER BY c.embedding <=> %s::vector LIMIT %s",
+                (query_vector, session_id, query_vector, pool_size),
+            ).fetchall()
 
-        # Candidates are the union of what each retriever likes. Taking only the
-        # dense pool would hide the chunk that lexical search is most confident
-        # about, which in a long document is often far outside the dense top-k.
+        if not dense_rows:
+            return SearchResult(hits=[], best_score=0.0, considered=0, min_score=floor)
+
+        # pgvector returns cosine *distance* (0 = identical, 2 = opposite).
+        # Retrieval has always been calibrated on cosine *similarity*, so the
+        # conversion happens here and nowhere else.
         by_id: dict[str, dict] = {}
 
-        def remember(chunk_id: str, payload: dict, score: float) -> None:
+        def remember(chunk_id: str, source_id: str, name: str, page: int,
+                     heading: str, text: str, numeric: bool, score: float) -> None:
             if chunk_id in by_id:
                 by_id[chunk_id]["score"] = round(score, 4)
                 return
             by_id[chunk_id] = {
                 "chunk_id": chunk_id,
-                "text": payload["text"],
-                "source": payload["source"],
-                "page": payload["page"],
-                "source_id": payload["source_id"],
-                "heading": payload.get("heading", ""),
-                "numeric_heavy": bool(payload.get("numeric_heavy")),
+                "text": text,
+                "source": name,
+                "page": page,
+                "source_id": source_id,
+                "heading": heading or "",
+                "numeric_heavy": bool(numeric),
                 "score": round(score, 4),
                 "support": 0.0,
                 "rescued": False,
             }
 
-        for point in points:
-            remember(point.payload["chunk_id"], point.payload, float(point.score))
+        for chunk_id, text, page, heading, numeric, source_id, name, distance in dense_rows:
+            remember(chunk_id, source_id, name, page, heading, text, numeric, 1.0 - float(distance))
 
         mode = "dense"
-        dense_ranked = sorted(by_id.values(), key=lambda hit: -hit["score"])[:pool]
+        dense_ranked = sorted(by_id.values(), key=lambda hit: -hit["score"])[:pool_size]
 
-        if config.HYBRID_ENABLED and self._chunks:
+        lexical = self._lexical_for(session_id)
+        if config.HYBRID_ENABLED and lexical.ids:
             mode = "hybrid"
-            lexical_ranked = self._lexical.top(query, pool)
-            # Lexical-only candidates are absent from the dense pool, so their
-            # dense score is unknown. It still has to be measured: the decision
-            # to admit or reject is made on the dense scale.
-            covers = dict(
-                (cid, cov) for cid, _s, cov in self._lexical.top(query, len(self._chunks))
-            )
-            unseen = [
-                cid
-                for cid, _bm25, _cov in lexical_ranked
-                if cid not in by_id and cid in self._meta
-            ]
+            lexical_ranked = lexical.top(query, pool_size)
+            # A chunk surfaced only by BM25 has no dense score yet, but the
+            # admission decision is made on the dense scale, so it must be
+            # measured rather than assumed.
+            unseen = [cid for cid, _bm25, _cov in lexical_ranked if cid not in by_id]
             if unseen:
-                query_vector = embed_query(query)
-                for chunk_id, score in zip(
-                    unseen,
-                    score_against_query(query_vector, [self._chunks[cid] for cid in unseen]),
-                ):
-                    remember(chunk_id, self._meta[chunk_id], score)
+                with db.connection() as conn:
+                    rows = conn.execute(
+                        "SELECT c.id::text, c.text, c.page, c.heading, c.numeric_heavy, "
+                        "       s.id::text, s.name, c.embedding <=> %s::vector "
+                        "FROM chunks c JOIN sources s ON s.id = c.source_id "
+                        "WHERE c.id = ANY(%s::bigint[])",
+                        (query_vector, [int(cid) for cid in unseen]),
+                    ).fetchall()
+                measured = score_against_query(
+                    query_vector, [row[1] for row in rows]
+                )
+                for row, score in zip(rows, measured):
+                    remember(row[0], row[5], row[6], row[2], row[3], row[1], row[4], score)
+
+            covers = dict(
+                (cid, cov) for cid, _s, cov in lexical.top(query, len(lexical.ids))
+            )
             for chunk_id, _bm25, _cov in lexical_ranked:
                 if chunk_id in by_id:
                     by_id[chunk_id]["support"] = covers.get(chunk_id, 0.0)
@@ -278,16 +326,13 @@ class VectorStore:
             ]
 
             # A weak dense match with no term overlap is almost always a false
-            # positive; a strong term match with a mediocre dense score is
-            # almost always a real answer the embedding under-scored. Both
-            # directions are admitted explicitly rather than by moving one
-            # global threshold, which the eval corpus shows cannot work.
-            # The lexical rescue is only offered in the default regime: a caller
-            # that passes a stricter floor than MIN_SCORE is asking for strict,
-            # and that request is honoured in full.
+            # positive; a strong term match with a mediocre dense score is almost
+            # always a real answer the embedding under-scored. Both directions are
+            # admitted explicitly rather than by moving one global threshold,
+            # which the eval corpus shows cannot work. The lexical rescue is only
+            # offered in the default regime: a caller that passes a stricter
+            # floor than MIN_SCORE is asking for strict, and gets strict.
             rescue_allowed = floor <= config.DEFAULT_MIN_SCORE
-            # A floor of zero is an explicit request for no relevance gating at
-            # all, so the support requirement is skipped entirely.
             open_floor = floor <= 0.0
             for hit in ordered:
                 strong = hit["score"] >= config.DENSE_STRONG
@@ -329,21 +374,16 @@ class VectorStore:
 
         if not ordered:
             return SearchResult(
-                hits=[],
-                best_score=0.0,
-                considered=len(considered_hits),
-                min_score=floor,
-                floor_applied=floor,
-                numeric_share=round(numeric_share, 4),
-                damped=damped,
-                mode=mode,
+                hits=[], best_score=0.0, considered=len(considered_hits),
+                min_score=floor, floor_applied=floor,
+                numeric_share=round(numeric_share, 4), damped=damped, mode=mode,
             )
 
         best_score = max(hit["score"] for hit in ordered)
-        # A chunk admitted on lexical evidence has already passed an
-        # independent test, so the dense floor must not reject it again.
-        # Everything else faces the absolute floor plus a share of the best hit,
-        # which prunes the weak tail a single strong match drags along.
+        # A chunk admitted on lexical evidence has already passed an independent
+        # test, so the dense floor must not reject it again. Everything else
+        # faces the absolute floor plus a share of the best hit, which prunes the
+        # weak tail a single strong match drags along.
         effective_floor = max(floor, best_score * config.MIN_RATIO)
 
         def admitted(hit: dict) -> bool:
@@ -354,14 +394,9 @@ class VectorStore:
         hits = [hit for hit in ordered if admitted(hit)]
         if not hits:
             return SearchResult(
-                hits=[],
-                best_score=0.0,
-                considered=len(considered_hits),
-                min_score=floor,
-                floor_applied=effective_floor,
-                numeric_share=round(numeric_share, 4),
-                damped=damped,
-                mode=mode,
+                hits=[], best_score=0.0, considered=len(considered_hits),
+                min_score=floor, floor_applied=effective_floor,
+                numeric_share=round(numeric_share, 4), damped=damped, mode=mode,
             )
 
         kept: list[dict] = []
@@ -380,7 +415,8 @@ class VectorStore:
             if per_source.get(hit["source_id"], 0) >= cap:
                 continue
             if take(index):
-                return _result(kept, best_score, hits, floor, effective_floor, numeric_share, damped, mode)
+                return _result(kept, best_score, hits, floor, effective_floor,
+                               numeric_share, damped, mode)
 
         # Backfill: a single-source notebook would otherwise be capped at
         # MAX_PER_SOURCE chunks regardless of TOP_K. The cap is a preference for
@@ -391,7 +427,8 @@ class VectorStore:
             if index not in taken:
                 take(index)
 
-        return _result(kept, best_score, hits, floor, effective_floor, numeric_share, damped, mode)
+        return _result(kept, best_score, hits, floor, effective_floor,
+                       numeric_share, damped, mode)
 
 
 def _result(kept, best_score, hits, floor, effective_floor, numeric_share, damped, mode) -> SearchResult:

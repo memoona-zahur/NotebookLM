@@ -4,10 +4,6 @@ from pathlib import Path
 BASE_DIR = Path(__file__).resolve().parent.parent
 STATIC_DIR = BASE_DIR / "static"
 DATA_DIR = BASE_DIR / "data"
-UPLOAD_DIR = DATA_DIR / "uploads"
-
-for directory in (DATA_DIR, UPLOAD_DIR):
-    directory.mkdir(parents=True, exist_ok=True)
 
 
 def _load_dotenv(path: Path) -> None:
@@ -25,9 +21,21 @@ def _load_dotenv(path: Path) -> None:
 
 _load_dotenv(BASE_DIR / ".env")
 
+# Uploads default next to the app but honour UPLOAD_DIR, so the container can
+# point them at the mounted volume instead of its own filesystem layer.
+UPLOAD_DIR = Path(os.getenv("UPLOAD_DIR") or (DATA_DIR / "uploads")).resolve()
+UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+
 EMBED_MODEL = os.getenv("EMBED_MODEL", "sentence-transformers/all-MiniLM-L6-v2")
 EMBED_DIM = 384
-COLLECTION = "notebook"
+
+# Postgres holds everything persistent: sources, chunk text, chunk vectors
+# (pgvector), sessions and chat history. The compose default points at the
+# `db` service, so the app reaches the database by service name.
+DEFAULT_DATABASE_URL = os.getenv(
+    "DEFAULT_DATABASE_URL",
+    "postgresql://notebooklm:notebooklm@localhost:5432/notebooklm",
+)
 
 CHUNK_SIZE = int(os.getenv("CHUNK_SIZE", "900"))
 CHUNK_OVERLAP = int(os.getenv("CHUNK_OVERLAP", "150"))
@@ -85,6 +93,12 @@ BM25_RESCUE_MIN = float(os.getenv("BM25_RESCUE_MIN", "0.12"))
 
 # Prior conversation turns included for follow-up questions.
 HISTORY_TURNS = int(os.getenv("HISTORY_TURNS", "6"))
+
+# Public origin the browser uses to reach this API, e.g.
+# http://localhost:8000. Left empty it is derived from the request, which works
+# behind a reverse proxy. Set it explicitly when the app is mounted somewhere
+# the browser cannot infer.
+BASE_URL = os.getenv("BASE_URL", "").rstrip("/")
 
 LLM_PROVIDER = os.getenv("LLM_PROVIDER", "").strip().lower()
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "").strip()

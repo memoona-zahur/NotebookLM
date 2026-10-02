@@ -125,3 +125,29 @@ button[type=submit] {
 }
 button[type=submit]:disabled { opacity: .5; cursor: not-allowed; }
 .err { color: #ff8b8b; }
+
+/* Session switcher */
+.session-bar {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+.session-bar select {
+  flex: 1;
+  min-width: 0;
+  padding: 7px 8px;
+  border-radius: 8px;
+  border: 1px solid var(--line, #2a2f3a);
+  background: var(--panel, #171a21);
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+.session-bar .link {
+  flex: 0 0 auto;
+  width: 30px;
+  border-radius: 8px;
+  font-size: 16px;
+  line-height: 1;
+}
+.session-bar .link:hover { color: #ff7b7b; background: #1e222a; }
