@@ -63,14 +63,44 @@ describe("first paint", () => {
     expect(options[1]).toHaveTextContent("Beta");
   });
 
+  // Regression: the server returns `content`, the client read `text`, and the
+  // mismatch threw on mount so every session with history rendered blank.
   it("replays a persisted transcript from the server", async () => {
     seed("alpha", [
-      { role: "user", text: "how many CCDs?" },
-      { role: "assistant", text: "42 CCDs [1].", evidence: { cited: [1] }, citations: [] },
+      { role: "user", content: "how many CCDs?" },
+      { role: "assistant", content: "42 CCDs [1]." },
     ]);
     await boot();
     expect(screen.getByText("how many CCDs?")).toBeInTheDocument();
+    // The body is split around the [1] marker, so match on the container.
+    expect(
+      screen.getByText((_, el) => el?.className === "answer" && /42 CCDs/.test(el.textContent)),
+    ).toBeInTheDocument();
     expect(screen.getByText("You")).toBeInTheDocument();
+    expect(screen.getAllByText("NotebookLM").length).toBeGreaterThan(0);
+    // Both turns rendered, in order, rather than only the first one.
+    expect(screen.getAllByText("You")).toHaveLength(1);
+  });
+
+  it("renders a persisted turn that has no body rather than crashing", async () => {
+    seed("alpha", [{ role: "assistant", content: "" }]);
+    await boot();
+    expect(screen.getByRole("heading", { name: "Alpha" })).toBeInTheDocument();
+  });
+
+  it("renders a turn from an older build that stored text instead of content", async () => {
+    seed("alpha", [{ role: "assistant", text: "cached locally" }]);
+    await boot();
+    expect(screen.getByText("cached locally")).toBeInTheDocument();
+  });
+
+  it("shows no evidence strip for a replayed answer", async () => {
+    // Replayed turns carry no citations or evidence: the server stores the
+    // message body only. The UI must not imply grounding it cannot show.
+    seed("alpha", [{ role: "assistant", content: "42 CCDs [1]." }]);
+    await boot();
+    expect(screen.queryByText(/confidence/)).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "[1]" })).not.toBeInTheDocument();
   });
 });
 
@@ -123,7 +153,7 @@ describe("asking a question", () => {
   });
 
   it("switches session and shows that session's transcript", async () => {
-    seed("beta", [{ role: "user", text: "beta question" }]);
+    seed("beta", [{ role: "user", content: "beta question" }]);
     const user = await boot();
 
     await user.click(screen.getByRole("option", { name: /Beta/ }));

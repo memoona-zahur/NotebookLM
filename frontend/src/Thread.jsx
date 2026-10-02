@@ -14,7 +14,23 @@ function Thinking() {
   );
 }
 
+/**
+ * One turn in the thread.
+ *
+ * The server stores `content`; an answer made in this browser session has `text`
+ * plus its `citations` and `evidence`. Reading a session the user has left and
+ * reloaded therefore has to work with `content` alone — no citations to show,
+ * which is why the passage list is optional rather than assumed.
+ *
+ * `content` is deliberately not renamed to `text` at the fetch boundary: the
+ * field is persisted, so the name the API speaks is the one that wins, and
+ * renaming it in the client is how the two drifted apart in the first place.
+ */
 function Turn({ turn }) {
+  const text = turn.text ?? turn.content ?? "";
+  const citations = turn.citations || [];
+  const evidence = turn.evidence || null;
+
   return (
     <article className={`turn ${turn.role}`}>
       <div className="who">
@@ -22,19 +38,23 @@ function Turn({ turn }) {
         {turn.role === "user" ? "You" : "NotebookLM"}
       </div>
       {turn.error ? (
-        <div className="answer error">{turn.text}</div>
+        <div className="answer error">{text}</div>
       ) : (
         <>
-          <Answer text={turn.text} cited={turn.evidence?.cited} />
-          <Evidence evidence={turn.evidence} />
-          {turn.citations && turn.citations.length ? (
+          <Answer
+            text={text}
+            cited={evidence?.cited}
+            linkable={citations.length > 0}
+          />
+          <Evidence evidence={evidence} />
+          {citations.length ? (
             <div className="cites">
-              {turn.citations.map((citation, index) => (
+              {citations.map((citation, index) => (
                 <Citation
                   key={`${citation.source}-${citation.page}-${index}`}
                   citation={citation}
                   index={index}
-                  cited={turn.evidence?.cited}
+                  cited={evidence?.cited}
                 />
               ))}
             </div>

@@ -19,7 +19,13 @@ function freshSessions() {
 
 let SESSIONS = freshSessions();
 
-/** Give a session a persisted transcript, as the server would have. */
+/**
+ * Give a session a persisted transcript.
+ *
+ * Keys are `content`, not `text`: that is what `db.recent_messages` returns and
+ * what the app actually receives. Seeding a friendlier shape here is what let a
+ * real blank-page crash pass the suite.
+ */
 export function seed(id, history) {
   SESSIONS[id] = { ...SESSIONS[id], history };
 }

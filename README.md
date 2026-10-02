@@ -83,6 +83,14 @@ cp .env.example .env        # then paste your GROQ_API_KEY into .env
 Point `DATABASE_URL` in `.env` at your server if it is not on
 `localhost:5432` with the default credentials.
 
+To reach the dev server from another machine on the LAN, set `HOST` — it binds
+loopback by default, since the app has no auth and `0.0.0.0` would expose
+every session to the network:
+
+```bash
+HOST=0.0.0.0 .venv/bin/python run.py
+```
+
 The venv is strongly recommended: `sentence-transformers` pulls in PyTorch, and the
 default wheel is the CUDA build (~6 GB). On a CPU-only machine, install the CPU
 wheel instead:
