@@ -106,6 +106,29 @@ docker compose up -d db
 To use a database elsewhere, set `TEST_DATABASE_ADMIN_URL` and
 `TEST_DATABASE_NAME`.
 
+### Frontend
+
+```bash
+cd frontend
+npm install
+npm test           # 35 checks, jsdom, no database or API key needed
+npm run test:watch # re-runs on save
+```
+
+These mock `fetch` rather than the `api` module, so URL building, `detail`
+unwrapping and the 503 message are covered rather than mocked away. A
+`TypeError` from `fetch` is treated as "server unreachable" and asserted
+separately from an HTTP failure.
+
+### Everything
+
+```bash
+./run_tests.sh
+```
+
+Starts a scratch Postgres if none is reachable, runs both suites plus a build,
+and leaves the database volume alone.
+
 ## Migrations
 
 The schema is owned by Alembic in `migrations/`. The app runs `alembic upgrade
@@ -414,6 +437,9 @@ non-zero if any failed.
   `.venv/bin/python experiments/rerank_eval.py`.
 - Uploads are read fully into memory with no size limit, and indexing a large PDF blocks
   the event loop.
-- One global notebook. There is no persistence, no multiple notebooks, and no auth.
-- Answers are rendered as plain text, so `**bold**` and `- bullets` show literally.
-- No Markdown, no streaming, and citations cannot deep-link to the original file.
+- Sessions persist in Postgres, but there is no auth: anyone who can reach the app owns
+  every session in it. Single-user by assumption, not by enforcement.
+- Answer bodies are rendered as text with citation markers as links, so `**bold**` and
+  `- bullets` from the model still show literally. No Markdown, no streaming.
+- A citation scrolls to the passage inside the app but cannot deep-link to the page of the
+  original file.

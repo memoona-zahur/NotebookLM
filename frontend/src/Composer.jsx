@@ -45,7 +45,15 @@ export function Composer({ onSend, busy }) {
             }
           }}
         />
-        <button className="send" type="submit" disabled={busy || !value.trim()} title="Send">
+        {/* aria-label, not just title: the glyph alone is the accessible name
+            otherwise, which a screen reader announces as "upwards arrow". */}
+        <button
+          className="send"
+          type="submit"
+          disabled={busy || !value.trim()}
+          title="Send"
+          aria-label="Send"
+        >
           ↑
         </button>
       </form>

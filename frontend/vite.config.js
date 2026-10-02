@@ -27,4 +27,14 @@ export default defineConfig({
       "/api": "http://127.0.0.1:8000",
     },
   },
+  test: {
+    // The components render into a DOM, so the environment is jsdom rather
+    // than node. CSS imports are stubbed: the build handles those, and
+    // asserting on class names is not the point of these tests.
+    environment: "jsdom",
+    globals: true,
+    setupFiles: "./src/test/setup.js",
+    css: false,
+    restoreMocks: true,
+  },
 });

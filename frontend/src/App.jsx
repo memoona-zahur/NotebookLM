@@ -9,7 +9,14 @@ export default function App() {
   const [activeId, setActiveId] = useState(null);
   const [status, setStatus] = useState(null);
   const [turns, setTurns] = useState([]);
-  const [pending, setPending] = useState(false);
+  // Which session is waiting on an answer. Null when nothing is in flight.
+  // Tracking the id rather than a boolean matters: a plain `pending` flag is
+  // global, so switching sessions mid-request would either leave the new
+  // session showing "Reading your sources" forever (if the stale response is
+  // ignored) or flash it in the wrong thread. With the id, busy is only true
+  // for the session that actually asked something.
+  const [pendingFor, setPendingFor] = useState(null);
+  const pending = pendingFor === activeId;
   const [uploading, setUploading] = useState(false);
   const [toasts, setToasts] = useState([]);
 
@@ -150,7 +157,7 @@ export default function App() {
     // Show the question immediately; the server keeps the real transcript, so
     // this local copy is purely optimistic and gets replaced on the next load.
     setTurns((all) => [...all, { role: "user", text: question }]);
-    setPending(true);
+    setPendingFor(id);
 
     try {
       const answer = await api.ask(id, question);
@@ -169,7 +176,10 @@ export default function App() {
       if (sessionRef.current !== id) return;
       setTurns((all) => [...all, { role: "assistant", text: err.message, error: true }]);
     } finally {
-      if (sessionRef.current === id) setPending(false);
+      // Clear only our own flag: a newer request in this same session may have
+      // already started, and clearing unconditionally would unsuspend the
+      // composer under it.
+      setPendingFor((current) => (current === id ? null : current));
     }
   }
 
