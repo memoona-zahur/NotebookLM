@@ -65,7 +65,7 @@ def load_gold(path: Path = GOLD_PATH) -> list[dict]:
         missing = [key for key in REQUIRED_KEYS if key not in item]
         if missing:
             raise ValueError(f"{item.get('id', '?')} is missing {missing}")
-        if item["answerable"] and not item["required_facts"]:
+        if item["answerable"] is True and not item["required_facts"]:
             raise ValueError(f"{item['id']} claims to be answerable but names no required fact")
     return items
 
@@ -82,7 +82,9 @@ def partition(items: list[dict], include_unverified: bool = False) -> tuple[list
     excluded: list[tuple[str, str]] = []
     for item in items:
         verified = bool(item["verified_by_human"])
-        if item["answerable"]:
+        if item["answerable"] is None:
+            excluded.append((item["id"], "answerability unknown, needs a human"))
+        elif item["answerable"]:
             if verified or include_unverified:
                 scorable.append(item)
             else:
@@ -196,10 +198,13 @@ def _means(rows: list[dict]) -> dict[str, object]:
 def run(k: int, mode: str, allow_unverified: bool, verbose: bool = True) -> dict:
     items = load_gold()
     scorable, excluded = partition(items, include_unverified=allow_unverified)
+    # answerable is None when no one has decided yet. Such an item must not
+    # become a trap: that would require the retriever to return nothing for a
+    # question the document may well answer, turning a correct hit into a leak.
     traps = [
         item
         for item in items
-        if item["verified_by_human"] and not item["answerable"] and not item["required_facts"]
+        if item["verified_by_human"] and item["answerable"] is False and not item["required_facts"]
     ]
     unverified = [item_id for item_id, reason in excluded if reason == "awaiting human verification"]
 

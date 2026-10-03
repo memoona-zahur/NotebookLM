@@ -361,7 +361,11 @@ def build() -> dict:
                         "id": f"G{counter:03d}",
                         "question": question,
                         "source": name,
-                        "answerable": False,
+                        # Unknown, not False. Recording 'the document does not
+                        # answer this' would be a claim nobody has checked, and
+                        # it would turn a correct retrieval into a reported
+                        # leak once scoring starts.
+                        "answerable": None,
                         "difficulty": "unknown",
                         "expected_positions": [],
                         "required_facts": [],
@@ -421,16 +425,270 @@ def build() -> dict:
     }
 
 
+def _context_around(block_text: str, fact: str, width: int = 130) -> str:
+    """The fact with its neighbouring text, so it can be judged in place."""
+    at = normalize(fact)
+    haystack = block_text
+    # normalize() collapses whitespace, so find the offset on the raw text by
+    # searching progressively longer prefixes rather than re-implementing it.
+    for start in range(0, max(1, len(haystack) - 1)):
+        if normalize(haystack[start : start + len(at)]) == at:
+            haystack = haystack[start:]
+            break
+    lines = [line for line in haystack.splitlines() if line.strip()]
+    kept: list[str] = []
+    budget = width
+    for line in lines:
+        if budget <= 0:
+            break
+        kept.append(line[:budget])
+        budget -= len(line)
+    return "\n".join(kept)
+
+
+def _support_count(question: str, fact: str) -> int:
+    """How many of the question's content terms the fact actually contains.
+
+    One is the weak case: the fact matched on a single shared word, which is
+    how 'A surge is a short episode of dramatic acceleration' came to be
+    offered as the answer to 'What causes a glacier surge?'. The count is a
+    reading aid for the reviewer and nothing else.
+    """
+    terms = set(content_terms(question))
+    shared = terms & set(content_terms(fact))
+    return len(shared)
+
+
+def review_sheet(gold: dict, path: Path) -> None:
+    """Write the human review sheet: one judgement per item, context included."""
+    blocks: dict[str, list] = {}
+    out: list[str] = [
+        "# Gold set review sheet",
+        "",
+        "For each item, one question: **would this text be an acceptable answer",
+        "to that question?** If yes, approve it. If no, reject it.",
+        "",
+        "You do not need to open the source files. Each fact is quoted verbatim",
+        "with the lines around it, which is all the context needed to judge.",
+        "",
+        "Three ways to answer a question count as correct here: the fact states",
+        "the answer outright, or it contains the specific value asked for, or",
+        "it is the sentence that defines the thing asked about. A fact that is",
+        "merely on the same topic is not an answer.",
+        "",
+        "## Needs a fact written by hand",
+        "",
+    ]
+    for item in gold["items"]:
+        if item["answerable"] and not item["required_facts"]:
+            out.append(f"- **{item['id']}** ({item['source']}) {item['question']}")
+            out.append(f"  - {item.get('note', '')}")
+    out += [
+        "",
+        "Read the document, then record the fact as the parser renders it:",
+        "",
+        '```',
+        'python -m experiments.draft_gold --fact G027 "region: EMEA\\nreturn_rate_pct: 2.4"',
+        "```",
+        "",
+        "The text is checked against the document, so a paraphrase is refused",
+        "rather than stored as a fact that can never be matched.",
+        "",
+        "## Traps",
+        "",
+        "These ask about something the document does not cover. Check that the",
+        "question really is unrelated to its document, then approve it. A trap",
+        "that its own document answers is a broken trap.",
+        "",
+    ]
+    for item in gold["items"]:
+        if not item["answerable"]:
+            out.append(f"- **{item['id']}** ({item['source']}) {item['question']}")
+
+    out += ["", "## Answerable items", ""]
+    risky: list[dict] = []
+    for item in gold["items"]:
+        if not item["required_facts"]:
+            continue
+        if item["source"] not in blocks:
+            blocks[item["source"]] = parsers.parse(CORPUS / item["source"])
+        parsed = blocks[item["source"]]
+        block = parsed[item["expected_positions"][0]]
+        support = _support_count(item["question"], item["required_facts"][0])
+        (risky if support <= 1 else []).append(item)
+        out.append(f"### {item['id']}  ({item['source']}, {item['difficulty']})")
+        out.append("")
+        out.append(f"**Q: {item['question']}**")
+        out.append("")
+        out.append("```")
+        out.append(_context_around(block.text, item["required_facts"][0]))
+        out.append("```")
+        if support <= 1:
+            out.append("")
+            out.append(
+                f"> Only {support} term of the question appears in this fact. Check "
+                "it really answers the question and is not just on the same topic."
+            )
+        out.append("")
+
+    out += [
+        "## Recording your review",
+        "",
+        "Approve the ones that hold up:",
+        "",
+        "```",
+        "python -m experiments.draft_gold --verify G000 G001 G004",
+        "```",
+        "",
+        "Reject the ones that do not:",
+        "",
+        "```",
+        "python -m experiments.draft_gold --reject G003",
+        "```",
+        "",
+        "Rejecting removes the item. That is deliberate: a wrong fact left in",
+        "place becomes a permanent miss that looks like a retriever failure, and",
+        "it can be re-drafted once the question is understood.",
+        "",
+        f"{len(risky)} item(s) rest on a single shared term and are the ones most",
+        "worth a second look.",
+    ]
+    path.write_text("\n".join(out) + "\n", encoding="utf-8")
+    print(f"wrote {path}  ({len(gold['items'])} items, {len(risky)} flagged for a second look)")
+
+
+def _load_existing(path: Path) -> dict:
+    if not path.exists():
+        raise FileNotFoundError(f"{path} does not exist yet; run --write first")
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
+def _positions_holding(source: str, fact: str) -> list[int]:
+    """Every block of the document that contains the fact verbatim.
+
+    A hand-written fact is checked the same way a drafted one is, because a
+    paraphrase can never be matched by fact_coverage. Better to refuse it here
+    than to discover at scoring time that recall is unreachable.
+    """
+    needle = normalize(fact)
+    blocks = parsers.parse(CORPUS / source)
+    holders = [index for index, block in enumerate(blocks) if needle in normalize(block.text)]
+    if not holders:
+        raise ValueError(
+            f"that text is not in {source} as the parser renders it. Copy the "
+            "exact line, including punctuation and spacing."
+        )
+    return holders
+
+
+def review(
+    path: Path,
+    verify: list[str],
+    reject: list[str],
+    facts: dict[str, str],
+) -> dict:
+    """Record a human review of the draft, in place, one item at a time.
+
+    Approving and rejecting are separate commands on purpose. Approving says
+    'this fact answers this question'; rejecting says the pairing is wrong
+    enough that the item should go. Leaving a known-bad label in place to be
+    'fixed later' is how a wrong answer becomes a permanent 0.0 nobody can
+    explain, so there is no way to record a doubt - the item is rejected and
+    can be re-drafted.
+    """
+    gold = _load_existing(path)
+    items = gold["items"]
+    by_id = {item["id"]: item for item in items}
+    unknown = [i for i in (*verify, *reject, *facts) if i not in by_id]
+    if unknown:
+        raise ValueError(f"no such item: {unknown}")
+
+    for item_id, fact in facts.items():
+        item = by_id[item_id]
+        item["required_facts"] = [fact]
+        item["expected_positions"] = _positions_holding(item["source"], fact)
+        item["difficulty"] = _difficulty(item["question"], item["required_facts"])
+        if item["difficulty"] == "unknown":
+            item["difficulty"] = "medium"
+        item.pop("note", None)
+        item["answerable"] = True
+        print(f"  {item_id} fact accepted, cites positions {item['expected_positions']}")
+
+    for item_id in verify:
+        item = by_id[item_id]
+        if not item["required_facts"]:
+            raise ValueError(
+                f"{item_id} has no fact to check. Supply one with "
+                f"--fact {item_id} \"...\", or reject it with --reject {item_id}"
+            )
+        item["verified_by_human"] = True
+        print(f"  {item_id} verified")
+
+    dropped = set(reject)
+    if dropped:
+        gold["items"] = [item for item in items if item["id"] not in dropped]
+        print(f"  rejected {len(dropped)}: {sorted(dropped)}")
+
+    path.write_text(json.dumps(gold, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    remaining = sum(1 for i in gold["items"] if not i["verified_by_human"])
+    print(f"\n{len(gold['items'])} items, {len(gold['items']) - remaining} verified, {remaining} left")
+    return gold
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--out", type=Path, default=DEFAULT_OUT)
     parser.add_argument("--write", action="store_true", help="write the JSON instead of printing it")
+    parser.add_argument(
+        "--force", action="store_true", help="regenerate even if verified items would be lost"
+    )
+    parser.add_argument("--verify", nargs="+", default=[], metavar="ID", help="mark items verified")
+    parser.add_argument("--reject", nargs="+", default=[], metavar="ID", help="remove items entirely")
+    parser.add_argument(
+        "--review",
+        type=Path,
+        metavar="PATH",
+        help="write a human review sheet with the context each fact needs",
+    )
+    parser.add_argument(
+        "--fact",
+        nargs="+",
+        default=[],
+        metavar=("ID", "TEXT"),
+        help="attach a hand-written fact to an item; checked against the document",
+    )
     args = parser.parse_args()
 
+    if args.review:
+        review_sheet(_load_existing(args.out), args.review)
+        return 0
+
+    if args.verify or args.reject or args.fact:
+        pairs = args.fact
+        if len(pairs) % 2:
+            raise SystemExit("--fact takes ID and TEXT pairs")
+        review(
+            args.out,
+            args.verify,
+            args.reject,
+            dict(zip(pairs[::2], pairs[1::2])),
+        )
+        return 0
+
+    # Regenerating rebuilds every item from the corpus, so any flag a person
+    # set by hand would be silently dropped. Refuse instead.
+    if args.write and args.out.exists():
+        kept = [i for i in _load_existing(args.out)["items"] if i.get("verified_by_human")]
+        if kept and not args.force:
+            raise SystemExit(
+                f"{args.out} has {len(kept)} human-verified items. Regenerating "
+                "discards that review; pass --force if you really mean to."
+            )
+
     gold = build()
-    answerable = sum(1 for item in gold["items"] if item["answerable"])
-    traps = len(gold["items"]) - answerable
-    thin = [i["id"] for i in gold["items"] if i["answerable"] and not i["required_facts"]]
+    answerable = sum(1 for item in gold["items"] if item["answerable"] is True)
+    traps = sum(1 for item in gold["items"] if item["answerable"] is False)
+    unknown = [i["id"] for i in gold["items"] if i["answerable"] is None]
 
     if not args.write:
         print(json.dumps(gold, indent=2, ensure_ascii=False))
@@ -439,10 +697,13 @@ def main() -> int:
     args.out.parent.mkdir(parents=True, exist_ok=True)
     args.out.write_text(json.dumps(gold, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     print(f"wrote {args.out}")
-    print(f"  {len(gold['items'])} items: {answerable} answerable, {traps} unanswerable")
+    print(
+        f"  {len(gold['items'])} items: {answerable} answerable, {traps} traps, "
+        f"{len(unknown)} answerability unknown"
+    )
     print(f"  verified by a human: 0 - nothing in this file is evidence yet")
-    if thin:
-        print(f"  needs review first: {', '.join(thin)}")
+    if unknown:
+        print(f"  needs a fact written by hand: {', '.join(unknown)}")
     return 0
 
 
