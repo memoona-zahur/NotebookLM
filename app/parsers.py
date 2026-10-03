@@ -314,9 +314,12 @@ def _parse_config(text: str, suffix: str, size: int) -> list[Block]:
             data = None
     elif suffix == ".toml":
         try:
-            import tomli
+            try:
+                import tomllib
+            except ModuleNotFoundError:
+                import tomli as tomllib
 
-            data = tomli.loads(text)
+            data = tomllib.loads(text)
         except Exception:  # noqa: BLE001
             data = None
     else:
