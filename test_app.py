@@ -1165,6 +1165,90 @@ def test_gold_set_cannot_be_scored_until_verified(client: TestClient = None) -> 
     print("  gold set: unverified labels cannot be scored")
 
 
+def test_cloze_labels_are_checked_mechanically(client: TestClient = None) -> None:
+    from app import parsers
+    from experiments import build_cloze_gold as cloze
+
+    for line, forbidden in (
+        # A hyphen or a dot that joins digits is part of a larger token.
+        # Blanking across one produced 'sixty-_____' answered 'six' and
+        # '10.4._____' answered '2.9'.
+        ("mash at sixty-six degrees Celsius favours a balanced body.", ("six", "sixty-six")),
+        ("upstream 10.4.2.9 refused the connection on port 443", ("2.9", "10.4")),
+        # A clock time is not a fact.
+        ("2024-03-01 09:38:52 INFO  boot: telemetry starting", ("38", "52")),
+    ):
+        made = cloze._cloze_from_line(line)
+        if made is None:
+            continue
+        assert made[2] not in forbidden, (line, made)
+
+    # 'thirty six months' has to match as one value with its unit. An alternation
+    # written as 'number|one|two|...|sixteen(?:[- ]one|...)' binds the compound
+    # group to its last branch alone, which silently dropped every spelled
+    # value that had a unit.
+    assert cloze._cloze_from_line(
+        "This agreement continues for an initial term of thirty six months. Either party"
+    ) == (
+        "value",
+        "This agreement continues for an initial term of _____. Either party",
+        "thirty six months",
+    )
+
+    # A blank must not turn into a question with two right answers, and the
+    # answer has to be a value rather than a filler word.
+    assert cloze._cloze_from_line("held at a single temperature for roughly an hour") is None
+    assert cloze._cloze_from_line("// Cart totals with progressive discount tiers") is None
+
+    # Field lines shorter than the prose floor are still worth asking about,
+    # even when the value is a bare number.
+    assert cloze._cloze_from_line("$.limits.rpm: 600") == (
+        "value",
+        "$.limits.rpm: _____",
+        "600",
+    )
+    assert cloze._cloze_from_line("$.limits.timeout: thirty seconds") == (
+        "value",
+        "$.limits.timeout: _____",
+        "thirty seconds",
+    )
+    # 'timeout' alone is under the offset floor for a numeric blank, so it falls
+    # through to the field path.
+    assert cloze._cloze_from_line("timeout: thirty seconds") == (
+        "field",
+        "timeout: _____",
+        "thirty seconds",
+    )
+
+    # A field that reads the same in every record carries no information, and a
+    # timestamp says when a row was written, not what it records.
+    from app.parsers import Block
+
+    rows_text = "\n".join(
+        ["sensor_id: TH-001", "zone: storefront", "reading: 21.4", "unit: C",
+         "timestamp: 2024-05-01T08:00:00", "sensor_id: TH-002", "zone: warehouse",
+         "reading: 17.9", "unit: C", "timestamp: 2024-05-01T08:00:00"]
+    )
+    made = cloze._record_items("temperatures.tsv", [Block(text=rows_text)], 4)
+    assert len(made) == 2, made
+    for item in made:
+        assert item["kind"] == "record_cloze"
+        assert "reading: _____" in item["question"], item["question"]
+        assert item["answer"] in {"21.4", "17.9"}, item
+        # The record names itself, so the answer is decisive.
+        assert "sensor_id" in item["question"]
+
+    # Every committed item must still satisfy the checks recorded with it.
+    gold = cloze.build(per_document=1, traps=3)
+    assert gold["failed"] == 0, [i for i in gold["items"] if not cloze.check_item(
+        i, {p.name: parsers.parse(cloze.CORPUS / p.name)
+            for p in cloze.CORPUS.iterdir() if p.is_file()})]
+    for item in gold["items"]:
+        assert item["verified_by_human"] is False
+        assert item["label_provenance"].startswith("machine-")
+    print("  cloze labels: values, not timestamps, addresses or filler words")
+
+
 def test_hybrid_lexical_index(client: TestClient = None) -> None:
     from app.lexical import content_terms, tokenize
 
@@ -1375,6 +1459,7 @@ ORDER = [
     ("refused question skips the model", test_refused_question_never_calls_the_model),
     # Clears the notebook, so it must stay last.
     ("unverified gold cannot be scored", test_gold_set_cannot_be_scored_until_verified),
+    ("cloze labels are checked mechanically", test_cloze_labels_are_checked_mechanically),
     ("source deletion", test_source_deletion),
 ]
 

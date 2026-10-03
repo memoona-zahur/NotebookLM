@@ -1,0 +1,1413 @@
+{
+  "schema": 1,
+  "generated_by": "experiments/build_cloze_gold.py",
+  "corpus": "experiments/corpus",
+  "warning": "Machine-checked labels, not human-reviewed. Every item satisfies the four mechanical checks recorded in experiments.build_cloze_gold, and experiments.eval_gold re-runs them before scoring anything. That makes the labels reproducible and impossible to score stale; it does not make them expert-checked. These items prove a value survives chunking attached to its key and can be retrieved again - not that the system understands the question.",
+  "checked": 89,
+  "failed": 0,
+  "items": [
+    {
+      "id": "C000",
+      "question": "this.declarationNumber = _____",
+      "answer": "declarationNumber;",
+      "source": "Customs.java",
+      "answerable": true,
+      "kind": "field_cloze",
+      "label_provenance": "machine-field_cloze",
+      "expected_positions": [
+        0
+      ],
+      "required_facts": [
+        "this.declarationNumber = declarationNumber;"
+      ],
+      "verified_by_human": false
+    },
+    {
+      "id": "C001",
+      "question": "this.exportDate = _____",
+      "answer": "exportDate;",
+      "source": "Customs.java",
+      "answerable": true,
+      "kind": "field_cloze",
+      "label_provenance": "machine-field_cloze",
+      "expected_positions": [
+        0
+      ],
+      "required_facts": [
+        "this.exportDate = exportDate;"
+      ],
+      "verified_by_human": false
+    },
+    {
+      "id": "C002",
+      "question": "this.lineItems = _____",
+      "answer": "lineItems;",
+      "source": "Customs.java",
+      "answerable": true,
+      "kind": "field_cloze",
+      "label_provenance": "machine-field_cloze",
+      "expected_positions": [
+        0
+      ],
+      "required_facts": [
+        "this.lineItems = lineItems;"
+      ],
+      "verified_by_human": false
+    },
+    {
+      "id": "C003",
+      "question": "BigDecimal invoice = _____",
+      "answer": "lineItems.stream()",
+      "source": "Customs.java",
+      "answerable": true,
+      "kind": "field_cloze",
+      "label_provenance": "machine-field_cloze",
+      "expected_positions": [
+        0
+      ],
+      "required_facts": [
+        "BigDecimal invoice = lineItems.stream()"
+      ],
+      "verified_by_human": false
+    },
+    {
+      "id": "C004",
+      "question": "treatment: control\nnitrogen_kg_ha: 0\nowner: trial manager\ndays_to_harvest: _____",
+      "answer": "104",
+      "source": "agronomy.docx",
+      "answerable": true,
+      "kind": "record_cloze",
+      "label_provenance": "machine-record_cloze",
+      "expected_positions": [
+        3
+      ],
+      "required_facts": [
+        "treatment: control\nnitrogen_kg_ha: 0\nowner: trial manager\ndays_to_harvest: 104"
+      ],
+      "verified_by_human": false
+    },
+    {
+      "id": "C005",
+      "question": "treatment: low N\nnitrogen_kg_ha: 60\nowner: trial manager\ndays_to_harvest: _____",
+      "answer": "110",
+      "source": "agronomy.docx",
+      "answerable": true,
+      "kind": "record_cloze",
+      "label_provenance": "machine-record_cloze",
+      "expected_positions": [
+        3
+      ],
+      "required_facts": [
+        "treatment: low N\nnitrogen_kg_ha: 60\nowner: trial manager\ndays_to_harvest: 110"
+      ],
+      "verified_by_human": false
+    },
+    {
+      "id": "C006",
+      "question": "treatment: high N\nnitrogen_kg_ha: 140\nowner: field lead\ndays_to_harvest: _____",
+      "answer": "118",
+      "source": "agronomy.docx",
+      "answerable": true,
+      "kind": "record_cloze",
+      "label_provenance": "machine-record_cloze",
+      "expected_positions": [
+        3
+      ],
+      "required_facts": [
+        "treatment: high N\nnitrogen_kg_ha: 140\nowner: field lead\ndays_to_harvest: 118"
+      ],
+      "verified_by_human": false
+    },
+    {
+      "id": "C007",
+      "question": "treatment: foliar\nnitrogen_kg_ha: 0\nowner: field lead\ndays_to_harvest: _____",
+      "answer": "101",
+      "source": "agronomy.docx",
+      "answerable": true,
+      "kind": "record_cloze",
+      "label_provenance": "machine-record_cloze",
+      "expected_positions": [
+        3
+      ],
+      "required_facts": [
+        "treatment: foliar\nnitrogen_kg_ha: 0\nowner: field lead\ndays_to_harvest: 101"
+      ],
+      "verified_by_human": false
+    },
+    {
+      "id": "C008",
+      "question": "INFO  net: bound listener on 0.0.0.0:_____",
+      "answer": "8443",
+      "source": "app.log",
+      "answerable": true,
+      "kind": "value_cloze",
+      "label_provenance": "machine-value_cloze",
+      "expected_positions": [
+        3
+      ],
+      "required_facts": [
+        "INFO  net: bound listener on 0.0.0.0:8443"
+      ],
+      "verified_by_human": false
+    },
+    {
+      "id": "C009",
+      "question": "WARN  queue: ingest depth _____ of 5000, shedding low priority",
+      "answer": "4820",
+      "source": "app.log",
+      "answerable": true,
+      "kind": "value_cloze",
+      "label_provenance": "machine-value_cloze",
+      "expected_positions": [
+        4
+      ],
+      "required_facts": [
+        "WARN  queue: ingest depth 4820 of 5000, shedding low priority"
+      ],
+      "verified_by_human": false
+    },
+    {
+      "id": "C010",
+      "question": "INFO  queue: shed _____ low-priority frames",
+      "answer": "214",
+      "source": "app.log",
+      "answerable": true,
+      "kind": "value_cloze",
+      "label_provenance": "machine-value_cloze",
+      "expected_positions": [
+        5
+      ],
+      "required_facts": [
+        "INFO  queue: shed 214 low-priority frames"
+      ],
+      "verified_by_human": false
+    },
+    {
+      "id": "C011",
+      "question": "INFO  ingest: flushed _____ records to hot store",
+      "answer": "12000",
+      "source": "app.log",
+      "answerable": true,
+      "kind": "value_cloze",
+      "label_provenance": "machine-value_cloze",
+      "expected_positions": [
+        15
+      ],
+      "required_facts": [
+        "INFO  ingest: flushed 12000 records to hot store"
+      ],
+      "verified_by_human": false
+    },
+    {
+      "id": "C012",
+      "question": "$.service: _____",
+      "answer": "ledger-api",
+      "source": "app.yaml",
+      "answerable": true,
+      "kind": "field_cloze",
+      "label_provenance": "machine-field_cloze",
+      "expected_positions": [
+        0
+      ],
+      "required_facts": [
+        "$.service: ledger-api"
+      ],
+      "verified_by_human": false
+    },
+    {
+      "id": "C013",
+      "question": "$.version: _____",
+      "answer": "3.2.0",
+      "source": "app.yaml",
+      "answerable": true,
+      "kind": "field_cloze",
+      "label_provenance": "machine-field_cloze",
+      "expected_positions": [
+        0
+      ],
+      "required_facts": [
+        "$.version: 3.2.0"
+      ],
+      "verified_by_human": false
+    },
+    {
+      "id": "C014",
+      "question": "$.runtime.replicas: _____",
+      "answer": "6",
+      "source": "app.yaml",
+      "answerable": true,
+      "kind": "field_cloze",
+      "label_provenance": "machine-field_cloze",
+      "expected_positions": [
+        0
+      ],
+      "required_facts": [
+        "$.runtime.replicas: 6"
+      ],
+      "verified_by_human": false
+    },
+    {
+      "id": "C015",
+      "question": "$.runtime.memory_limit_mb: _____",
+      "answer": "2048",
+      "source": "app.yaml",
+      "answerable": true,
+      "kind": "value_cloze",
+      "label_provenance": "machine-value_cloze",
+      "expected_positions": [
+        0
+      ],
+      "required_facts": [
+        "$.runtime.memory_limit_mb: 2048"
+      ],
+      "verified_by_human": false
+    },
+    {
+      "id": "C016",
+      "question": "Home Brewing Guide: _____",
+      "answer": "Wort Production",
+      "source": "brew-guide.pdf",
+      "answerable": true,
+      "kind": "field_cloze",
+      "label_provenance": "machine-field_cloze",
+      "expected_positions": [
+        0
+      ],
+      "required_facts": [
+        "Home Brewing Guide: Wort Production"
+      ],
+      "verified_by_human": false
+    },
+    {
+      "id": "C017",
+      "question": "After the wort is drained, it is boiled for at least _____. The boil",
+      "answer": "sixty minutes",
+      "source": "brew-guide.pdf",
+      "answerable": true,
+      "kind": "value_cloze",
+      "label_provenance": "machine-value_cloze",
+      "expected_positions": [
+        0
+      ],
+      "required_facts": [
+        "After the wort is drained, it is boiled for at least sixty minutes. The boil"
+      ],
+      "verified_by_human": false
+    },
+    {
+      "id": "C018",
+      "question": "A balanced grain bill for an all-grain pale ale pairs a _____ base malt with",
+      "answer": "two row",
+      "source": "brew-guide.pdf",
+      "answerable": true,
+      "kind": "value_cloze",
+      "label_provenance": "machine-value_cloze",
+      "expected_positions": [
+        2
+      ],
+      "required_facts": [
+        "A balanced grain bill for an all-grain pale ale pairs a two row base malt with"
+      ],
+      "verified_by_human": false
+    },
+    {
+      "id": "C019",
+      "question": "Fermentability is a ratio, not an absolute. A wort that started at _____ and",
+      "answer": "1.048",
+      "source": "brew-guide.pdf",
+      "answerable": true,
+      "kind": "value_cloze",
+      "label_provenance": "machine-value_cloze",
+      "expected_positions": [
+        2
+      ],
+      "required_facts": [
+        "Fermentability is a ratio, not an absolute. A wort that started at 1.048 and"
+      ],
+      "verified_by_human": false
+    },
+    {
+      "id": "C020",
+      "question": "const TIERS = _____",
+      "answer": "[",
+      "source": "cart.js",
+      "answerable": true,
+      "kind": "field_cloze",
+      "label_provenance": "machine-field_cloze",
+      "expected_positions": [
+        1
+      ],
+      "required_facts": [
+        "const TIERS = ["
+      ],
+      "verified_by_human": false
+    },
+    {
+      "id": "C021",
+      "question": "const tier = _____",
+      "answer": "TIERS.find((t) => subtotal >= t.minSpend);",
+      "source": "cart.js",
+      "answerable": true,
+      "kind": "field_cloze",
+      "label_provenance": "machine-field_cloze",
+      "expected_positions": [
+        2
+      ],
+      "required_facts": [
+        "const tier = TIERS.find((t) => subtotal >= t.minSpend);"
+      ],
+      "verified_by_human": false
+    },
+    {
+      "id": "C022",
+      "question": "return tier ? tier.rate : _____",
+      "answer": "0;",
+      "source": "cart.js",
+      "answerable": true,
+      "kind": "field_cloze",
+      "label_provenance": "machine-field_cloze",
+      "expected_positions": [
+        2
+      ],
+      "required_facts": [
+        "return tier ? tier.rate : 0;"
+      ],
+      "verified_by_human": false
+    },
+    {
+      "id": "C023",
+      "question": "export function applyVat(subtotal, vatRate = _____) {",
+      "answer": "0.2",
+      "source": "cart.js",
+      "answerable": true,
+      "kind": "value_cloze",
+      "label_provenance": "machine-value_cloze",
+      "expected_positions": [
+        3
+      ],
+      "required_facts": [
+        "export function applyVat(subtotal, vatRate = 0.2) {"
+      ],
+      "verified_by_human": false
+    },
+    {
+      "id": "C024",
+      "question": "item: Espresso Blend\nregion: EMEA\ncategory: Beverage\nunits_sold: 1240\nunit_price: 12.50\nrevenue: 15500.00\nreturn_rate_pct: _____",
+      "answer": "2.1",
+      "source": "coffee_sales.csv",
+      "answerable": true,
+      "kind": "record_cloze",
+      "label_provenance": "machine-record_cloze",
+      "expected_positions": [
+        0
+      ],
+      "required_facts": [
+        "item: Espresso Blend\nregion: EMEA\ncategory: Beverage\nunits_sold: 1240\nunit_price: 12.50\nrevenue: 15500.00\nreturn_rate_pct: 2.1"
+      ],
+      "verified_by_human": false
+    },
+    {
+      "id": "C025",
+      "question": "item: Espresso Blend\nregion: APAC\ncategory: Beverage\nunits_sold: 1402\nunit_price: 12.50\nrevenue: 17525.00\nreturn_rate_pct: _____",
+      "answer": "5.8",
+      "source": "coffee_sales.csv",
+      "answerable": true,
+      "kind": "record_cloze",
+      "label_provenance": "machine-record_cloze",
+      "expected_positions": [
+        0
+      ],
+      "required_facts": [
+        "item: Espresso Blend\nregion: APAC\ncategory: Beverage\nunits_sold: 1402\nunit_price: 12.50\nrevenue: 17525.00\nreturn_rate_pct: 5.8"
+      ],
+      "verified_by_human": false
+    },
+    {
+      "id": "C026",
+      "question": "item: Espresso Blend\nregion: AMER\ncategory: Beverage\nunits_sold: 1610\nunit_price: 12.50\nrevenue: 20125.00\nreturn_rate_pct: _____",
+      "answer": "1.9",
+      "source": "coffee_sales.csv",
+      "answerable": true,
+      "kind": "record_cloze",
+      "label_provenance": "machine-record_cloze",
+      "expected_positions": [
+        0
+      ],
+      "required_facts": [
+        "item: Espresso Blend\nregion: AMER\ncategory: Beverage\nunits_sold: 1610\nunit_price: 12.50\nrevenue: 20125.00\nreturn_rate_pct: 1.9"
+      ],
+      "verified_by_human": false
+    },
+    {
+      "id": "C027",
+      "question": "item: Filter Papers\nregion: EMEA\ncategory: Accessory\nunits_sold: 3200\nunit_price: 3.20\nrevenue: 10240.00\nreturn_rate_pct: _____",
+      "answer": "0.8",
+      "source": "coffee_sales.csv",
+      "answerable": true,
+      "kind": "record_cloze",
+      "label_provenance": "machine-record_cloze",
+      "expected_positions": [
+        0
+      ],
+      "required_facts": [
+        "item: Filter Papers\nregion: EMEA\ncategory: Accessory\nunits_sold: 3200\nunit_price: 3.20\nrevenue: 10240.00\nreturn_rate_pct: 0.8"
+      ],
+      "verified_by_human": false
+    },
+    {
+      "id": "C028",
+      "question": "This agreement continues for an initial term of _____. Either party",
+      "answer": "thirty six months",
+      "source": "contract.html",
+      "answerable": true,
+      "kind": "value_cloze",
+      "label_provenance": "machine-value_cloze",
+      "expected_positions": [
+        2
+      ],
+      "required_facts": [
+        "This agreement continues for an initial term of thirty six months. Either party"
+      ],
+      "verified_by_human": false
+    },
+    {
+      "id": "C029",
+      "question": "may terminate for convenience on _____ written notice. Either party may",
+      "answer": "ninety days",
+      "source": "contract.html",
+      "answerable": true,
+      "kind": "value_cloze",
+      "label_provenance": "machine-value_cloze",
+      "expected_positions": [
+        2
+      ],
+      "required_facts": [
+        "may terminate for convenience on ninety days written notice. Either party may"
+      ],
+      "verified_by_human": false
+    },
+    {
+      "id": "C030",
+      "question": "Invoices are payable within _____ of receipt. The Client may",
+      "answer": "forty five days",
+      "source": "contract.html",
+      "answerable": true,
+      "kind": "value_cloze",
+      "label_provenance": "machine-value_cloze",
+      "expected_positions": [
+        4
+      ],
+      "required_facts": [
+        "Invoices are payable within forty five days of receipt. The Client may"
+      ],
+      "verified_by_human": false
+    },
+    {
+      "id": "C031",
+      "question": "region: EMEA\nquarter: Q1\nproduct: core\nrevenue_usd: 412300\nunits: 1180\nmargin_pct: 22.5\nchurn_pct: _____",
+      "answer": "3.1",
+      "source": "finance.csv",
+      "answerable": true,
+      "kind": "record_cloze",
+      "label_provenance": "machine-record_cloze",
+      "expected_positions": [
+        0
+      ],
+      "required_facts": [
+        "region: EMEA\nquarter: Q1\nproduct: core\nrevenue_usd: 412300\nunits: 1180\nmargin_pct: 22.5\nchurn_pct: 3.1"
+      ],
+      "verified_by_human": false
+    },
+    {
+      "id": "C032",
+      "question": "region: EMEA\nquarter: Q2\nproduct: core\nrevenue_usd: 438900\nunits: 1245\nmargin_pct: 23.0\nchurn_pct: _____",
+      "answer": "2.8",
+      "source": "finance.csv",
+      "answerable": true,
+      "kind": "record_cloze",
+      "label_provenance": "machine-record_cloze",
+      "expected_positions": [
+        0
+      ],
+      "required_facts": [
+        "region: EMEA\nquarter: Q2\nproduct: core\nrevenue_usd: 438900\nunits: 1245\nmargin_pct: 23.0\nchurn_pct: 2.8"
+      ],
+      "verified_by_human": false
+    },
+    {
+      "id": "C033",
+      "question": "region: EMEA\nquarter: Q3\nproduct: core\nrevenue_usd: 401200\nunits: 1155\nmargin_pct: 21.9\nchurn_pct: _____",
+      "answer": "3.4",
+      "source": "finance.csv",
+      "answerable": true,
+      "kind": "record_cloze",
+      "label_provenance": "machine-record_cloze",
+      "expected_positions": [
+        0
+      ],
+      "required_facts": [
+        "region: EMEA\nquarter: Q3\nproduct: core\nrevenue_usd: 401200\nunits: 1155\nmargin_pct: 21.9\nchurn_pct: 3.4"
+      ],
+      "verified_by_human": false
+    },
+    {
+      "id": "C034",
+      "question": "region: EMEA\nquarter: Q4\nproduct: core\nrevenue_usd: 455600\nunits: 1301\nmargin_pct: 24.2\nchurn_pct: _____",
+      "answer": "2.5",
+      "source": "finance.csv",
+      "answerable": true,
+      "kind": "record_cloze",
+      "label_provenance": "machine-record_cloze",
+      "expected_positions": [
+        0
+      ],
+      "required_facts": [
+        "region: EMEA\nquarter: Q4\nproduct: core\nrevenue_usd: 455600\nunits: 1301\nmargin_pct: 24.2\nchurn_pct: 2.5"
+      ],
+      "verified_by_human": false
+    },
+    {
+      "id": "C035",
+      "question": "Counter pressing starts within _____ of losing the ball. The nearest",
+      "answer": "two seconds",
+      "source": "football.md",
+      "answerable": true,
+      "kind": "value_cloze",
+      "label_provenance": "machine-value_cloze",
+      "expected_positions": [
+        1
+      ],
+      "required_facts": [
+        "Counter pressing starts within two seconds of losing the ball. The nearest"
+      ],
+      "verified_by_human": false
+    },
+    {
+      "id": "C036",
+      "question": "territory in exchange for a compact block. The block narrows to _____",
+      "answer": "nineteen metres",
+      "source": "football.md",
+      "answerable": true,
+      "kind": "value_cloze",
+      "label_provenance": "machine-value_cloze",
+      "expected_positions": [
+        2
+      ],
+      "required_facts": [
+        "territory in exchange for a compact block. The block narrows to nineteen metres"
+      ],
+      "verified_by_human": false
+    },
+    {
+      "id": "C037",
+      "question": "in behind the ball and _____ in front of it.",
+      "answer": "thirty five metres",
+      "source": "football.md",
+      "answerable": true,
+      "kind": "value_cloze",
+      "label_provenance": "machine-value_cloze",
+      "expected_positions": [
+        2
+      ],
+      "required_facts": [
+        "in behind the ball and thirty five metres in front of it."
+      ],
+      "verified_by_human": false
+    },
+    {
+      "id": "C038",
+      "question": "Mandatory passivation is required within _____ of end of life. Operators",
+      "answer": "five years",
+      "source": "handbook.pdf",
+      "answerable": true,
+      "kind": "value_cloze",
+      "label_provenance": "machine-value_cloze",
+      "expected_positions": [
+        0
+      ],
+      "required_facts": [
+        "Mandatory passivation is required within five years of end of life. Operators"
+      ],
+      "verified_by_human": false
+    },
+    {
+      "id": "C039",
+      "question": "For satellites operating below _____, a dedicated disposal manoeuvre is",
+      "answer": "600 km",
+      "source": "handbook.pdf",
+      "answerable": true,
+      "kind": "value_cloze",
+      "label_provenance": "machine-value_cloze",
+      "expected_positions": [
+        0
+      ],
+      "required_facts": [
+        "For satellites operating below 600 km, a dedicated disposal manoeuvre is"
+      ],
+      "verified_by_human": false
+    },
+    {
+      "id": "C040",
+      "question": "Debris density is highest between 700 and _____, where drag is weakest and",
+      "answer": "1000 km",
+      "source": "handbook.pdf",
+      "answerable": true,
+      "kind": "value_cloze",
+      "label_provenance": "machine-value_cloze",
+      "expected_positions": [
+        0
+      ],
+      "required_facts": [
+        "Debris density is highest between 700 and 1000 km, where drag is weakest and"
+      ],
+      "verified_by_human": false
+    },
+    {
+      "id": "C041",
+      "question": "INFO  scheduler: loaded _____ fields from parcels_v3.parquet",
+      "answer": "14",
+      "source": "harvest.log",
+      "answerable": true,
+      "kind": "value_cloze",
+      "label_provenance": "machine-value_cloze",
+      "expected_positions": [
+        1
+      ],
+      "required_facts": [
+        "INFO  scheduler: loaded 14 fields from parcels_v3.parquet"
+      ],
+      "verified_by_human": false
+    },
+    {
+      "id": "C042",
+      "question": "WARN  io: field soil_ph missing for 38 of _____",
+      "answer": "12480 rows",
+      "source": "harvest.log",
+      "answerable": true,
+      "kind": "value_cloze",
+      "label_provenance": "machine-value_cloze",
+      "expected_positions": [
+        2
+      ],
+      "required_facts": [
+        "WARN  io: field soil_ph missing for 38 of 12480 rows"
+      ],
+      "verified_by_human": false
+    },
+    {
+      "id": "C043",
+      "question": "INFO  io: imputed soil_ph with field median _____",
+      "answer": "6.4",
+      "source": "harvest.log",
+      "answerable": true,
+      "kind": "value_cloze",
+      "label_provenance": "machine-value_cloze",
+      "expected_positions": [
+        3
+      ],
+      "required_facts": [
+        "INFO  io: imputed soil_ph with field median 6.4"
+      ],
+      "verified_by_human": false
+    },
+    {
+      "id": "C044",
+      "question": "INFO  gis: reprojected _____ to EPSG:4326",
+      "answer": "12480 geometries",
+      "source": "harvest.log",
+      "answerable": true,
+      "kind": "value_cloze",
+      "label_provenance": "machine-value_cloze",
+      "expected_positions": [
+        4
+      ],
+      "required_facts": [
+        "INFO  gis: reprojected 12480 geometries to EPSG:4326"
+      ],
+      "verified_by_human": false
+    },
+    {
+      "id": "C045",
+      "question": "Rotate brassicas on a _____ cycle to starve the soil borne diseases that",
+      "answer": "four year",
+      "source": "horticulture.md",
+      "answerable": true,
+      "kind": "value_cloze",
+      "label_provenance": "machine-value_cloze",
+      "expected_positions": [
+        1
+      ],
+      "required_facts": [
+        "Rotate brassicas on a four year cycle to starve the soil borne diseases that"
+      ],
+      "verified_by_human": false
+    },
+    {
+      "id": "C046",
+      "question": "Operations Manual: _____",
+      "answer": "Deep Shaft Ventilation ====================================",
+      "source": "mining.rst",
+      "answerable": true,
+      "kind": "field_cloze",
+      "label_provenance": "machine-field_cloze",
+      "expected_positions": [
+        0
+      ],
+      "required_facts": [
+        "Operations Manual: Deep Shaft Ventilation ===================================="
+      ],
+      "verified_by_human": false
+    },
+    {
+      "id": "C047",
+      "question": "This manual defines the minimum ventilation standard for underground workings below _____ depth.",
+      "answer": "two thousand metres",
+      "source": "mining.rst",
+      "answerable": true,
+      "kind": "value_cloze",
+      "label_provenance": "machine-value_cloze",
+      "expected_positions": [
+        2
+      ],
+      "required_facts": [
+        "This manual defines the minimum ventilation standard for underground workings below two thousand metres depth."
+      ],
+      "verified_by_human": false
+    },
+    {
+      "id": "C048",
+      "question": "450 millimetres diameter is required beyond _____ from the main circuit, and duct length beyond that distance is deducted from the calculated flow.",
+      "answer": "300 metres",
+      "source": "mining.rst",
+      "answerable": true,
+      "kind": "value_cloze",
+      "label_provenance": "machine-value_cloze",
+      "expected_positions": [
+        7
+      ],
+      "required_facts": [
+        "450 millimetres diameter is required beyond 300 metres from the main circuit, and duct length beyond that distance is deducted from the calculated flow."
+      ],
+      "verified_by_human": false
+    },
+    {
+      "id": "C049",
+      "question": "$.model: _____",
+      "answer": "wide-residual-cascade",
+      "source": "model.json",
+      "answerable": true,
+      "kind": "field_cloze",
+      "label_provenance": "machine-field_cloze",
+      "expected_positions": [
+        0
+      ],
+      "required_facts": [
+        "$.model: wide-residual-cascade"
+      ],
+      "verified_by_human": false
+    },
+    {
+      "id": "C050",
+      "question": "$.training.epochs: _____",
+      "answer": "140",
+      "source": "model.json",
+      "answerable": true,
+      "kind": "value_cloze",
+      "label_provenance": "machine-value_cloze",
+      "expected_positions": [
+        0
+      ],
+      "required_facts": [
+        "$.training.epochs: 140"
+      ],
+      "verified_by_human": false
+    },
+    {
+      "id": "C051",
+      "question": "$.training.batch_size: _____",
+      "answer": "512",
+      "source": "model.json",
+      "answerable": true,
+      "kind": "value_cloze",
+      "label_provenance": "machine-value_cloze",
+      "expected_positions": [
+        0
+      ],
+      "required_facts": [
+        "$.training.batch_size: 512"
+      ],
+      "verified_by_human": false
+    },
+    {
+      "id": "C052",
+      "question": "Pharmacology Study Notes: _____",
+      "answer": "Antimicrobials",
+      "source": "pharm-notes.txt",
+      "answerable": true,
+      "kind": "field_cloze",
+      "label_provenance": "machine-field_cloze",
+      "expected_positions": [
+        0
+      ],
+      "required_facts": [
+        "Pharmacology Study Notes: Antimicrobials"
+      ],
+      "verified_by_human": false
+    },
+    {
+      "id": "C053",
+      "question": "Vancomycin must be infused slowly over at least _____ to avoid red man syndrome, which is a histamine mediated reaction rather than true allergy.",
+      "answer": "one hour",
+      "source": "pharm-notes.txt",
+      "answerable": true,
+      "kind": "value_cloze",
+      "label_provenance": "machine-value_cloze",
+      "expected_positions": [
+        3
+      ],
+      "required_facts": [
+        "Vancomycin must be infused slowly over at least one hour to avoid red man syndrome, which is a histamine mediated reaction rather than true allergy."
+      ],
+      "verified_by_human": false
+    },
+    {
+      "id": "C054",
+      "question": "JOIN zones z ON z.zone_id = _____",
+      "answer": "p.zone_id",
+      "source": "picks.sql",
+      "answerable": true,
+      "kind": "field_cloze",
+      "label_provenance": "machine-field_cloze",
+      "expected_positions": [
+        0
+      ],
+      "required_facts": [
+        "JOIN zones z ON z.zone_id = p.zone_id"
+      ],
+      "verified_by_human": false
+    },
+    {
+      "id": "C055",
+      "question": "WHERE p.started_at >= CURRENT_DATE - INTERVAL '_____'",
+      "answer": "30 days",
+      "source": "picks.sql",
+      "answerable": true,
+      "kind": "value_cloze",
+      "label_provenance": "machine-value_cloze",
+      "expected_positions": [
+        0
+      ],
+      "required_facts": [
+        "WHERE p.started_at >= CURRENT_DATE - INTERVAL '30 days'"
+      ],
+      "verified_by_human": false
+    },
+    {
+      "id": "C056",
+      "question": "channel: _____",
+      "answer": "str",
+      "source": "pipeline.py",
+      "answerable": true,
+      "kind": "field_cloze",
+      "label_provenance": "machine-field_cloze",
+      "expected_positions": [
+        0
+      ],
+      "required_facts": [
+        "channel: str"
+      ],
+      "verified_by_human": false
+    },
+    {
+      "id": "C057",
+      "question": "value: _____",
+      "answer": "float",
+      "source": "pipeline.py",
+      "answerable": true,
+      "kind": "field_cloze",
+      "label_provenance": "machine-field_cloze",
+      "expected_positions": [
+        0
+      ],
+      "required_facts": [
+        "value: float"
+      ],
+      "verified_by_human": false
+    },
+    {
+      "id": "C058",
+      "question": "timestamp: _____",
+      "answer": "float",
+      "source": "pipeline.py",
+      "answerable": true,
+      "kind": "field_cloze",
+      "label_provenance": "machine-field_cloze",
+      "expected_positions": [
+        0
+      ],
+      "required_facts": [
+        "timestamp: float"
+      ],
+      "verified_by_human": false
+    },
+    {
+      "id": "C059",
+      "question": "def normalise_channel(name: _____",
+      "answer": "str) -> str:",
+      "source": "pipeline.py",
+      "answerable": true,
+      "kind": "field_cloze",
+      "label_provenance": "machine-field_cloze",
+      "expected_positions": [
+        3
+      ],
+      "required_facts": [
+        "def normalise_channel(name: str) -> str:"
+      ],
+      "verified_by_human": false
+    },
+    {
+      "id": "C060",
+      "question": "$.package.name: _____",
+      "answer": "harvest-planner",
+      "source": "pyproject.toml",
+      "answerable": true,
+      "kind": "field_cloze",
+      "label_provenance": "machine-field_cloze",
+      "expected_positions": [
+        0
+      ],
+      "required_facts": [
+        "$.package.name: harvest-planner"
+      ],
+      "verified_by_human": false
+    },
+    {
+      "id": "C061",
+      "question": "$.package.version: _____",
+      "answer": "0.9.3",
+      "source": "pyproject.toml",
+      "answerable": true,
+      "kind": "field_cloze",
+      "label_provenance": "machine-field_cloze",
+      "expected_positions": [
+        0
+      ],
+      "required_facts": [
+        "$.package.version: 0.9.3"
+      ],
+      "verified_by_human": false
+    },
+    {
+      "id": "C062",
+      "question": "$.package.edition: _____",
+      "answer": "2021",
+      "source": "pyproject.toml",
+      "answerable": true,
+      "kind": "value_cloze",
+      "label_provenance": "machine-value_cloze",
+      "expected_positions": [
+        0
+      ],
+      "required_facts": [
+        "$.package.edition: 2021"
+      ],
+      "verified_by_human": false
+    },
+    {
+      "id": "C063",
+      "question": "$.dependencies.serde: _____",
+      "answer": "1.0",
+      "source": "pyproject.toml",
+      "answerable": true,
+      "kind": "value_cloze",
+      "label_provenance": "machine-value_cloze",
+      "expected_positions": [
+        0
+      ],
+      "required_facts": [
+        "$.dependencies.serde: 1.0"
+      ],
+      "verified_by_human": false
+    },
+    {
+      "id": "C064",
+      "question": "step: freeze\nowner: ana\nduration_min: _____\nreversible: no",
+      "answer": "90",
+      "source": "report.docx",
+      "answerable": true,
+      "kind": "record_cloze",
+      "label_provenance": "machine-record_cloze",
+      "expected_positions": [
+        4
+      ],
+      "required_facts": [
+        "step: freeze\nowner: ana\nduration_min: 90\nreversible: no"
+      ],
+      "verified_by_human": false
+    },
+    {
+      "id": "C065",
+      "question": "step: canary\nowner: sam\nduration_min: _____\nreversible: yes",
+      "answer": "30",
+      "source": "report.docx",
+      "answerable": true,
+      "kind": "record_cloze",
+      "label_provenance": "machine-record_cloze",
+      "expected_positions": [
+        4
+      ],
+      "required_facts": [
+        "step: canary\nowner: sam\nduration_min: 30\nreversible: yes"
+      ],
+      "verified_by_human": false
+    },
+    {
+      "id": "C066",
+      "question": "step: ramp\nowner: sam\nduration_min: _____\nreversible: yes",
+      "answer": "45",
+      "source": "report.docx",
+      "answerable": true,
+      "kind": "record_cloze",
+      "label_provenance": "machine-record_cloze",
+      "expected_positions": [
+        4
+      ],
+      "required_facts": [
+        "step: ramp\nowner: sam\nduration_min: 45\nreversible: yes"
+      ],
+      "verified_by_human": false
+    },
+    {
+      "id": "C067",
+      "question": "step: verify\nowner: priya\nduration_min: _____\nreversible: n/a",
+      "answer": "20",
+      "source": "report.docx",
+      "answerable": true,
+      "kind": "record_cloze",
+      "label_provenance": "machine-record_cloze",
+      "expected_positions": [
+        4
+      ],
+      "required_facts": [
+        "step: verify\nowner: priya\nduration_min: 20\nreversible: n/a"
+      ],
+      "verified_by_human": false
+    },
+    {
+      "id": "C068",
+      "question": "$.limits.requests_per_minute: _____",
+      "answer": "600",
+      "source": "service.json",
+      "answerable": true,
+      "kind": "value_cloze",
+      "label_provenance": "machine-value_cloze",
+      "expected_positions": [
+        0
+      ],
+      "required_facts": [
+        "$.limits.requests_per_minute: 600"
+      ],
+      "verified_by_human": false
+    },
+    {
+      "id": "C069",
+      "question": "$.limits.burst: _____",
+      "answer": "1200",
+      "source": "service.json",
+      "answerable": true,
+      "kind": "value_cloze",
+      "label_provenance": "machine-value_cloze",
+      "expected_positions": [
+        0
+      ],
+      "required_facts": [
+        "$.limits.burst: 1200"
+      ],
+      "verified_by_human": false
+    },
+    {
+      "id": "C070",
+      "question": "sensor_id: TH-001\nzone: storefront\nreading: _____\nunit: C\ntimestamp: 2024-05-01T08:00:00",
+      "answer": "21.4",
+      "source": "temperatures.tsv",
+      "answerable": true,
+      "kind": "record_cloze",
+      "label_provenance": "machine-record_cloze",
+      "expected_positions": [
+        0
+      ],
+      "required_facts": [
+        "sensor_id: TH-001\nzone: storefront\nreading: 21.4\nunit: C\ntimestamp: 2024-05-01T08:00:00"
+      ],
+      "verified_by_human": false
+    },
+    {
+      "id": "C071",
+      "question": "sensor_id: TH-002\nzone: storefront\nreading: _____\nunit: C\ntimestamp: 2024-05-01T08:00:00",
+      "answer": "21.6",
+      "source": "temperatures.tsv",
+      "answerable": true,
+      "kind": "record_cloze",
+      "label_provenance": "machine-record_cloze",
+      "expected_positions": [
+        0
+      ],
+      "required_facts": [
+        "sensor_id: TH-002\nzone: storefront\nreading: 21.6\nunit: C\ntimestamp: 2024-05-01T08:00:00"
+      ],
+      "verified_by_human": false
+    },
+    {
+      "id": "C072",
+      "question": "sensor_id: TH-003\nzone: warehouse\nreading: _____\nunit: C\ntimestamp: 2024-05-01T08:00:00",
+      "answer": "17.9",
+      "source": "temperatures.tsv",
+      "answerable": true,
+      "kind": "record_cloze",
+      "label_provenance": "machine-record_cloze",
+      "expected_positions": [
+        0
+      ],
+      "required_facts": [
+        "sensor_id: TH-003\nzone: warehouse\nreading: 17.9\nunit: C\ntimestamp: 2024-05-01T08:00:00"
+      ],
+      "verified_by_human": false
+    },
+    {
+      "id": "C073",
+      "question": "sensor_id: TH-004\nzone: warehouse\nreading: _____\nunit: C\ntimestamp: 2024-05-01T08:00:00",
+      "answer": "18.1",
+      "source": "temperatures.tsv",
+      "answerable": true,
+      "kind": "record_cloze",
+      "label_provenance": "machine-record_cloze",
+      "expected_positions": [
+        0
+      ],
+      "required_facts": [
+        "sensor_id: TH-004\nzone: warehouse\nreading: 18.1\nunit: C\ntimestamp: 2024-05-01T08:00:00"
+      ],
+      "verified_by_human": false
+    },
+    {
+      "id": "C074",
+      "question": "index: _____",
+      "answer": "int",
+      "source": "train.py",
+      "answerable": true,
+      "kind": "field_cloze",
+      "label_provenance": "machine-field_cloze",
+      "expected_positions": [
+        0
+      ],
+      "required_facts": [
+        "index: int"
+      ],
+      "verified_by_human": false
+    },
+    {
+      "id": "C075",
+      "question": "excluded_rows: _____",
+      "answer": "list = field(default_factory=list)",
+      "source": "train.py",
+      "answerable": true,
+      "kind": "field_cloze",
+      "label_provenance": "machine-field_cloze",
+      "expected_positions": [
+        0
+      ],
+      "required_facts": [
+        "excluded_rows: list = field(default_factory=list)"
+      ],
+      "verified_by_human": false
+    },
+    {
+      "id": "C076",
+      "question": "def spatial_folds(geometries, count: _____",
+      "answer": "int = SPATIAL_FOLDS):",
+      "source": "train.py",
+      "answerable": true,
+      "kind": "field_cloze",
+      "label_provenance": "machine-field_cloze",
+      "expected_positions": [
+        1
+      ],
+      "required_facts": [
+        "def spatial_folds(geometries, count: int = SPATIAL_FOLDS):"
+      ],
+      "verified_by_human": false
+    },
+    {
+      "id": "C077",
+      "question": "middle = _____",
+      "answer": "len(observed) // 2",
+      "source": "train.py",
+      "answerable": true,
+      "kind": "field_cloze",
+      "label_provenance": "machine-field_cloze",
+      "expected_positions": [
+        2
+      ],
+      "required_facts": [
+        "middle = len(observed) // 2"
+      ],
+      "verified_by_human": false
+    },
+    {
+      "id": "C078",
+      "question": "$.database.host: _____",
+      "answer": "warehouse.internal",
+      "source": "warehouse.ini",
+      "answerable": true,
+      "kind": "field_cloze",
+      "label_provenance": "machine-field_cloze",
+      "expected_positions": [
+        0
+      ],
+      "required_facts": [
+        "$.database.host: warehouse.internal"
+      ],
+      "verified_by_human": false
+    },
+    {
+      "id": "C079",
+      "question": "$.database.port: _____",
+      "answer": "5432",
+      "source": "warehouse.ini",
+      "answerable": true,
+      "kind": "value_cloze",
+      "label_provenance": "machine-value_cloze",
+      "expected_positions": [
+        0
+      ],
+      "required_facts": [
+        "$.database.port: 5432"
+      ],
+      "verified_by_human": false
+    },
+    {
+      "id": "C080",
+      "question": "$.database.pool_size: _____",
+      "answer": "25",
+      "source": "warehouse.ini",
+      "answerable": true,
+      "kind": "value_cloze",
+      "label_provenance": "machine-value_cloze",
+      "expected_positions": [
+        0
+      ],
+      "required_facts": [
+        "$.database.pool_size: 25"
+      ],
+      "verified_by_human": false
+    },
+    {
+      "id": "C081",
+      "question": "$.database.connect_timeout: _____",
+      "answer": "10",
+      "source": "warehouse.ini",
+      "answerable": true,
+      "kind": "value_cloze",
+      "label_provenance": "machine-value_cloze",
+      "expected_positions": [
+        0
+      ],
+      "required_facts": [
+        "$.database.connect_timeout: 10"
+      ],
+      "verified_by_human": false
+    },
+    {
+      "id": "C082",
+      "question": "How do I knit a scarf?",
+      "answer": null,
+      "source": "any document in the corpus",
+      "answerable": false,
+      "kind": "trap",
+      "label_provenance": "machine-absence",
+      "expected_positions": [],
+      "required_facts": [],
+      "absent_terms": "knit a scarf",
+      "verified_by_human": false
+    },
+    {
+      "id": "C083",
+      "question": "How do I make pasta?",
+      "answer": null,
+      "source": "any document in the corpus",
+      "answerable": false,
+      "kind": "trap",
+      "label_provenance": "machine-absence",
+      "expected_positions": [],
+      "required_facts": [],
+      "absent_terms": "make pasta",
+      "verified_by_human": false
+    },
+    {
+      "id": "C084",
+      "question": "How do I bake bread?",
+      "answer": null,
+      "source": "any document in the corpus",
+      "answerable": false,
+      "kind": "trap",
+      "label_provenance": "machine-absence",
+      "expected_positions": [],
+      "required_facts": [],
+      "absent_terms": "bake bread",
+      "verified_by_human": false
+    },
+    {
+      "id": "C085",
+      "question": "What is the capital of Peru?",
+      "answer": null,
+      "source": "any document in the corpus",
+      "answerable": false,
+      "kind": "trap",
+      "label_provenance": "machine-absence",
+      "expected_positions": [],
+      "required_facts": [],
+      "absent_terms": "capital of Peru",
+      "verified_by_human": false
+    },
+    {
+      "id": "C086",
+      "question": "How do I repot a fern?",
+      "answer": null,
+      "source": "any document in the corpus",
+      "answerable": false,
+      "kind": "trap",
+      "label_provenance": "machine-absence",
+      "expected_positions": [],
+      "required_facts": [],
+      "absent_terms": "repot a fern",
+      "verified_by_human": false
+    },
+    {
+      "id": "C087",
+      "question": "Who won the 1998 world cup?",
+      "answer": null,
+      "source": "any document in the corpus",
+      "answerable": false,
+      "kind": "trap",
+      "label_provenance": "machine-absence",
+      "expected_positions": [],
+      "required_facts": [],
+      "absent_terms": "1998 world cup",
+      "verified_by_human": false
+    },
+    {
+      "id": "C088",
+      "question": "How do I tune a piano?",
+      "answer": null,
+      "source": "any document in the corpus",
+      "answerable": false,
+      "kind": "trap",
+      "label_provenance": "machine-absence",
+      "expected_positions": [],
+      "required_facts": [],
+      "absent_terms": "tune a piano",
+      "verified_by_human": false
+    }
+  ]
+}
