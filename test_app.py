@@ -1037,6 +1037,47 @@ def test_word_sections_respect_the_chunk_ceiling(client: TestClient) -> None:
     print(f"  word chunking: {len(blocks)} chunks, ceiling {size}, overlap honoured")
 
 
+def test_retrieval_metric_definitions(client: TestClient = None) -> None:
+    from experiments import metrics
+
+    gold = ["a", "b", "c"]
+    ranked = ["x", "b", "y", "c", "z"]
+
+    assert metrics.recall_at_k(gold, ranked, 5) == 2 / 3
+    assert metrics.precision_at_k(gold, ranked, 5) == 2 / 5
+    assert metrics.hit_rate_at_k(gold, ranked, 1) == 0.0
+    assert metrics.hit_rate_at_k(gold, ranked, 2) == 1.0
+    assert metrics.reciprocal_rank(gold, ranked) == 0.5
+    assert metrics.ndcg_at_k(gold, gold, 3) == 1.0
+
+    # Buried evidence must score below evidence that is retrieved promptly.
+    assert metrics.ndcg_at_k(gold, ["c", "x", "y", "a"], 4) < metrics.ndcg_at_k(
+        gold, ["c", "a", "x", "y"], 4
+    )
+
+    # A repeated id is a retriever bug, not extra credit.
+    assert metrics.recall_at_k(["a"], ["a", "a", "a"], 3) == 1.0
+
+    # Unlabelled questions raise instead of silently scoring zero.
+    for call in (
+        lambda: metrics.score_query([], ["a"], 5),
+        lambda: metrics.recall_at_k([], ["a"], 5),
+    ):
+        try:
+            call()
+        except ValueError:
+            continue
+        raise AssertionError("an unlabelled question must not score 0.0")
+
+    report = metrics.aggregate([{"metrics": {"recall@5": 1.0}}, {"metrics": None}])
+    assert report["scored"] == 1 and report["skipped"] == 1
+    assert report["means"]["recall@5"] == 1.0
+
+    covered = metrics.fact_coverage(["$.limits.rpm: 600", "absent"], "$.limits.rpm: 600")
+    assert covered["covered"] == 1 and covered["missing"] == ["absent"]
+    print("  metrics: definitions behave as documented")
+
+
 def test_hybrid_lexical_index(client: TestClient = None) -> None:
     from app.lexical import content_terms, tokenize
 
@@ -1220,6 +1261,7 @@ ORDER = [
     ("uniform numeric corpus undamped", test_uniform_numeric_corpus_is_not_damped),
     ("type-aware parsing", test_type_aware_parsing),
     ("word sections chunked", test_word_sections_respect_the_chunk_ceiling),
+    ("metric definitions", test_retrieval_metric_definitions),
     ("config formats as data", test_config_formats_parsed_as_data),
     ("hard-wrapped text rejoined", test_hard_wrapped_text_is_rejoined),
     ("hybrid tokenisation", test_hybrid_lexical_index),
