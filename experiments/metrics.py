@@ -69,24 +69,37 @@ def _require_gold(expected: Sequence[object], name: str = "expected") -> set[obj
     return gold
 
 
+def _require_k(k: int) -> int:
+    """A cut-off of zero or less has no meaning, and dividing by it hides bugs."""
+    if k <= 0:
+        raise ValueError(f"k must be positive, got {k}")
+    return k
+
+
 def recall_at_k(expected: Sequence[object], retrieved: Sequence[object], k: int) -> float:
     """Share of the gold evidence found in the top k. 1.0 means all of it."""
     gold = _require_gold(expected)
-    found = _ranked(gold, retrieved[:k])
+    found = _ranked(gold, retrieved[: _require_k(k)])
     return len(found) / len(gold)
 
 
 def precision_at_k(expected: Sequence[object], retrieved: Sequence[object], k: int) -> float:
-    """Share of the top k that is gold. Rewards returning little."""
+    """Share of the top k that is gold. Rewards returning little.
+
+    Distinct ids only. Two copies of the same gold chunk fill two slots, so
+    counting both would hand a retriever full marks for a duplication bug -
+    the one case where the denominator and the numerator disagree about what
+    a slot is worth.
+    """
     gold = _require_gold(expected)
-    top = retrieved[:k]
-    return sum(1 for item in top if item in gold) / k
+    top = retrieved[: _require_k(k)]
+    return len(_ranked(gold, top)) / k
 
 
 def hit_rate_at_k(expected: Sequence[object], retrieved: Sequence[object], k: int) -> float:
     """1.0 when any gold evidence is in the top k. Says nothing about how much."""
     gold = _require_gold(expected)
-    return float(bool(_ranked(gold, retrieved[:k])))
+    return float(bool(_ranked(gold, retrieved[: _require_k(k)])))
 
 
 def reciprocal_rank(expected: Sequence[object], retrieved: Sequence[object], k: int | None = None) -> float:
@@ -97,7 +110,7 @@ def reciprocal_rank(expected: Sequence[object], retrieved: Sequence[object], k: 
     constant.
     """
     gold = _require_gold(expected)
-    considered = retrieved if k is None else retrieved[:k]
+    considered = retrieved if k is None else retrieved[: _require_k(k)]
     for rank, item in _ranked(gold, considered):
         return 1.0 / rank
     return 0.0
@@ -116,7 +129,7 @@ def ndcg_at_k(expected: Sequence[object], retrieved: Sequence[object], k: int) -
     rank 2, which quietly rewards a ranking that buries its best evidence.
     """
     gold = _require_gold(expected)
-    top = retrieved[:k]
+    top = retrieved[: _require_k(k)]
     gains = [0.0] * len(top)
     for rank, _ in _ranked(gold, top):
         gains[rank - 1] = 1.0
@@ -132,7 +145,7 @@ def coverage_at_k(expected: Sequence[object], retrieved: Sequence[object], k: in
     a reviewer can act on, so this is plain coverage.
     """
     gold = _require_gold(expected)
-    found = _ranked(gold, retrieved[:k])
+    found = _ranked(gold, retrieved[: _require_k(k)])
     return len(found) / len(gold)
 
 
@@ -243,8 +256,30 @@ def _self_check() -> None:
 
     # A repeated id must not earn a second credit...
     assert recall_at_k(["a"], ["a", "a", "a"], 3) == 1.0
+    # ...in any metric. Two copies of one gold chunk fill two slots, so
+    # precision over ["a", "a"] has to read as one hit in two, not two in two.
+    assert math.isclose(precision_at_k(["a"], ["a", "a"], 2), 0.5)
+    assert math.isclose(precision_at_k(["a"], ["a", "a"], 5), 0.2)
+    assert math.isclose(precision_at_k(["a"], ["a", "x", "a"], 3), 1 / 3)
     # ...and a short ranking must not beat a full one on precision.
     assert precision_at_k(["a"], ["a"], 5) < precision_at_k(["a"], ["a"], 1)
+
+    # A cut-off of zero or less has no meaning; dividing by it would either
+    # crash or invent a score.
+    for bad_k in (0, -1):
+        for call in (
+            lambda: recall_at_k(["a"], ["a"], bad_k),
+            lambda: precision_at_k(["a"], ["a"], bad_k),
+            lambda: hit_rate_at_k(["a"], ["a"], bad_k),
+            lambda: ndcg_at_k(["a"], ["a"], bad_k),
+            lambda: reciprocal_rank(["a"], ["a"], bad_k),
+        ):
+            try:
+                call()
+            except ValueError:
+                pass
+            else:  # pragma: no cover - the guard is the behaviour under test
+                raise AssertionError(f"k={bad_k} must raise, not score")
 
     facts = fact_coverage(
         ["$.limits.rpm: 600", "missing clause"],

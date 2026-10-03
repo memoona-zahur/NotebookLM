@@ -1071,8 +1071,12 @@ def test_retrieval_metric_definitions(client: TestClient = None) -> None:
         gold, ["c", "a", "x", "y"], 4
     )
 
-    # A repeated id is a retriever bug, not extra credit.
+    # A repeated id is a retriever bug, not extra credit. It fills two slots,
+    # so precision over ["a", "a"] is one hit in two - not two in two, which
+    # would hand a duplication bug full marks.
     assert metrics.recall_at_k(["a"], ["a", "a", "a"], 3) == 1.0
+    assert metrics.precision_at_k(["a"], ["a", "a"], 2) == 0.5
+    assert metrics.precision_at_k(["a"], ["a", "x", "a"], 3) == 1 / 3
 
     # Unlabelled questions raise instead of silently scoring zero.
     for call in (
@@ -1084,6 +1088,14 @@ def test_retrieval_metric_definitions(client: TestClient = None) -> None:
         except ValueError:
             continue
         raise AssertionError("an unlabelled question must not score 0.0")
+
+    # So does a cut-off that has no meaning.
+    for bad_k in (0, -1):
+        try:
+            metrics.precision_at_k(["a"], ["a"], bad_k)
+        except ValueError:
+            continue
+        raise AssertionError(f"k={bad_k} must raise rather than invent a score")
 
     report = metrics.aggregate([{"metrics": {"recall@5": 1.0}}, {"metrics": None}])
     assert report["scored"] == 1 and report["skipped"] == 1
