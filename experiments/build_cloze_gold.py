@@ -106,6 +106,9 @@ DIGITS = re.compile(r"\d")
 # are not held to the prose length floor.
 KEY_VALUE = re.compile(r"(?P<key>[$A-Za-z_][\w$.\[\]]*)\s*[:=]\s(?P<value>\S.*?)\s*$")
 MAX_VALUE_CHARS = 60
+# A key term appearing in at most this many documents is specific enough to
+# identify its own value.
+RARE_TERMS = 3
 
 
 def _candidate_lines(blocks: list[parsers.Block]) -> list[tuple[int, str]]:
@@ -314,11 +317,27 @@ def _key_of(line: str) -> str | None:
     return matches[-1].group("key").casefold() if matches else None
 
 
-def _items_for_document(name: str, per_document: int) -> list[dict]:
+def _distinctive(key: str, df: dict[str, int], ceiling: int) -> bool:
+    """Does this key name something specific, or is it a word like 'version'?
+
+    '$.version: _____' asks 'which version?' and nothing in the question says
+    which. No retriever can answer it, so scoring it measures noise. A key is
+    usable when at least one of its terms is rare across the corpus.
+    """
+    terms = [term for term in content_terms(key) if term]
+    if not terms:
+        return False
+    return any(df.get(term, 0) <= ceiling for term in terms)
+
+
+def _items_for_document(
+    name: str, per_document: int, df: dict[str, int] | None = None
+) -> list[dict]:
     path = CORPUS / name
     if not path.exists():
         return []
     blocks = parsers.parse(path)
+    df = df or {}
     # Tabular documents first: a record names itself and gives a decisive
     # question, where a bare field name repeated down a file does not.
     built = _record_items(name, blocks, per_document)
@@ -351,6 +370,8 @@ def _items_for_document(name: str, per_document: int) -> list[dict]:
                 # document, so the field on its own does not say which value is
                 # wanted. Record items cover the tabular case, where the other
                 # fields of the record name it.
+                continue
+            if df and not _distinctive(matches[-1].group("key") if matches else "", df, RARE_TERMS):
                 continue
         key = normalize(question)
         if key in seen_questions:
@@ -456,11 +477,16 @@ def build(per_document: int = PER_DOCUMENT, traps: int = 10) -> dict:
     names = sorted(p.name for p in CORPUS.iterdir() if p.is_file())
     blocks = {name: parsers.parse(CORPUS / name) for name in names}
     all_text = " ".join(b.text for parsed in blocks.values() for b in parsed)
+    # Document frequency, so a key can be rejected for being generic.
+    df: dict[str, int] = {}
+    for parsed in blocks.values():
+        for term in {*content_terms(" ".join(b.text for b in parsed))}:
+            df[term] = df.get(term, 0) + 1
 
     items: list[dict] = []
     seen: set[str] = set()
     for name in names:
-        for draft in _items_for_document(name, per_document):
+        for draft in _items_for_document(name, per_document, df):
             key = normalize(draft["question"])
             if key in seen:
                 # Two documents quoting the same sentence would otherwise

@@ -1,11 +1,31 @@
-"""Score the human-verified gold set against the live retriever.
+"""Score a gold set against the live retriever.
 
     .venv/bin/python -m experiments.eval_gold
     .venv/bin/python -m experiments.eval_gold --mode shared --k 8
     .venv/bin/python -m experiments.eval_gold --allow-unverified   # dry run only
+    .venv/bin/python -m experiments.eval_gold --gold experiments/gold/cloze_set.json --allow-machine
 
 Writes experiments/results/gold_metrics.json, and refuses to write it at all
 until a human has verified the gold items it scores.
+
+Two kinds of label, and the report always says which it used:
+
+  human-verified   somebody read the item and agreed the cited block answers
+                   the question. Only this may be written to gold_metrics.json.
+
+  machine-checked  the label came from experiments/build_cloze_gold.py, which
+                   blanks one value out of a verbatim parser block and checks
+                   four things mechanically: the fact is the parser's own
+                   output, the answer appears in it, the answer does not leak
+                   into the question, and refilling the blank reproduces the
+                   fact. --allow-machine re-runs those checks before scoring,
+                   so a label left stale by a parser change fails instead of
+                   reporting a retrieval failure. The artifact records
+                   human_verified: false and must not be cited as expert
+                   evidence. What it does establish is that the value stayed
+                   attached to its key through chunking and came back on
+                   retrieval. It does not establish that the system understood
+                   the question.
 
 Why this is not eval_retrieval.py again: that script asks whether *a* document
 got answered, so every hit counts as success and only the score floor
@@ -43,7 +63,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from app import config, db  # noqa: E402
+from app import config, db, parsers  # noqa: E402
 from app.store import VectorStore  # noqa: E402
 from experiments import corpus, metrics  # noqa: E402
 
@@ -70,28 +90,67 @@ def load_gold(path: Path = GOLD_PATH) -> list[dict]:
     return items
 
 
-def partition(items: list[dict], include_unverified: bool = False) -> tuple[list[dict], list[tuple[str, str]]]:
+def machine_failures(items: list[dict], corpus_dir: Path = CORPUS) -> dict[str, list[str]]:
+    """Re-run the generator's own checks on every machine-labelled item.
+
+    A committed label can go stale: a document is edited, a parser changes, and
+    a fact that was verbatim at generation time is no longer in the block the
+    label cites. Scoring it anyway would report a parser change as a retrieval
+    failure. The checks are re-run here rather than trusted from the file, so a
+    machine-checked result cannot be produced from a stale set.
+    """
+    from experiments import build_cloze_gold as cloze
+
+    names = {
+        item["source"]
+        for item in items
+        if item.get("source") and (corpus_dir / str(item["source"])).exists()
+    }
+    blocks = {name: parsers.parse(corpus_dir / name) for name in sorted(names)}
+    failures: dict[str, list[str]] = {}
+    for item in items:
+        if not str(item.get("label_provenance") or "").startswith("machine-"):
+            continue
+        problems = cloze.check_item(item, blocks)
+        if problems:
+            failures[item["id"]] = problems
+    return failures
+
+
+def partition(
+    items: list[dict],
+    include_unverified: bool = False,
+    machine_ids: set[str] | None = None,
+) -> tuple[list[dict], list[tuple[str, str]]]:
     """Split into what may be scored and what may not, with a reason each.
 
     include_unverified exists so the harness can be exercised end to end
     before anyone has read the labels. It makes the run a dry run: the results
     file is withheld and the report is stamped as unverified, so a dry run can
     never be mistaken for a result.
+
+    machine_ids are items whose labels were checked mechanically just now, by
+    machine_failures. They are scorable without a human, but only the caller
+    decides that, and the report keeps saying so.
     """
+    machine_ids = machine_ids or set()
     scorable: list[dict] = []
     excluded: list[tuple[str, str]] = []
     for item in items:
         verified = bool(item["verified_by_human"])
+        checked = item["id"] in machine_ids
         if item["answerable"] is None:
             excluded.append((item["id"], "answerability unknown, needs a human"))
         elif item["answerable"]:
             if verified or include_unverified:
                 scorable.append(item)
+            elif checked:
+                scorable.append(item)
             else:
                 excluded.append((item["id"], "awaiting human verification"))
         elif item["required_facts"]:
             excluded.append((item["id"], "unanswerable but names facts"))
-        elif verified:
+        elif verified or checked:
             excluded.append((item["id"], "trap, checked separately"))
         else:
             excluded.append((item["id"], "unverified trap, checked separately"))
@@ -195,33 +254,62 @@ def _means(rows: list[dict]) -> dict[str, object]:
     return summary
 
 
-def run(k: int, mode: str, allow_unverified: bool, verbose: bool = True) -> dict:
-    items = load_gold()
-    scorable, excluded = partition(items, include_unverified=allow_unverified)
+def run(
+    k: int,
+    mode: str,
+    allow_unverified: bool,
+    verbose: bool = True,
+    gold_path: Path = GOLD_PATH,
+    allow_machine: bool = False,
+) -> dict:
+    items = load_gold(gold_path)
+    stale = machine_failures(items) if allow_machine else {}
+    machine_ids = {item["id"] for item in items} - set(stale) if allow_machine else set()
+    scorable, excluded = partition(items, include_unverified=allow_unverified, machine_ids=machine_ids)
     # answerable is None when no one has decided yet. Such an item must not
     # become a trap: that would require the retriever to return nothing for a
     # question the document may well answer, turning a correct hit into a leak.
     traps = [
         item
         for item in items
-        if item["verified_by_human"] and item["answerable"] is False and not item["required_facts"]
+        if (item["verified_by_human"] or item["id"] in machine_ids)
+        and item["answerable"] is False
+        and not item["required_facts"]
     ]
     unverified = [item_id for item_id, reason in excluded if reason == "awaiting human verification"]
+    kinds: dict[str, int] = defaultdict(int)
+    for item in scorable:
+        kinds[item.get("kind") or "unspecified"] += 1
 
     print("=" * 92)
     print("GOLD SET ACCOUNTING")
     print("=" * 92)
-    print(f"items in file:            {len(items)}")
-    print(f"answerable and verified:  {len(scorable)}")
-    print(f"traps, verified:          {len(traps)}")
-    print(f"excluded, unverified:     {len(unverified)}")
+    print(f"gold file:                 {gold_path}")
+    print(f"items in file:             {len(items)}")
+    print(f"answerable and scorable:   {len(scorable)}")
+    print(f"traps, checked:            {len(traps)}")
+    print(f"excluded, unverified:      {len(unverified)}")
+    if kinds:
+        print("scored by item kind:       " + ", ".join(f"{k} {v}" for k, v in sorted(kinds.items())))
+    if allow_machine:
+        print()
+        print(f"machine checks re-run on {len(machine_ids)} items; {len(stale)} failed")
+        for item_id, problems in sorted(stale.items()):
+            print(f"  STALE {item_id}: {problems}")
     for item_id, reason in excluded:
         if reason != "awaiting human verification":
             print(f"  excluded {item_id}: {reason}")
 
+    if stale:
+        print()
+        print("Refusing to score: a machine-checked label no longer passes its own")
+        print("checks. Regenerate the set, or the numbers would describe a corpus")
+        print("that no longer exists.")
+        return {"scored": 0, "skipped": len(excluded), "means": {}, "rows": [], "leaks": []}
+
     if not scorable:
         print()
-        print("No verified answerable items, so there is nothing to score.")
+        print("No scorable answerable items, so there is nothing to score.")
         print("That is the guard working, not a failure: an unlabelled question")
         print("scored 0.0 would look identical to a retrieval failure.")
         return {"scored": 0, "skipped": len(excluded), "means": {}, "rows": [], "leaks": []}
@@ -238,7 +326,9 @@ def run(k: int, mode: str, allow_unverified: bool, verbose: bool = True) -> dict
 
     corpus.build(CORPUS)
     store = VectorStore()
-    names = sorted({item["source"] for item in scorable} | {item["source"] for item in traps})
+    # A trap has no source document - it names the whole corpus - so its
+    # 'source' string is not a filename and must not reach the indexer.
+    names = sorted({item["source"] for item in scorable})
 
     rows: list[dict] = []
     leaks: list[dict] = []
@@ -274,18 +364,22 @@ def run(k: int, mode: str, allow_unverified: bool, verbose: bool = True) -> dict
         _print_detail(rows, leaks, k)
 
     scored_verified = all(bool(item["verified_by_human"]) for item in scorable)
+    machine_only = bool(scorable) and not scored_verified
     report = {
         "k": k,
         "mode": mode,
+        "gold_file": str(gold_path),
         "corpus_documents": len(names),
         # Asked whether the labels actually scored here, not whether some item
         # was left out. Checking the excluded list instead let a dry run
         # through, because a dry run excludes nothing.
         "human_verified": scored_verified,
+        "label_basis": "human-verified" if scored_verified else "machine-checked",
+        "item_kinds": dict(sorted(kinds.items())),
         "accounting": {
             "items": len(items),
-            "answerable_verified": len(scorable),
-            "traps_verified": len(traps),
+            "answerable_scorable": len(scorable),
+            "traps_checked": len(traps),
             "excluded_unverified": len(unverified),
         },
         "scored": summary["scored"],
@@ -381,15 +475,35 @@ def main() -> int:
     parser.add_argument("--k", type=int, default=5)
     parser.add_argument("--mode", choices=("isolated", "shared", "both"), default="both")
     parser.add_argument(
+        "--gold",
+        type=Path,
+        default=GOLD_PATH,
+        help="which label set to score; the results file is named after it",
+    )
+    parser.add_argument(
         "--allow-unverified",
         action="store_true",
         help="score unverified labels as a dry run; writes no results file",
     )
-    parser.add_argument("--out", type=Path, default=RESULTS_PATH)
+    parser.add_argument(
+        "--allow-machine",
+        action="store_true",
+        help=(
+            "score labels checked mechanically by experiments.build_cloze_gold, "
+            "re-running those checks first; the report stays marked unverified"
+        ),
+    )
+    parser.add_argument("--out", type=Path, default=None)
     args = parser.parse_args()
 
     db.migrate()
-    report = run(args.k, args.mode, args.allow_unverified)
+    report = run(
+        args.k,
+        args.mode,
+        args.allow_unverified,
+        gold_path=args.gold,
+        allow_machine=args.allow_machine,
+    )
 
     if not report["rows"] and not report.get("leaks"):
         return 0
@@ -407,14 +521,25 @@ def main() -> int:
 
     if not report["human_verified"]:
         print()
-        print("Not writing results: the scored labels are not human-verified.")
-        print("Verify the gold items, or pass --allow-unverified for a dry run.")
+        print(f"Label basis: {report['label_basis']}. No human read these labels.")
+        if not args.allow_machine:
+            print("Pass --allow-machine to score mechanically checked labels, or")
+            print("--allow-unverified for a dry run that writes nothing at all.")
+
+    if report["human_verified"] or (args.allow_machine and not args.allow_unverified):
+        out = args.out or RESULTS_PATH.with_name(f"{args.gold.stem}_metrics.json")
+        out.parent.mkdir(parents=True, exist_ok=True)
+        out.write_text(json.dumps(report, indent=2, sort_keys=True), encoding="utf-8")
+        print()
+        print(f"wrote {out}")
+        if not report["human_verified"]:
+            print("  This artifact records human_verified: false. Do not cite it as")
+            print("  expert-validated; it is a regression baseline, nothing more.")
         return 0
 
-    args.out.parent.mkdir(parents=True, exist_ok=True)
-    args.out.write_text(json.dumps(report, indent=2, sort_keys=True), encoding="utf-8")
     print()
-    print(f"wrote {args.out}")
+    print("Not writing results: the scored labels are neither human-verified nor")
+    print("machine-checked. Nothing was averaged in from unchecked labels.")
     return 0
 
 

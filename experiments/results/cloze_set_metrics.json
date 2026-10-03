@@ -1,0 +1,2530 @@
+{
+  "accounting": {
+    "answerable_scorable": 84,
+    "excluded_unverified": 0,
+    "items": 91,
+    "traps_checked": 7
+  },
+  "by_format": {
+    "csv": {
+      "fact_coverage": 1.0,
+      "means": {
+        "hit_rate@5": 1.0,
+        "mrr@5": 1.0,
+        "ndcg@5": 1.0,
+        "precision@5": 0.19999999999999998,
+        "recall@5": 1.0
+      },
+      "scored": 8
+    },
+    "docx": {
+      "fact_coverage": 1.0,
+      "means": {
+        "hit_rate@5": 1.0,
+        "mrr@5": 1.0,
+        "ndcg@5": 1.0,
+        "precision@5": 0.19999999999999998,
+        "recall@5": 1.0
+      },
+      "scored": 8
+    },
+    "html": {
+      "fact_coverage": 1.0,
+      "means": {
+        "hit_rate@5": 1.0,
+        "mrr@5": 1.0,
+        "ndcg@5": 1.0,
+        "precision@5": 0.20000000000000004,
+        "recall@5": 1.0
+      },
+      "scored": 3
+    },
+    "ini": {
+      "fact_coverage": 1.0,
+      "means": {
+        "hit_rate@5": 1.0,
+        "mrr@5": 1.0,
+        "ndcg@5": 1.0,
+        "precision@5": 0.2,
+        "recall@5": 1.0
+      },
+      "scored": 4
+    },
+    "java": {
+      "fact_coverage": 1.0,
+      "means": {
+        "hit_rate@5": 1.0,
+        "mrr@5": 0.875,
+        "ndcg@5": 0.9077324383928644,
+        "precision@5": 0.2,
+        "recall@5": 1.0
+      },
+      "scored": 4
+    },
+    "js": {
+      "fact_coverage": 1.0,
+      "means": {
+        "hit_rate@5": 1.0,
+        "mrr@5": 1.0,
+        "ndcg@5": 1.0,
+        "precision@5": 0.2,
+        "recall@5": 1.0
+      },
+      "scored": 4
+    },
+    "json": {
+      "fact_coverage": 1.0,
+      "means": {
+        "hit_rate@5": 1.0,
+        "mrr@5": 1.0,
+        "ndcg@5": 1.0,
+        "precision@5": 0.19999999999999998,
+        "recall@5": 1.0
+      },
+      "scored": 7
+    },
+    "log": {
+      "fact_coverage": 1.0,
+      "means": {
+        "hit_rate@5": 1.0,
+        "mrr@5": 1.0,
+        "ndcg@5": 1.0,
+        "precision@5": 0.19999999999999998,
+        "recall@5": 1.0
+      },
+      "scored": 8
+    },
+    "md": {
+      "fact_coverage": 1.0,
+      "means": {
+        "hit_rate@5": 1.0,
+        "mrr@5": 0.875,
+        "ndcg@5": 0.9077324383928644,
+        "precision@5": 0.2,
+        "recall@5": 1.0
+      },
+      "scored": 4
+    },
+    "pdf": {
+      "fact_coverage": 1.0,
+      "means": {
+        "hit_rate@5": 1.0,
+        "mrr@5": 1.0,
+        "ndcg@5": 1.0,
+        "precision@5": 0.19999999999999998,
+        "recall@5": 1.0
+      },
+      "scored": 7
+    },
+    "py": {
+      "fact_coverage": 1.0,
+      "means": {
+        "hit_rate@5": 1.0,
+        "mrr@5": 0.9375,
+        "ndcg@5": 0.9538662191964322,
+        "precision@5": 0.19999999999999998,
+        "recall@5": 1.0
+      },
+      "scored": 8
+    },
+    "rst": {
+      "fact_coverage": 1.0,
+      "means": {
+        "hit_rate@5": 1.0,
+        "mrr@5": 1.0,
+        "ndcg@5": 1.0,
+        "precision@5": 0.20000000000000004,
+        "recall@5": 1.0
+      },
+      "scored": 3
+    },
+    "sql": {
+      "fact_coverage": 1.0,
+      "means": {
+        "hit_rate@5": 1.0,
+        "mrr@5": 1.0,
+        "ndcg@5": 1.0,
+        "precision@5": 0.2,
+        "recall@5": 1.0
+      },
+      "scored": 2
+    },
+    "toml": {
+      "fact_coverage": 1.0,
+      "means": {
+        "hit_rate@5": 1.0,
+        "mrr@5": 1.0,
+        "ndcg@5": 1.0,
+        "precision@5": 0.2,
+        "recall@5": 1.0
+      },
+      "scored": 4
+    },
+    "tsv": {
+      "fact_coverage": 1.0,
+      "means": {
+        "hit_rate@5": 1.0,
+        "mrr@5": 0.5,
+        "ndcg@5": 0.6309297535714575,
+        "precision@5": 0.2,
+        "recall@5": 1.0
+      },
+      "scored": 4
+    },
+    "txt": {
+      "fact_coverage": 1.0,
+      "means": {
+        "hit_rate@5": 1.0,
+        "mrr@5": 1.0,
+        "ndcg@5": 1.0,
+        "precision@5": 0.2,
+        "recall@5": 1.0
+      },
+      "scored": 2
+    },
+    "yaml": {
+      "fact_coverage": 1.0,
+      "means": {
+        "hit_rate@5": 1.0,
+        "mrr@5": 1.0,
+        "ndcg@5": 1.0,
+        "precision@5": 0.2,
+        "recall@5": 1.0
+      },
+      "scored": 4
+    }
+  },
+  "config": {
+    "chunk_overlap": 150,
+    "chunk_size": 900,
+    "hybrid_enabled": true,
+    "max_per_source": 3,
+    "min_score": 0.25,
+    "top_k": 6
+  },
+  "corpus_documents": 24,
+  "fact_coverage": 1.0,
+  "facts": {
+    "covered": 84,
+    "total": 84
+  },
+  "gold_file": "experiments\\gold\\cloze_set.json",
+  "human_verified": false,
+  "item_kinds": {
+    "field_cloze": 26,
+    "record_cloze": 20,
+    "value_cloze": 38
+  },
+  "k": 5,
+  "label_basis": "machine-checked",
+  "leaks": [
+    {
+      "best_score": 0.0,
+      "hits": 0,
+      "id": "C084",
+      "leaked": false,
+      "question": "How do I knit a scarf?"
+    },
+    {
+      "best_score": 0.0,
+      "hits": 0,
+      "id": "C085",
+      "leaked": false,
+      "question": "How do I make pasta?"
+    },
+    {
+      "best_score": 0.0,
+      "hits": 0,
+      "id": "C086",
+      "leaked": false,
+      "question": "How do I bake bread?"
+    },
+    {
+      "best_score": 0.0,
+      "hits": 0,
+      "id": "C087",
+      "leaked": false,
+      "question": "What is the capital of Peru?"
+    },
+    {
+      "best_score": 0.0,
+      "hits": 0,
+      "id": "C088",
+      "leaked": false,
+      "question": "How do I repot a fern?"
+    },
+    {
+      "best_score": 0.0,
+      "hits": 0,
+      "id": "C089",
+      "leaked": false,
+      "question": "Who won the 1998 world cup?"
+    },
+    {
+      "best_score": 0.0,
+      "hits": 0,
+      "id": "C090",
+      "leaked": false,
+      "question": "How do I tune a piano?"
+    }
+  ],
+  "means": {
+    "hit_rate@5": 1.0,
+    "mrr@5": 0.9583333333333334,
+    "ndcg@5": 0.9692441461309546,
+    "precision@5": 0.19999999999999968,
+    "recall@5": 1.0
+  },
+  "mode": "both",
+  "precision_is_a_lower_bound": true,
+  "rows": [
+    {
+      "all_positions_stored": true,
+      "best_score": 0.3108,
+      "facts": {
+        "covered": 1,
+        "found": [
+          "this.declarationNumber = declarationNumber;"
+        ],
+        "missing": [],
+        "score": 1.0,
+        "total": 1
+      },
+      "id": "C000",
+      "metrics": {
+        "hit_rate@5": 1.0,
+        "mrr@5": 1.0,
+        "ndcg@5": 1.0,
+        "precision@5": 0.2,
+        "recall@5": 1.0
+      },
+      "question": "this.declarationNumber = _____",
+      "retrieved": [
+        "705"
+      ],
+      "source": "Customs.java"
+    },
+    {
+      "all_positions_stored": true,
+      "best_score": 0.4225,
+      "facts": {
+        "covered": 1,
+        "found": [
+          "this.exportDate = exportDate;"
+        ],
+        "missing": [],
+        "score": 1.0,
+        "total": 1
+      },
+      "id": "C001",
+      "metrics": {
+        "hit_rate@5": 1.0,
+        "mrr@5": 1.0,
+        "ndcg@5": 1.0,
+        "precision@5": 0.2,
+        "recall@5": 1.0
+      },
+      "question": "this.exportDate = _____",
+      "retrieved": [
+        "705"
+      ],
+      "source": "Customs.java"
+    },
+    {
+      "all_positions_stored": true,
+      "best_score": 0.4729,
+      "facts": {
+        "covered": 1,
+        "found": [
+          "this.lineItems = lineItems;"
+        ],
+        "missing": [],
+        "score": 1.0,
+        "total": 1
+      },
+      "id": "C002",
+      "metrics": {
+        "hit_rate@5": 1.0,
+        "mrr@5": 0.5,
+        "ndcg@5": 0.6309297535714575,
+        "precision@5": 0.2,
+        "recall@5": 1.0
+      },
+      "question": "this.lineItems = _____",
+      "retrieved": [
+        "706",
+        "705"
+      ],
+      "source": "Customs.java"
+    },
+    {
+      "all_positions_stored": true,
+      "best_score": 0.4601,
+      "facts": {
+        "covered": 1,
+        "found": [
+          "BigDecimal invoice = lineItems.stream()"
+        ],
+        "missing": [],
+        "score": 1.0,
+        "total": 1
+      },
+      "id": "C003",
+      "metrics": {
+        "hit_rate@5": 1.0,
+        "mrr@5": 1.0,
+        "ndcg@5": 1.0,
+        "precision@5": 0.2,
+        "recall@5": 1.0
+      },
+      "question": "BigDecimal invoice = _____",
+      "retrieved": [
+        "705",
+        "706"
+      ],
+      "source": "Customs.java"
+    },
+    {
+      "all_positions_stored": true,
+      "best_score": 0.8736,
+      "facts": {
+        "covered": 1,
+        "found": [
+          "treatment: control\nnitrogen_kg_ha: 0\nowner: trial manager\ndays_to_harvest: 104"
+        ],
+        "missing": [],
+        "score": 1.0,
+        "total": 1
+      },
+      "id": "C004",
+      "metrics": {
+        "hit_rate@5": 1.0,
+        "mrr@5": 1.0,
+        "ndcg@5": 1.0,
+        "precision@5": 0.2,
+        "recall@5": 1.0
+      },
+      "question": "treatment: control\nnitrogen_kg_ha: 0\nowner: trial manager\ndays_to_harvest: _____",
+      "retrieved": [
+        "710"
+      ],
+      "source": "agronomy.docx"
+    },
+    {
+      "all_positions_stored": true,
+      "best_score": 0.8813,
+      "facts": {
+        "covered": 1,
+        "found": [
+          "treatment: low N\nnitrogen_kg_ha: 60\nowner: trial manager\ndays_to_harvest: 110"
+        ],
+        "missing": [],
+        "score": 1.0,
+        "total": 1
+      },
+      "id": "C005",
+      "metrics": {
+        "hit_rate@5": 1.0,
+        "mrr@5": 1.0,
+        "ndcg@5": 1.0,
+        "precision@5": 0.2,
+        "recall@5": 1.0
+      },
+      "question": "treatment: low N\nnitrogen_kg_ha: 60\nowner: trial manager\ndays_to_harvest: _____",
+      "retrieved": [
+        "710",
+        "709"
+      ],
+      "source": "agronomy.docx"
+    },
+    {
+      "all_positions_stored": true,
+      "best_score": 0.8949,
+      "facts": {
+        "covered": 1,
+        "found": [
+          "treatment: high N\nnitrogen_kg_ha: 140\nowner: field lead\ndays_to_harvest: 118"
+        ],
+        "missing": [],
+        "score": 1.0,
+        "total": 1
+      },
+      "id": "C006",
+      "metrics": {
+        "hit_rate@5": 1.0,
+        "mrr@5": 1.0,
+        "ndcg@5": 1.0,
+        "precision@5": 0.2,
+        "recall@5": 1.0
+      },
+      "question": "treatment: high N\nnitrogen_kg_ha: 140\nowner: field lead\ndays_to_harvest: _____",
+      "retrieved": [
+        "710"
+      ],
+      "source": "agronomy.docx"
+    },
+    {
+      "all_positions_stored": true,
+      "best_score": 0.841,
+      "facts": {
+        "covered": 1,
+        "found": [
+          "treatment: foliar\nnitrogen_kg_ha: 0\nowner: field lead\ndays_to_harvest: 101"
+        ],
+        "missing": [],
+        "score": 1.0,
+        "total": 1
+      },
+      "id": "C007",
+      "metrics": {
+        "hit_rate@5": 1.0,
+        "mrr@5": 1.0,
+        "ndcg@5": 1.0,
+        "precision@5": 0.2,
+        "recall@5": 1.0
+      },
+      "question": "treatment: foliar\nnitrogen_kg_ha: 0\nowner: field lead\ndays_to_harvest: _____",
+      "retrieved": [
+        "710"
+      ],
+      "source": "agronomy.docx"
+    },
+    {
+      "all_positions_stored": true,
+      "best_score": 0.4052,
+      "facts": {
+        "covered": 1,
+        "found": [
+          "INFO  net: bound listener on 0.0.0.0:8443"
+        ],
+        "missing": [],
+        "score": 1.0,
+        "total": 1
+      },
+      "id": "C008",
+      "metrics": {
+        "hit_rate@5": 1.0,
+        "mrr@5": 1.0,
+        "ndcg@5": 1.0,
+        "precision@5": 0.2,
+        "recall@5": 1.0
+      },
+      "question": "INFO  net: bound listener on 0.0.0.0:_____",
+      "retrieved": [
+        "714"
+      ],
+      "source": "app.log"
+    },
+    {
+      "all_positions_stored": true,
+      "best_score": 0.88,
+      "facts": {
+        "covered": 1,
+        "found": [
+          "WARN  queue: ingest depth 4820 of 5000, shedding low priority"
+        ],
+        "missing": [],
+        "score": 1.0,
+        "total": 1
+      },
+      "id": "C009",
+      "metrics": {
+        "hit_rate@5": 1.0,
+        "mrr@5": 1.0,
+        "ndcg@5": 1.0,
+        "precision@5": 0.2,
+        "recall@5": 1.0
+      },
+      "question": "WARN  queue: ingest depth _____ of 5000, shedding low priority",
+      "retrieved": [
+        "715",
+        "730",
+        "716",
+        "728",
+        "729"
+      ],
+      "source": "app.log"
+    },
+    {
+      "all_positions_stored": true,
+      "best_score": 0.8222,
+      "facts": {
+        "covered": 1,
+        "found": [
+          "INFO  queue: shed 214 low-priority frames"
+        ],
+        "missing": [],
+        "score": 1.0,
+        "total": 1
+      },
+      "id": "C010",
+      "metrics": {
+        "hit_rate@5": 1.0,
+        "mrr@5": 1.0,
+        "ndcg@5": 1.0,
+        "precision@5": 0.2,
+        "recall@5": 1.0
+      },
+      "question": "INFO  queue: shed _____ low-priority frames",
+      "retrieved": [
+        "716",
+        "715",
+        "730"
+      ],
+      "source": "app.log"
+    },
+    {
+      "all_positions_stored": true,
+      "best_score": 0.7346,
+      "facts": {
+        "covered": 1,
+        "found": [
+          "INFO  ingest: flushed 12000 records to hot store"
+        ],
+        "missing": [],
+        "score": 1.0,
+        "total": 1
+      },
+      "id": "C011",
+      "metrics": {
+        "hit_rate@5": 1.0,
+        "mrr@5": 1.0,
+        "ndcg@5": 1.0,
+        "precision@5": 0.2,
+        "recall@5": 1.0
+      },
+      "question": "INFO  ingest: flushed _____ records to hot store",
+      "retrieved": [
+        "726",
+        "733",
+        "738",
+        "727",
+        "730"
+      ],
+      "source": "app.log"
+    },
+    {
+      "all_positions_stored": true,
+      "best_score": 0.226,
+      "facts": {
+        "covered": 1,
+        "found": [
+          "$.service: ledger-api"
+        ],
+        "missing": [],
+        "score": 1.0,
+        "total": 1
+      },
+      "id": "C012",
+      "metrics": {
+        "hit_rate@5": 1.0,
+        "mrr@5": 1.0,
+        "ndcg@5": 1.0,
+        "precision@5": 0.2,
+        "recall@5": 1.0
+      },
+      "question": "$.service: _____",
+      "retrieved": [
+        "740"
+      ],
+      "source": "app.yaml"
+    },
+    {
+      "all_positions_stored": true,
+      "best_score": 0.3088,
+      "facts": {
+        "covered": 1,
+        "found": [
+          "$.runtime.replicas: 6"
+        ],
+        "missing": [],
+        "score": 1.0,
+        "total": 1
+      },
+      "id": "C013",
+      "metrics": {
+        "hit_rate@5": 1.0,
+        "mrr@5": 1.0,
+        "ndcg@5": 1.0,
+        "precision@5": 0.2,
+        "recall@5": 1.0
+      },
+      "question": "$.runtime.replicas: _____",
+      "retrieved": [
+        "740"
+      ],
+      "source": "app.yaml"
+    },
+    {
+      "all_positions_stored": true,
+      "best_score": 0.3817,
+      "facts": {
+        "covered": 1,
+        "found": [
+          "$.runtime.memory_limit_mb: 2048"
+        ],
+        "missing": [],
+        "score": 1.0,
+        "total": 1
+      },
+      "id": "C014",
+      "metrics": {
+        "hit_rate@5": 1.0,
+        "mrr@5": 1.0,
+        "ndcg@5": 1.0,
+        "precision@5": 0.2,
+        "recall@5": 1.0
+      },
+      "question": "$.runtime.memory_limit_mb: _____",
+      "retrieved": [
+        "740"
+      ],
+      "source": "app.yaml"
+    },
+    {
+      "all_positions_stored": true,
+      "best_score": 0.4511,
+      "facts": {
+        "covered": 1,
+        "found": [
+          "$.runtime.cpu_limit: 1500"
+        ],
+        "missing": [],
+        "score": 1.0,
+        "total": 1
+      },
+      "id": "C015",
+      "metrics": {
+        "hit_rate@5": 1.0,
+        "mrr@5": 1.0,
+        "ndcg@5": 1.0,
+        "precision@5": 0.2,
+        "recall@5": 1.0
+      },
+      "question": "$.runtime.cpu_limit: _____",
+      "retrieved": [
+        "740"
+      ],
+      "source": "app.yaml"
+    },
+    {
+      "all_positions_stored": true,
+      "best_score": 0.4817,
+      "facts": {
+        "covered": 1,
+        "found": [
+          "Home Brewing Guide: Wort Production"
+        ],
+        "missing": [],
+        "score": 1.0,
+        "total": 1
+      },
+      "id": "C016",
+      "metrics": {
+        "hit_rate@5": 1.0,
+        "mrr@5": 1.0,
+        "ndcg@5": 1.0,
+        "precision@5": 0.2,
+        "recall@5": 1.0
+      },
+      "question": "Home Brewing Guide: _____",
+      "retrieved": [
+        "741",
+        "743"
+      ],
+      "source": "brew-guide.pdf"
+    },
+    {
+      "all_positions_stored": true,
+      "best_score": 0.4745,
+      "facts": {
+        "covered": 1,
+        "found": [
+          "After the wort is drained, it is boiled for at least sixty minutes. The boil"
+        ],
+        "missing": [],
+        "score": 1.0,
+        "total": 1
+      },
+      "id": "C017",
+      "metrics": {
+        "hit_rate@5": 1.0,
+        "mrr@5": 1.0,
+        "ndcg@5": 1.0,
+        "precision@5": 0.2,
+        "recall@5": 1.0
+      },
+      "question": "After the wort is drained, it is boiled for at least _____. The boil",
+      "retrieved": [
+        "741"
+      ],
+      "source": "brew-guide.pdf"
+    },
+    {
+      "all_positions_stored": true,
+      "best_score": 0.705,
+      "facts": {
+        "covered": 1,
+        "found": [
+          "A balanced grain bill for an all-grain pale ale pairs a two row base malt with"
+        ],
+        "missing": [],
+        "score": 1.0,
+        "total": 1
+      },
+      "id": "C018",
+      "metrics": {
+        "hit_rate@5": 1.0,
+        "mrr@5": 1.0,
+        "ndcg@5": 1.0,
+        "precision@5": 0.2,
+        "recall@5": 1.0
+      },
+      "question": "A balanced grain bill for an all-grain pale ale pairs a _____ base malt with",
+      "retrieved": [
+        "743"
+      ],
+      "source": "brew-guide.pdf"
+    },
+    {
+      "all_positions_stored": true,
+      "best_score": 0.3963,
+      "facts": {
+        "covered": 1,
+        "found": [
+          "Fermentability is a ratio, not an absolute. A wort that started at 1.048 and"
+        ],
+        "missing": [],
+        "score": 1.0,
+        "total": 1
+      },
+      "id": "C019",
+      "metrics": {
+        "hit_rate@5": 1.0,
+        "mrr@5": 1.0,
+        "ndcg@5": 1.0,
+        "precision@5": 0.2,
+        "recall@5": 1.0
+      },
+      "question": "Fermentability is a ratio, not an absolute. A wort that started at _____ and",
+      "retrieved": [
+        "743"
+      ],
+      "source": "brew-guide.pdf"
+    },
+    {
+      "all_positions_stored": true,
+      "best_score": 0.7091,
+      "facts": {
+        "covered": 1,
+        "found": [
+          "const TIERS = ["
+        ],
+        "missing": [],
+        "score": 1.0,
+        "total": 1
+      },
+      "id": "C020",
+      "metrics": {
+        "hit_rate@5": 1.0,
+        "mrr@5": 1.0,
+        "ndcg@5": 1.0,
+        "precision@5": 0.2,
+        "recall@5": 1.0
+      },
+      "question": "const TIERS = _____",
+      "retrieved": [
+        "745",
+        "746",
+        "749"
+      ],
+      "source": "cart.js"
+    },
+    {
+      "all_positions_stored": true,
+      "best_score": 0.7021,
+      "facts": {
+        "covered": 1,
+        "found": [
+          "const tier = TIERS.find((t) => subtotal >= t.minSpend);"
+        ],
+        "missing": [],
+        "score": 1.0,
+        "total": 1
+      },
+      "id": "C021",
+      "metrics": {
+        "hit_rate@5": 1.0,
+        "mrr@5": 1.0,
+        "ndcg@5": 1.0,
+        "precision@5": 0.2,
+        "recall@5": 1.0
+      },
+      "question": "const tier = _____",
+      "retrieved": [
+        "746",
+        "745"
+      ],
+      "source": "cart.js"
+    },
+    {
+      "all_positions_stored": true,
+      "best_score": 0.601,
+      "facts": {
+        "covered": 1,
+        "found": [
+          "return tier ? tier.rate : 0;"
+        ],
+        "missing": [],
+        "score": 1.0,
+        "total": 1
+      },
+      "id": "C022",
+      "metrics": {
+        "hit_rate@5": 1.0,
+        "mrr@5": 1.0,
+        "ndcg@5": 1.0,
+        "precision@5": 0.2,
+        "recall@5": 1.0
+      },
+      "question": "return tier ? tier.rate : _____",
+      "retrieved": [
+        "746",
+        "745"
+      ],
+      "source": "cart.js"
+    },
+    {
+      "all_positions_stored": true,
+      "best_score": 0.8605,
+      "facts": {
+        "covered": 1,
+        "found": [
+          "export function applyVat(subtotal, vatRate = 0.2) {"
+        ],
+        "missing": [],
+        "score": 1.0,
+        "total": 1
+      },
+      "id": "C023",
+      "metrics": {
+        "hit_rate@5": 1.0,
+        "mrr@5": 1.0,
+        "ndcg@5": 1.0,
+        "precision@5": 0.2,
+        "recall@5": 1.0
+      },
+      "question": "export function applyVat(subtotal, vatRate = _____) {",
+      "retrieved": [
+        "747",
+        "749",
+        "746",
+        "748"
+      ],
+      "source": "cart.js"
+    },
+    {
+      "all_positions_stored": true,
+      "best_score": 0.7706,
+      "facts": {
+        "covered": 1,
+        "found": [
+          "item: Espresso Blend\nregion: EMEA\ncategory: Beverage\nunits_sold: 1240\nunit_price: 12.50\nrevenue: 15500.00\nreturn_rate_pct: 2.1"
+        ],
+        "missing": [],
+        "score": 1.0,
+        "total": 1
+      },
+      "id": "C024",
+      "metrics": {
+        "hit_rate@5": 1.0,
+        "mrr@5": 1.0,
+        "ndcg@5": 1.0,
+        "precision@5": 0.2,
+        "recall@5": 1.0
+      },
+      "question": "item: Espresso Blend\nregion: EMEA\ncategory: Beverage\nunits_sold: 1240\nunit_price: 12.50\nrevenue: 15500.00\nreturn_rate_pct: _____",
+      "retrieved": [
+        "750",
+        "751",
+        "752"
+      ],
+      "source": "coffee_sales.csv"
+    },
+    {
+      "all_positions_stored": true,
+      "best_score": 0.7581,
+      "facts": {
+        "covered": 1,
+        "found": [
+          "item: Espresso Blend\nregion: APAC\ncategory: Beverage\nunits_sold: 1402\nunit_price: 12.50\nrevenue: 17525.00\nreturn_rate_pct: 5.8"
+        ],
+        "missing": [],
+        "score": 1.0,
+        "total": 1
+      },
+      "id": "C025",
+      "metrics": {
+        "hit_rate@5": 1.0,
+        "mrr@5": 1.0,
+        "ndcg@5": 1.0,
+        "precision@5": 0.2,
+        "recall@5": 1.0
+      },
+      "question": "item: Espresso Blend\nregion: APAC\ncategory: Beverage\nunits_sold: 1402\nunit_price: 12.50\nrevenue: 17525.00\nreturn_rate_pct: _____",
+      "retrieved": [
+        "750",
+        "751",
+        "752"
+      ],
+      "source": "coffee_sales.csv"
+    },
+    {
+      "all_positions_stored": true,
+      "best_score": 0.776,
+      "facts": {
+        "covered": 1,
+        "found": [
+          "item: Espresso Blend\nregion: AMER\ncategory: Beverage\nunits_sold: 1610\nunit_price: 12.50\nrevenue: 20125.00\nreturn_rate_pct: 1.9"
+        ],
+        "missing": [],
+        "score": 1.0,
+        "total": 1
+      },
+      "id": "C026",
+      "metrics": {
+        "hit_rate@5": 1.0,
+        "mrr@5": 1.0,
+        "ndcg@5": 1.0,
+        "precision@5": 0.2,
+        "recall@5": 1.0
+      },
+      "question": "item: Espresso Blend\nregion: AMER\ncategory: Beverage\nunits_sold: 1610\nunit_price: 12.50\nrevenue: 20125.00\nreturn_rate_pct: _____",
+      "retrieved": [
+        "750",
+        "752",
+        "751"
+      ],
+      "source": "coffee_sales.csv"
+    },
+    {
+      "all_positions_stored": true,
+      "best_score": 0.7428,
+      "facts": {
+        "covered": 1,
+        "found": [
+          "item: Filter Papers\nregion: EMEA\ncategory: Accessory\nunits_sold: 3200\nunit_price: 3.20\nrevenue: 10240.00\nreturn_rate_pct: 0.8"
+        ],
+        "missing": [],
+        "score": 1.0,
+        "total": 1
+      },
+      "id": "C027",
+      "metrics": {
+        "hit_rate@5": 1.0,
+        "mrr@5": 1.0,
+        "ndcg@5": 1.0,
+        "precision@5": 0.2,
+        "recall@5": 1.0
+      },
+      "question": "item: Filter Papers\nregion: EMEA\ncategory: Accessory\nunits_sold: 3200\nunit_price: 3.20\nrevenue: 10240.00\nreturn_rate_pct: _____",
+      "retrieved": [
+        "750",
+        "752",
+        "751"
+      ],
+      "source": "coffee_sales.csv"
+    },
+    {
+      "all_positions_stored": true,
+      "best_score": 0.5869,
+      "facts": {
+        "covered": 1,
+        "found": [
+          "This agreement continues for an initial term of thirty six months. Either party"
+        ],
+        "missing": [],
+        "score": 1.0,
+        "total": 1
+      },
+      "id": "C028",
+      "metrics": {
+        "hit_rate@5": 1.0,
+        "mrr@5": 1.0,
+        "ndcg@5": 1.0,
+        "precision@5": 0.2,
+        "recall@5": 1.0
+      },
+      "question": "This agreement continues for an initial term of _____. Either party",
+      "retrieved": [
+        "755",
+        "753"
+      ],
+      "source": "contract.html"
+    },
+    {
+      "all_positions_stored": true,
+      "best_score": 0.5447,
+      "facts": {
+        "covered": 1,
+        "found": [
+          "may terminate for convenience on ninety days written notice. Either party may"
+        ],
+        "missing": [],
+        "score": 1.0,
+        "total": 1
+      },
+      "id": "C029",
+      "metrics": {
+        "hit_rate@5": 1.0,
+        "mrr@5": 1.0,
+        "ndcg@5": 1.0,
+        "precision@5": 0.2,
+        "recall@5": 1.0
+      },
+      "question": "may terminate for convenience on _____ written notice. Either party may",
+      "retrieved": [
+        "755",
+        "753"
+      ],
+      "source": "contract.html"
+    },
+    {
+      "all_positions_stored": true,
+      "best_score": 0.7215,
+      "facts": {
+        "covered": 1,
+        "found": [
+          "Invoices are payable within forty five days of receipt. The Client may"
+        ],
+        "missing": [],
+        "score": 1.0,
+        "total": 1
+      },
+      "id": "C030",
+      "metrics": {
+        "hit_rate@5": 1.0,
+        "mrr@5": 1.0,
+        "ndcg@5": 1.0,
+        "precision@5": 0.2,
+        "recall@5": 1.0
+      },
+      "question": "Invoices are payable within _____ of receipt. The Client may",
+      "retrieved": [
+        "757",
+        "753"
+      ],
+      "source": "contract.html"
+    },
+    {
+      "all_positions_stored": true,
+      "best_score": 0.836,
+      "facts": {
+        "covered": 1,
+        "found": [
+          "region: EMEA\nquarter: Q1\nproduct: core\nrevenue_usd: 412300\nunits: 1180\nmargin_pct: 22.5\nchurn_pct: 3.1"
+        ],
+        "missing": [],
+        "score": 1.0,
+        "total": 1
+      },
+      "id": "C031",
+      "metrics": {
+        "hit_rate@5": 1.0,
+        "mrr@5": 1.0,
+        "ndcg@5": 1.0,
+        "precision@5": 0.2,
+        "recall@5": 1.0
+      },
+      "question": "region: EMEA\nquarter: Q1\nproduct: core\nrevenue_usd: 412300\nunits: 1180\nmargin_pct: 22.5\nchurn_pct: _____",
+      "retrieved": [
+        "758",
+        "759",
+        "761",
+        "760"
+      ],
+      "source": "finance.csv"
+    },
+    {
+      "all_positions_stored": true,
+      "best_score": 0.828,
+      "facts": {
+        "covered": 1,
+        "found": [
+          "region: EMEA\nquarter: Q2\nproduct: core\nrevenue_usd: 438900\nunits: 1245\nmargin_pct: 23.0\nchurn_pct: 2.8"
+        ],
+        "missing": [],
+        "score": 1.0,
+        "total": 1
+      },
+      "id": "C032",
+      "metrics": {
+        "hit_rate@5": 1.0,
+        "mrr@5": 1.0,
+        "ndcg@5": 1.0,
+        "precision@5": 0.2,
+        "recall@5": 1.0
+      },
+      "question": "region: EMEA\nquarter: Q2\nproduct: core\nrevenue_usd: 438900\nunits: 1245\nmargin_pct: 23.0\nchurn_pct: _____",
+      "retrieved": [
+        "758",
+        "759",
+        "761",
+        "760"
+      ],
+      "source": "finance.csv"
+    },
+    {
+      "all_positions_stored": true,
+      "best_score": 0.8439,
+      "facts": {
+        "covered": 1,
+        "found": [
+          "region: EMEA\nquarter: Q3\nproduct: core\nrevenue_usd: 401200\nunits: 1155\nmargin_pct: 21.9\nchurn_pct: 3.4"
+        ],
+        "missing": [],
+        "score": 1.0,
+        "total": 1
+      },
+      "id": "C033",
+      "metrics": {
+        "hit_rate@5": 1.0,
+        "mrr@5": 1.0,
+        "ndcg@5": 1.0,
+        "precision@5": 0.2,
+        "recall@5": 1.0
+      },
+      "question": "region: EMEA\nquarter: Q3\nproduct: core\nrevenue_usd: 401200\nunits: 1155\nmargin_pct: 21.9\nchurn_pct: _____",
+      "retrieved": [
+        "758",
+        "759",
+        "761",
+        "760"
+      ],
+      "source": "finance.csv"
+    },
+    {
+      "all_positions_stored": true,
+      "best_score": 0.8329,
+      "facts": {
+        "covered": 1,
+        "found": [
+          "region: EMEA\nquarter: Q4\nproduct: core\nrevenue_usd: 455600\nunits: 1301\nmargin_pct: 24.2\nchurn_pct: 2.5"
+        ],
+        "missing": [],
+        "score": 1.0,
+        "total": 1
+      },
+      "id": "C034",
+      "metrics": {
+        "hit_rate@5": 1.0,
+        "mrr@5": 1.0,
+        "ndcg@5": 1.0,
+        "precision@5": 0.2,
+        "recall@5": 1.0
+      },
+      "question": "region: EMEA\nquarter: Q4\nproduct: core\nrevenue_usd: 455600\nunits: 1301\nmargin_pct: 24.2\nchurn_pct: _____",
+      "retrieved": [
+        "758",
+        "761",
+        "759",
+        "760"
+      ],
+      "source": "finance.csv"
+    },
+    {
+      "all_positions_stored": true,
+      "best_score": 0.7784,
+      "facts": {
+        "covered": 1,
+        "found": [
+          "Counter pressing starts within two seconds of losing the ball. The nearest"
+        ],
+        "missing": [],
+        "score": 1.0,
+        "total": 1
+      },
+      "id": "C035",
+      "metrics": {
+        "hit_rate@5": 1.0,
+        "mrr@5": 0.5,
+        "ndcg@5": 0.6309297535714575,
+        "precision@5": 0.2,
+        "recall@5": 1.0
+      },
+      "question": "Counter pressing starts within _____ of losing the ball. The nearest",
+      "retrieved": [
+        "764",
+        "763"
+      ],
+      "source": "football.md"
+    },
+    {
+      "all_positions_stored": true,
+      "best_score": 0.4666,
+      "facts": {
+        "covered": 1,
+        "found": [
+          "territory in exchange for a compact block. The block narrows to nineteen metres"
+        ],
+        "missing": [],
+        "score": 1.0,
+        "total": 1
+      },
+      "id": "C036",
+      "metrics": {
+        "hit_rate@5": 1.0,
+        "mrr@5": 1.0,
+        "ndcg@5": 1.0,
+        "precision@5": 0.2,
+        "recall@5": 1.0
+      },
+      "question": "territory in exchange for a compact block. The block narrows to _____",
+      "retrieved": [
+        "764"
+      ],
+      "source": "football.md"
+    },
+    {
+      "all_positions_stored": true,
+      "best_score": 0.4554,
+      "facts": {
+        "covered": 1,
+        "found": [
+          "in behind the ball and thirty five metres in front of it."
+        ],
+        "missing": [],
+        "score": 1.0,
+        "total": 1
+      },
+      "id": "C037",
+      "metrics": {
+        "hit_rate@5": 1.0,
+        "mrr@5": 1.0,
+        "ndcg@5": 1.0,
+        "precision@5": 0.2,
+        "recall@5": 1.0
+      },
+      "question": "in behind the ball and _____ in front of it.",
+      "retrieved": [
+        "764",
+        "765"
+      ],
+      "source": "football.md"
+    },
+    {
+      "all_positions_stored": true,
+      "best_score": 0.2709,
+      "facts": {
+        "covered": 1,
+        "found": [
+          "Mandatory passivation is required within five years of end of life. Operators"
+        ],
+        "missing": [],
+        "score": 1.0,
+        "total": 1
+      },
+      "id": "C038",
+      "metrics": {
+        "hit_rate@5": 1.0,
+        "mrr@5": 1.0,
+        "ndcg@5": 1.0,
+        "precision@5": 0.2,
+        "recall@5": 1.0
+      },
+      "question": "Mandatory passivation is required within _____ of end of life. Operators",
+      "retrieved": [
+        "766"
+      ],
+      "source": "handbook.pdf"
+    },
+    {
+      "all_positions_stored": true,
+      "best_score": 0.5976,
+      "facts": {
+        "covered": 1,
+        "found": [
+          "For satellites operating below 600 km, a dedicated disposal manoeuvre is"
+        ],
+        "missing": [],
+        "score": 1.0,
+        "total": 1
+      },
+      "id": "C039",
+      "metrics": {
+        "hit_rate@5": 1.0,
+        "mrr@5": 1.0,
+        "ndcg@5": 1.0,
+        "precision@5": 0.2,
+        "recall@5": 1.0
+      },
+      "question": "For satellites operating below _____, a dedicated disposal manoeuvre is",
+      "retrieved": [
+        "766"
+      ],
+      "source": "handbook.pdf"
+    },
+    {
+      "all_positions_stored": true,
+      "best_score": 0.4625,
+      "facts": {
+        "covered": 1,
+        "found": [
+          "Debris density is highest between 700 and 1000 km, where drag is weakest and"
+        ],
+        "missing": [],
+        "score": 1.0,
+        "total": 1
+      },
+      "id": "C040",
+      "metrics": {
+        "hit_rate@5": 1.0,
+        "mrr@5": 1.0,
+        "ndcg@5": 1.0,
+        "precision@5": 0.2,
+        "recall@5": 1.0
+      },
+      "question": "Debris density is highest between 700 and _____, where drag is weakest and",
+      "retrieved": [
+        "766"
+      ],
+      "source": "handbook.pdf"
+    },
+    {
+      "all_positions_stored": true,
+      "best_score": 0.9013,
+      "facts": {
+        "covered": 1,
+        "found": [
+          "INFO  scheduler: loaded 14 fields from parcels_v3.parquet"
+        ],
+        "missing": [],
+        "score": 1.0,
+        "total": 1
+      },
+      "id": "C041",
+      "metrics": {
+        "hit_rate@5": 1.0,
+        "mrr@5": 1.0,
+        "ndcg@5": 1.0,
+        "precision@5": 0.2,
+        "recall@5": 1.0
+      },
+      "question": "INFO  scheduler: loaded _____ fields from parcels_v3.parquet",
+      "retrieved": [
+        "770"
+      ],
+      "source": "harvest.log"
+    },
+    {
+      "all_positions_stored": true,
+      "best_score": 0.8825,
+      "facts": {
+        "covered": 1,
+        "found": [
+          "WARN  io: field soil_ph missing for 38 of 12480 rows"
+        ],
+        "missing": [],
+        "score": 1.0,
+        "total": 1
+      },
+      "id": "C042",
+      "metrics": {
+        "hit_rate@5": 1.0,
+        "mrr@5": 1.0,
+        "ndcg@5": 1.0,
+        "precision@5": 0.2,
+        "recall@5": 1.0
+      },
+      "question": "WARN  io: field soil_ph missing for 38 of _____",
+      "retrieved": [
+        "771",
+        "772"
+      ],
+      "source": "harvest.log"
+    },
+    {
+      "all_positions_stored": true,
+      "best_score": 0.8853,
+      "facts": {
+        "covered": 1,
+        "found": [
+          "INFO  io: imputed soil_ph with field median 6.4"
+        ],
+        "missing": [],
+        "score": 1.0,
+        "total": 1
+      },
+      "id": "C043",
+      "metrics": {
+        "hit_rate@5": 1.0,
+        "mrr@5": 1.0,
+        "ndcg@5": 1.0,
+        "precision@5": 0.2,
+        "recall@5": 1.0
+      },
+      "question": "INFO  io: imputed soil_ph with field median _____",
+      "retrieved": [
+        "772",
+        "771"
+      ],
+      "source": "harvest.log"
+    },
+    {
+      "all_positions_stored": true,
+      "best_score": 0.3854,
+      "facts": {
+        "covered": 1,
+        "found": [
+          "INFO  gis: reprojected 12480 geometries to EPSG:4326"
+        ],
+        "missing": [],
+        "score": 1.0,
+        "total": 1
+      },
+      "id": "C044",
+      "metrics": {
+        "hit_rate@5": 1.0,
+        "mrr@5": 1.0,
+        "ndcg@5": 1.0,
+        "precision@5": 0.2,
+        "recall@5": 1.0
+      },
+      "question": "INFO  gis: reprojected _____ to EPSG:4326",
+      "retrieved": [
+        "773"
+      ],
+      "source": "harvest.log"
+    },
+    {
+      "all_positions_stored": true,
+      "best_score": 0.5792,
+      "facts": {
+        "covered": 1,
+        "found": [
+          "Rotate brassicas on a four year cycle to starve the soil borne diseases that"
+        ],
+        "missing": [],
+        "score": 1.0,
+        "total": 1
+      },
+      "id": "C045",
+      "metrics": {
+        "hit_rate@5": 1.0,
+        "mrr@5": 1.0,
+        "ndcg@5": 1.0,
+        "precision@5": 0.2,
+        "recall@5": 1.0
+      },
+      "question": "Rotate brassicas on a _____ cycle to starve the soil borne diseases that",
+      "retrieved": [
+        "782"
+      ],
+      "source": "horticulture.md"
+    },
+    {
+      "all_positions_stored": true,
+      "best_score": 0.3907,
+      "facts": {
+        "covered": 1,
+        "found": [
+          "Operations Manual: Deep Shaft Ventilation ===================================="
+        ],
+        "missing": [],
+        "score": 1.0,
+        "total": 1
+      },
+      "id": "C046",
+      "metrics": {
+        "hit_rate@5": 1.0,
+        "mrr@5": 1.0,
+        "ndcg@5": 1.0,
+        "precision@5": 0.2,
+        "recall@5": 1.0
+      },
+      "question": "Operations Manual: _____",
+      "retrieved": [
+        "784"
+      ],
+      "source": "mining.rst"
+    },
+    {
+      "all_positions_stored": true,
+      "best_score": 0.8997,
+      "facts": {
+        "covered": 1,
+        "found": [
+          "This manual defines the minimum ventilation standard for underground workings below two thousand metres depth."
+        ],
+        "missing": [],
+        "score": 1.0,
+        "total": 1
+      },
+      "id": "C047",
+      "metrics": {
+        "hit_rate@5": 1.0,
+        "mrr@5": 1.0,
+        "ndcg@5": 1.0,
+        "precision@5": 0.2,
+        "recall@5": 1.0
+      },
+      "question": "This manual defines the minimum ventilation standard for underground workings below _____ depth.",
+      "retrieved": [
+        "786",
+        "784",
+        "788"
+      ],
+      "source": "mining.rst"
+    },
+    {
+      "all_positions_stored": true,
+      "best_score": 0.9686,
+      "facts": {
+        "covered": 1,
+        "found": [
+          "450 millimetres diameter is required beyond 300 metres from the main circuit, and duct length beyond that distance is deducted from the calculated flow."
+        ],
+        "missing": [],
+        "score": 1.0,
+        "total": 1
+      },
+      "id": "C048",
+      "metrics": {
+        "hit_rate@5": 1.0,
+        "mrr@5": 1.0,
+        "ndcg@5": 1.0,
+        "precision@5": 0.2,
+        "recall@5": 1.0
+      },
+      "question": "450 millimetres diameter is required beyond _____ from the main circuit, and duct length beyond that distance is deducted from the calculated flow.",
+      "retrieved": [
+        "791",
+        "786"
+      ],
+      "source": "mining.rst"
+    },
+    {
+      "all_positions_stored": true,
+      "best_score": 0.2886,
+      "facts": {
+        "covered": 1,
+        "found": [
+          "$.model: wide-residual-cascade"
+        ],
+        "missing": [],
+        "score": 1.0,
+        "total": 1
+      },
+      "id": "C049",
+      "metrics": {
+        "hit_rate@5": 1.0,
+        "mrr@5": 1.0,
+        "ndcg@5": 1.0,
+        "precision@5": 0.2,
+        "recall@5": 1.0
+      },
+      "question": "$.model: _____",
+      "retrieved": [
+        "794"
+      ],
+      "source": "model.json"
+    },
+    {
+      "all_positions_stored": true,
+      "best_score": 0.413,
+      "facts": {
+        "covered": 1,
+        "found": [
+          "$.training.epochs: 140"
+        ],
+        "missing": [],
+        "score": 1.0,
+        "total": 1
+      },
+      "id": "C050",
+      "metrics": {
+        "hit_rate@5": 1.0,
+        "mrr@5": 1.0,
+        "ndcg@5": 1.0,
+        "precision@5": 0.2,
+        "recall@5": 1.0
+      },
+      "question": "$.training.epochs: _____",
+      "retrieved": [
+        "794"
+      ],
+      "source": "model.json"
+    },
+    {
+      "all_positions_stored": true,
+      "best_score": 0.3941,
+      "facts": {
+        "covered": 1,
+        "found": [
+          "$.training.batch_size: 512"
+        ],
+        "missing": [],
+        "score": 1.0,
+        "total": 1
+      },
+      "id": "C051",
+      "metrics": {
+        "hit_rate@5": 1.0,
+        "mrr@5": 1.0,
+        "ndcg@5": 1.0,
+        "precision@5": 0.2,
+        "recall@5": 1.0
+      },
+      "question": "$.training.batch_size: _____",
+      "retrieved": [
+        "794"
+      ],
+      "source": "model.json"
+    },
+    {
+      "all_positions_stored": true,
+      "best_score": 0.407,
+      "facts": {
+        "covered": 1,
+        "found": [
+          "$.training.optimizer: adamw"
+        ],
+        "missing": [],
+        "score": 1.0,
+        "total": 1
+      },
+      "id": "C052",
+      "metrics": {
+        "hit_rate@5": 1.0,
+        "mrr@5": 1.0,
+        "ndcg@5": 1.0,
+        "precision@5": 0.2,
+        "recall@5": 1.0
+      },
+      "question": "$.training.optimizer: _____",
+      "retrieved": [
+        "794"
+      ],
+      "source": "model.json"
+    },
+    {
+      "all_positions_stored": true,
+      "best_score": 0.6013,
+      "facts": {
+        "covered": 1,
+        "found": [
+          "Pharmacology Study Notes: Antimicrobials"
+        ],
+        "missing": [],
+        "score": 1.0,
+        "total": 1
+      },
+      "id": "C053",
+      "metrics": {
+        "hit_rate@5": 1.0,
+        "mrr@5": 1.0,
+        "ndcg@5": 1.0,
+        "precision@5": 0.2,
+        "recall@5": 1.0
+      },
+      "question": "Pharmacology Study Notes: _____",
+      "retrieved": [
+        "795",
+        "797"
+      ],
+      "source": "pharm-notes.txt"
+    },
+    {
+      "all_positions_stored": true,
+      "best_score": 0.9131,
+      "facts": {
+        "covered": 1,
+        "found": [
+          "Vancomycin must be infused slowly over at least one hour to avoid red man syndrome, which is a histamine mediated reaction rather than true allergy."
+        ],
+        "missing": [],
+        "score": 1.0,
+        "total": 1
+      },
+      "id": "C054",
+      "metrics": {
+        "hit_rate@5": 1.0,
+        "mrr@5": 1.0,
+        "ndcg@5": 1.0,
+        "precision@5": 0.2,
+        "recall@5": 1.0
+      },
+      "question": "Vancomycin must be infused slowly over at least _____ to avoid red man syndrome, which is a histamine mediated reaction rather than true allergy.",
+      "retrieved": [
+        "798"
+      ],
+      "source": "pharm-notes.txt"
+    },
+    {
+      "all_positions_stored": true,
+      "best_score": 0.4385,
+      "facts": {
+        "covered": 1,
+        "found": [
+          "JOIN zones z ON z.zone_id = p.zone_id"
+        ],
+        "missing": [],
+        "score": 1.0,
+        "total": 1
+      },
+      "id": "C055",
+      "metrics": {
+        "hit_rate@5": 1.0,
+        "mrr@5": 1.0,
+        "ndcg@5": 1.0,
+        "precision@5": 0.2,
+        "recall@5": 1.0
+      },
+      "question": "JOIN zones z ON z.zone_id = _____",
+      "retrieved": [
+        "801",
+        "802"
+      ],
+      "source": "picks.sql"
+    },
+    {
+      "all_positions_stored": true,
+      "best_score": 0.2781,
+      "facts": {
+        "covered": 1,
+        "found": [
+          "WHERE p.started_at >= CURRENT_DATE - INTERVAL '30 days'"
+        ],
+        "missing": [],
+        "score": 1.0,
+        "total": 1
+      },
+      "id": "C056",
+      "metrics": {
+        "hit_rate@5": 1.0,
+        "mrr@5": 1.0,
+        "ndcg@5": 1.0,
+        "precision@5": 0.2,
+        "recall@5": 1.0
+      },
+      "question": "WHERE p.started_at >= CURRENT_DATE - INTERVAL '_____'",
+      "retrieved": [
+        "801"
+      ],
+      "source": "picks.sql"
+    },
+    {
+      "all_positions_stored": true,
+      "best_score": 0.3685,
+      "facts": {
+        "covered": 1,
+        "found": [
+          "channel: str"
+        ],
+        "missing": [],
+        "score": 1.0,
+        "total": 1
+      },
+      "id": "C057",
+      "metrics": {
+        "hit_rate@5": 1.0,
+        "mrr@5": 0.5,
+        "ndcg@5": 0.6309297535714575,
+        "precision@5": 0.2,
+        "recall@5": 1.0
+      },
+      "question": "channel: _____",
+      "retrieved": [
+        "806",
+        "803"
+      ],
+      "source": "pipeline.py"
+    },
+    {
+      "all_positions_stored": true,
+      "best_score": 0.3064,
+      "facts": {
+        "covered": 1,
+        "found": [
+          "value: float"
+        ],
+        "missing": [],
+        "score": 1.0,
+        "total": 1
+      },
+      "id": "C058",
+      "metrics": {
+        "hit_rate@5": 1.0,
+        "mrr@5": 1.0,
+        "ndcg@5": 1.0,
+        "precision@5": 0.2,
+        "recall@5": 1.0
+      },
+      "question": "value: _____",
+      "retrieved": [
+        "803"
+      ],
+      "source": "pipeline.py"
+    },
+    {
+      "all_positions_stored": true,
+      "best_score": 0.4164,
+      "facts": {
+        "covered": 1,
+        "found": [
+          "timestamp: float"
+        ],
+        "missing": [],
+        "score": 1.0,
+        "total": 1
+      },
+      "id": "C059",
+      "metrics": {
+        "hit_rate@5": 1.0,
+        "mrr@5": 1.0,
+        "ndcg@5": 1.0,
+        "precision@5": 0.2,
+        "recall@5": 1.0
+      },
+      "question": "timestamp: _____",
+      "retrieved": [
+        "803"
+      ],
+      "source": "pipeline.py"
+    },
+    {
+      "all_positions_stored": true,
+      "best_score": 0.7527,
+      "facts": {
+        "covered": 1,
+        "found": [
+          "def normalise_channel(name: str) -> str:"
+        ],
+        "missing": [],
+        "score": 1.0,
+        "total": 1
+      },
+      "id": "C060",
+      "metrics": {
+        "hit_rate@5": 1.0,
+        "mrr@5": 1.0,
+        "ndcg@5": 1.0,
+        "precision@5": 0.2,
+        "recall@5": 1.0
+      },
+      "question": "def normalise_channel(name: _____",
+      "retrieved": [
+        "806"
+      ],
+      "source": "pipeline.py"
+    },
+    {
+      "all_positions_stored": true,
+      "best_score": 0.4658,
+      "facts": {
+        "covered": 1,
+        "found": [
+          "$.package.name: harvest-planner"
+        ],
+        "missing": [],
+        "score": 1.0,
+        "total": 1
+      },
+      "id": "C061",
+      "metrics": {
+        "hit_rate@5": 1.0,
+        "mrr@5": 1.0,
+        "ndcg@5": 1.0,
+        "precision@5": 0.2,
+        "recall@5": 1.0
+      },
+      "question": "$.package.name: _____",
+      "retrieved": [
+        "808"
+      ],
+      "source": "pyproject.toml"
+    },
+    {
+      "all_positions_stored": true,
+      "best_score": 0.4765,
+      "facts": {
+        "covered": 1,
+        "found": [
+          "$.package.version: 0.9.3"
+        ],
+        "missing": [],
+        "score": 1.0,
+        "total": 1
+      },
+      "id": "C062",
+      "metrics": {
+        "hit_rate@5": 1.0,
+        "mrr@5": 1.0,
+        "ndcg@5": 1.0,
+        "precision@5": 0.2,
+        "recall@5": 1.0
+      },
+      "question": "$.package.version: _____",
+      "retrieved": [
+        "808"
+      ],
+      "source": "pyproject.toml"
+    },
+    {
+      "all_positions_stored": true,
+      "best_score": 0.5239,
+      "facts": {
+        "covered": 1,
+        "found": [
+          "$.package.edition: 2021"
+        ],
+        "missing": [],
+        "score": 1.0,
+        "total": 1
+      },
+      "id": "C063",
+      "metrics": {
+        "hit_rate@5": 1.0,
+        "mrr@5": 1.0,
+        "ndcg@5": 1.0,
+        "precision@5": 0.2,
+        "recall@5": 1.0
+      },
+      "question": "$.package.edition: _____",
+      "retrieved": [
+        "808"
+      ],
+      "source": "pyproject.toml"
+    },
+    {
+      "all_positions_stored": true,
+      "best_score": 0.4516,
+      "facts": {
+        "covered": 1,
+        "found": [
+          "$.dependencies.serde: 1.0"
+        ],
+        "missing": [],
+        "score": 1.0,
+        "total": 1
+      },
+      "id": "C064",
+      "metrics": {
+        "hit_rate@5": 1.0,
+        "mrr@5": 1.0,
+        "ndcg@5": 1.0,
+        "precision@5": 0.2,
+        "recall@5": 1.0
+      },
+      "question": "$.dependencies.serde: _____",
+      "retrieved": [
+        "808"
+      ],
+      "source": "pyproject.toml"
+    },
+    {
+      "all_positions_stored": true,
+      "best_score": 0.841,
+      "facts": {
+        "covered": 1,
+        "found": [
+          "step: freeze\nowner: ana\nduration_min: 90\nreversible: no"
+        ],
+        "missing": [],
+        "score": 1.0,
+        "total": 1
+      },
+      "id": "C065",
+      "metrics": {
+        "hit_rate@5": 1.0,
+        "mrr@5": 1.0,
+        "ndcg@5": 1.0,
+        "precision@5": 0.2,
+        "recall@5": 1.0
+      },
+      "question": "step: freeze\nowner: ana\nduration_min: _____\nreversible: no",
+      "retrieved": [
+        "813"
+      ],
+      "source": "report.docx"
+    },
+    {
+      "all_positions_stored": true,
+      "best_score": 0.7733,
+      "facts": {
+        "covered": 1,
+        "found": [
+          "step: canary\nowner: sam\nduration_min: 30\nreversible: yes"
+        ],
+        "missing": [],
+        "score": 1.0,
+        "total": 1
+      },
+      "id": "C066",
+      "metrics": {
+        "hit_rate@5": 1.0,
+        "mrr@5": 1.0,
+        "ndcg@5": 1.0,
+        "precision@5": 0.2,
+        "recall@5": 1.0
+      },
+      "question": "step: canary\nowner: sam\nduration_min: _____\nreversible: yes",
+      "retrieved": [
+        "813"
+      ],
+      "source": "report.docx"
+    },
+    {
+      "all_positions_stored": true,
+      "best_score": 0.732,
+      "facts": {
+        "covered": 1,
+        "found": [
+          "step: ramp\nowner: sam\nduration_min: 45\nreversible: yes"
+        ],
+        "missing": [],
+        "score": 1.0,
+        "total": 1
+      },
+      "id": "C067",
+      "metrics": {
+        "hit_rate@5": 1.0,
+        "mrr@5": 1.0,
+        "ndcg@5": 1.0,
+        "precision@5": 0.2,
+        "recall@5": 1.0
+      },
+      "question": "step: ramp\nowner: sam\nduration_min: _____\nreversible: yes",
+      "retrieved": [
+        "813",
+        "812"
+      ],
+      "source": "report.docx"
+    },
+    {
+      "all_positions_stored": true,
+      "best_score": 0.7049,
+      "facts": {
+        "covered": 1,
+        "found": [
+          "step: verify\nowner: priya\nduration_min: 20\nreversible: n/a"
+        ],
+        "missing": [],
+        "score": 1.0,
+        "total": 1
+      },
+      "id": "C068",
+      "metrics": {
+        "hit_rate@5": 1.0,
+        "mrr@5": 1.0,
+        "ndcg@5": 1.0,
+        "precision@5": 0.2,
+        "recall@5": 1.0
+      },
+      "question": "step: verify\nowner: priya\nduration_min: _____\nreversible: n/a",
+      "retrieved": [
+        "813"
+      ],
+      "source": "report.docx"
+    },
+    {
+      "all_positions_stored": true,
+      "best_score": 0.536,
+      "facts": {
+        "covered": 1,
+        "found": [
+          "$.limits.requests_per_minute: 600"
+        ],
+        "missing": [],
+        "score": 1.0,
+        "total": 1
+      },
+      "id": "C069",
+      "metrics": {
+        "hit_rate@5": 1.0,
+        "mrr@5": 1.0,
+        "ndcg@5": 1.0,
+        "precision@5": 0.2,
+        "recall@5": 1.0
+      },
+      "question": "$.limits.requests_per_minute: _____",
+      "retrieved": [
+        "814"
+      ],
+      "source": "service.json"
+    },
+    {
+      "all_positions_stored": true,
+      "best_score": 0.3459,
+      "facts": {
+        "covered": 1,
+        "found": [
+          "$.limits.burst: 1200"
+        ],
+        "missing": [],
+        "score": 1.0,
+        "total": 1
+      },
+      "id": "C070",
+      "metrics": {
+        "hit_rate@5": 1.0,
+        "mrr@5": 1.0,
+        "ndcg@5": 1.0,
+        "precision@5": 0.2,
+        "recall@5": 1.0
+      },
+      "question": "$.limits.burst: _____",
+      "retrieved": [
+        "814"
+      ],
+      "source": "service.json"
+    },
+    {
+      "all_positions_stored": true,
+      "best_score": 0.4461,
+      "facts": {
+        "covered": 1,
+        "found": [
+          "$.limits.max_payload_bytes: 8388608"
+        ],
+        "missing": [],
+        "score": 1.0,
+        "total": 1
+      },
+      "id": "C071",
+      "metrics": {
+        "hit_rate@5": 1.0,
+        "mrr@5": 1.0,
+        "ndcg@5": 1.0,
+        "precision@5": 0.2,
+        "recall@5": 1.0
+      },
+      "question": "$.limits.max_payload_bytes: _____",
+      "retrieved": [
+        "814"
+      ],
+      "source": "service.json"
+    },
+    {
+      "all_positions_stored": true,
+      "best_score": 0.8302,
+      "facts": {
+        "covered": 1,
+        "found": [
+          "sensor_id: TH-001\nzone: storefront\nreading: 21.4\nunit: C\ntimestamp: 2024-05-01T08:00:00"
+        ],
+        "missing": [],
+        "score": 1.0,
+        "total": 1
+      },
+      "id": "C072",
+      "metrics": {
+        "hit_rate@5": 1.0,
+        "mrr@5": 0.5,
+        "ndcg@5": 0.6309297535714575,
+        "precision@5": 0.2,
+        "recall@5": 1.0
+      },
+      "question": "sensor_id: TH-001\nzone: storefront\nreading: _____\nunit: C\ntimestamp: 2024-05-01T08:00:00",
+      "retrieved": [
+        "816",
+        "815"
+      ],
+      "source": "temperatures.tsv"
+    },
+    {
+      "all_positions_stored": true,
+      "best_score": 0.8414,
+      "facts": {
+        "covered": 1,
+        "found": [
+          "sensor_id: TH-002\nzone: storefront\nreading: 21.6\nunit: C\ntimestamp: 2024-05-01T08:00:00"
+        ],
+        "missing": [],
+        "score": 1.0,
+        "total": 1
+      },
+      "id": "C073",
+      "metrics": {
+        "hit_rate@5": 1.0,
+        "mrr@5": 0.5,
+        "ndcg@5": 0.6309297535714575,
+        "precision@5": 0.2,
+        "recall@5": 1.0
+      },
+      "question": "sensor_id: TH-002\nzone: storefront\nreading: _____\nunit: C\ntimestamp: 2024-05-01T08:00:00",
+      "retrieved": [
+        "816",
+        "815"
+      ],
+      "source": "temperatures.tsv"
+    },
+    {
+      "all_positions_stored": true,
+      "best_score": 0.8805,
+      "facts": {
+        "covered": 1,
+        "found": [
+          "sensor_id: TH-003\nzone: warehouse\nreading: 17.9\nunit: C\ntimestamp: 2024-05-01T08:00:00"
+        ],
+        "missing": [],
+        "score": 1.0,
+        "total": 1
+      },
+      "id": "C074",
+      "metrics": {
+        "hit_rate@5": 1.0,
+        "mrr@5": 0.5,
+        "ndcg@5": 0.6309297535714575,
+        "precision@5": 0.2,
+        "recall@5": 1.0
+      },
+      "question": "sensor_id: TH-003\nzone: warehouse\nreading: _____\nunit: C\ntimestamp: 2024-05-01T08:00:00",
+      "retrieved": [
+        "816",
+        "815"
+      ],
+      "source": "temperatures.tsv"
+    },
+    {
+      "all_positions_stored": true,
+      "best_score": 0.8804,
+      "facts": {
+        "covered": 1,
+        "found": [
+          "sensor_id: TH-004\nzone: warehouse\nreading: 18.1\nunit: C\ntimestamp: 2024-05-01T08:00:00"
+        ],
+        "missing": [],
+        "score": 1.0,
+        "total": 1
+      },
+      "id": "C075",
+      "metrics": {
+        "hit_rate@5": 1.0,
+        "mrr@5": 0.5,
+        "ndcg@5": 0.6309297535714575,
+        "precision@5": 0.2,
+        "recall@5": 1.0
+      },
+      "question": "sensor_id: TH-004\nzone: warehouse\nreading: _____\nunit: C\ntimestamp: 2024-05-01T08:00:00",
+      "retrieved": [
+        "816",
+        "815"
+      ],
+      "source": "temperatures.tsv"
+    },
+    {
+      "all_positions_stored": true,
+      "best_score": 0.2495,
+      "facts": {
+        "covered": 1,
+        "found": [
+          "index: int"
+        ],
+        "missing": [],
+        "score": 1.0,
+        "total": 1
+      },
+      "id": "C076",
+      "metrics": {
+        "hit_rate@5": 1.0,
+        "mrr@5": 1.0,
+        "ndcg@5": 1.0,
+        "precision@5": 0.2,
+        "recall@5": 1.0
+      },
+      "question": "index: _____",
+      "retrieved": [
+        "817",
+        "820"
+      ],
+      "source": "train.py"
+    },
+    {
+      "all_positions_stored": true,
+      "best_score": 0.3573,
+      "facts": {
+        "covered": 1,
+        "found": [
+          "excluded_rows: list = field(default_factory=list)"
+        ],
+        "missing": [],
+        "score": 1.0,
+        "total": 1
+      },
+      "id": "C077",
+      "metrics": {
+        "hit_rate@5": 1.0,
+        "mrr@5": 1.0,
+        "ndcg@5": 1.0,
+        "precision@5": 0.2,
+        "recall@5": 1.0
+      },
+      "question": "excluded_rows: _____",
+      "retrieved": [
+        "817"
+      ],
+      "source": "train.py"
+    },
+    {
+      "all_positions_stored": true,
+      "best_score": 0.7002,
+      "facts": {
+        "covered": 1,
+        "found": [
+          "def spatial_folds(geometries, count: int = SPATIAL_FOLDS):"
+        ],
+        "missing": [],
+        "score": 1.0,
+        "total": 1
+      },
+      "id": "C078",
+      "metrics": {
+        "hit_rate@5": 1.0,
+        "mrr@5": 1.0,
+        "ndcg@5": 1.0,
+        "precision@5": 0.2,
+        "recall@5": 1.0
+      },
+      "question": "def spatial_folds(geometries, count: _____",
+      "retrieved": [
+        "818",
+        "820"
+      ],
+      "source": "train.py"
+    },
+    {
+      "all_positions_stored": true,
+      "best_score": 0.3985,
+      "facts": {
+        "covered": 1,
+        "found": [
+          "middle = len(observed) // 2"
+        ],
+        "missing": [],
+        "score": 1.0,
+        "total": 1
+      },
+      "id": "C079",
+      "metrics": {
+        "hit_rate@5": 1.0,
+        "mrr@5": 1.0,
+        "ndcg@5": 1.0,
+        "precision@5": 0.2,
+        "recall@5": 1.0
+      },
+      "question": "middle = _____",
+      "retrieved": [
+        "819"
+      ],
+      "source": "train.py"
+    },
+    {
+      "all_positions_stored": true,
+      "best_score": 0.3622,
+      "facts": {
+        "covered": 1,
+        "found": [
+          "$.database.host: warehouse.internal"
+        ],
+        "missing": [],
+        "score": 1.0,
+        "total": 1
+      },
+      "id": "C080",
+      "metrics": {
+        "hit_rate@5": 1.0,
+        "mrr@5": 1.0,
+        "ndcg@5": 1.0,
+        "precision@5": 0.2,
+        "recall@5": 1.0
+      },
+      "question": "$.database.host: _____",
+      "retrieved": [
+        "821"
+      ],
+      "source": "warehouse.ini"
+    },
+    {
+      "all_positions_stored": true,
+      "best_score": 0.402,
+      "facts": {
+        "covered": 1,
+        "found": [
+          "$.database.port: 5432"
+        ],
+        "missing": [],
+        "score": 1.0,
+        "total": 1
+      },
+      "id": "C081",
+      "metrics": {
+        "hit_rate@5": 1.0,
+        "mrr@5": 1.0,
+        "ndcg@5": 1.0,
+        "precision@5": 0.2,
+        "recall@5": 1.0
+      },
+      "question": "$.database.port: _____",
+      "retrieved": [
+        "821"
+      ],
+      "source": "warehouse.ini"
+    },
+    {
+      "all_positions_stored": true,
+      "best_score": 0.3745,
+      "facts": {
+        "covered": 1,
+        "found": [
+          "$.database.pool_size: 25"
+        ],
+        "missing": [],
+        "score": 1.0,
+        "total": 1
+      },
+      "id": "C082",
+      "metrics": {
+        "hit_rate@5": 1.0,
+        "mrr@5": 1.0,
+        "ndcg@5": 1.0,
+        "precision@5": 0.2,
+        "recall@5": 1.0
+      },
+      "question": "$.database.pool_size: _____",
+      "retrieved": [
+        "821"
+      ],
+      "source": "warehouse.ini"
+    },
+    {
+      "all_positions_stored": true,
+      "best_score": 0.5321,
+      "facts": {
+        "covered": 1,
+        "found": [
+          "$.database.connect_timeout: 10"
+        ],
+        "missing": [],
+        "score": 1.0,
+        "total": 1
+      },
+      "id": "C083",
+      "metrics": {
+        "hit_rate@5": 1.0,
+        "mrr@5": 1.0,
+        "ndcg@5": 1.0,
+        "precision@5": 0.2,
+        "recall@5": 1.0
+      },
+      "question": "$.database.connect_timeout: _____",
+      "retrieved": [
+        "821"
+      ],
+      "source": "warehouse.ini"
+    }
+  ],
+  "scored": 84,
+  "skipped": 0,
+  "trap_leak_rate": 0.0
+}

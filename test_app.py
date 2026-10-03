@@ -1249,6 +1249,67 @@ def test_cloze_labels_are_checked_mechanically(client: TestClient = None) -> Non
     print("  cloze labels: values, not timestamps, addresses or filler words")
 
 
+def test_machine_checked_labels_are_gated_not_trusted(client: TestClient = None) -> None:
+    import json as _json
+    import tempfile
+
+    from experiments import build_cloze_gold as cloze
+    from experiments import eval_gold
+
+    items = eval_gold.load_gold(cloze.DEFAULT_OUT)
+    assert items, "the committed machine-checked set must not be empty"
+    assert all(item["verified_by_human"] is False for item in items)
+    assert all(
+        str(item.get("label_provenance", "")).startswith("machine-") for item in items
+    )
+
+    # Without the flag, mechanically checked labels are no more scorable than
+    # unread ones. The flag opts in; it does not change what a label is.
+    scorable, excluded = eval_gold.partition(items)
+    assert not scorable, [i["id"] for i in scorable]
+    assert len(excluded) == len(items)
+
+    # Every committed item passes the checks as they stand.
+    assert eval_gold.machine_failures(items) == {}
+
+    # And a stale one does not. This is the failure that matters: a parser
+    # change moves a fact out of the block the label cites, and scoring it
+    # anyway would report a chunker change as a retrieval failure.
+    stale = [dict(items[0])]
+    stale[0]["required_facts"] = ["a line this document does not contain"]
+    assert eval_gold.machine_failures(stale), "a rewritten fact must fail the checks"
+
+    wrong_position = [dict(items[0])]
+    wrong_position[0]["expected_positions"] = [9999]
+    assert eval_gold.machine_failures(wrong_position)
+
+    with tempfile.TemporaryDirectory() as folder:
+        target = Path(folder) / "cloze.json"
+        target.write_text(_json.dumps({"items": stale}), encoding="utf-8")
+        reloaded = eval_gold.load_gold(target)
+        report = eval_gold.run(
+            5, "isolated", False, verbose=False, gold_path=target, allow_machine=True
+        )
+        # Refused outright, rather than scored as a clean zero.
+        assert report["means"] == {} and not report["rows"], report
+        assert eval_gold.machine_failures(reloaded), "the guard did not see the stale item"
+
+    # With the flag, machine-checked items do become scorable, and traps stay
+    # out of the ranking metrics where an empty gold set would raise.
+    ok, _ = eval_gold.partition(items, machine_ids={i["id"] for i in items})
+    answerable = [i for i in items if i["answerable"]]
+    assert len(ok) == len(answerable), (len(ok), len(answerable))
+    traps = [i for i in items if not i["answerable"]]
+    assert traps and all(not i["required_facts"] for i in traps)
+    assert all(i["id"] not in {o["id"] for o in ok} for i in traps)
+
+    # A trap's source names the corpus, not a file, so it must never be handed
+    # to the indexer as one.
+    for trap in traps:
+        assert not (eval_gold.CORPUS / trap["source"]).exists(), trap["source"]
+    print("  machine labels: re-checked at scoring time, stale ones refused")
+
+
 def test_hybrid_lexical_index(client: TestClient = None) -> None:
     from app.lexical import content_terms, tokenize
 
@@ -1460,6 +1521,7 @@ ORDER = [
     # Clears the notebook, so it must stay last.
     ("unverified gold cannot be scored", test_gold_set_cannot_be_scored_until_verified),
     ("cloze labels are checked mechanically", test_cloze_labels_are_checked_mechanically),
+    ("machine labels are gated not trusted", test_machine_checked_labels_are_gated_not_trusted),
     ("source deletion", test_source_deletion),
 ]
 
