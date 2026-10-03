@@ -504,7 +504,7 @@ def _parse_pdf(path: Path) -> list[Block]:
     return blocks
 
 
-def _parse_docx(path: Path) -> list[Block]:
+def _parse_docx(path: Path, size: int) -> list[Block]:
     from docx import Document
 
     doc = Document(path)
@@ -601,7 +601,7 @@ def parse(
     if suffix == ".pdf":
         return _split_long(_parse_pdf(path), size, overlap)
     if suffix == ".docx":
-        blocks = _parse_docx(path)
+        blocks = _parse_docx(path, size)
     elif suffix in {".html", ".htm"}:
         blocks = _parse_html(path)
     elif suffix in TABLE_SUFFIXES:

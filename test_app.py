@@ -1017,6 +1017,11 @@ def test_word_sections_respect_the_chunk_ceiling(client: TestClient) -> None:
     doc.add_heading("Runbook", level=1)
     body = " ".join(f"step {i} verifies the rollback path" for i in range(60))
     doc.add_paragraph(body)
+    table = doc.add_table(rows=2, cols=2)
+    table.rows[0].cells[0].text = "zone"
+    table.rows[0].cells[1].text = "units"
+    table.rows[1].cells[0].text = "cold-store"
+    table.rows[1].cells[1].text = "412300"
     doc.save(path)
 
     size = 400
@@ -1025,15 +1030,26 @@ def test_word_sections_respect_the_chunk_ceiling(client: TestClient) -> None:
 
     assert len(blocks) > 1, "a long Word section must be split, not returned whole"
     assert all(len(b.text) <= size for b in blocks), [len(b.text) for b in blocks]
-    assert {b.heading for b in blocks} == {"Runbook"}, [b.heading for b in blocks]
 
-    texts = [b.text for b in blocks]
+    prose = [b for b in blocks if "step" in b.text]
+    assert prose and {b.heading for b in prose} == {"Runbook"}, [b.heading for b in prose]
+
+    # Overlap only applies inside one split run. The table that follows the
+    # prose is a separate block, so its seam is correctly zero.
+    texts = [b.text for b in prose]
     seams = [_shared_seam(texts[i], texts[i + 1]) for i in range(len(texts) - 1)]
     assert min(seams) >= overlap - 10, seams
 
-    tight = parsers.parse(path, chunk_size=size, chunk_overlap=0)
+    tight = [b for b in parsers.parse(path, chunk_size=size, chunk_overlap=0) if "step" in b.text]
     assert [b.text for b in tight] != texts, "chunk_overlap is ignored, not applied"
     assert max(_shared_seam(a.text, b.text) for a, b in zip(tight, tight[1:])) == 0
+
+    # The table branch reads the ceiling too, so a Word table has to survive
+    # being parsed at all - not just the prose path.
+    table_rows = [b for b in blocks if "units" in b.text]
+    assert table_rows, [b.text for b in blocks]
+    assert "zone: cold-store" in table_rows[0].text, table_rows[0].text
+
     print(f"  word chunking: {len(blocks)} chunks, ceiling {size}, overlap honoured")
 
 
