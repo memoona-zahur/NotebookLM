@@ -25,8 +25,10 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 import re
 import sys
+from collections.abc import Callable, Sequence
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
@@ -48,9 +50,32 @@ TRAP_DOCS = 8
 MAX_FACT_CHARS = 170
 MIN_FACT_CHARS = 8
 
+# Words that ask for an answer chosen by comparing values rather than quoted
+# from one place. Matched against question terms, so 'most' and 'min' count
+# and 'monument' does not.
+_COMPARISON = re.compile(
+    r"^(highest|lowest|largest|smallest|greatest|best|worst|most|least|max|min|maximum|minimum|"
+    r"warmest|coldest|fastest|slowest|average|total|count|compare|comparison|rank|ranking|top)$"
+)
+
 _SENTENCE = re.compile(r"(?<=[.!?])\s+|\n+")
-_CLAUSE = re.compile(r"(?<=[,;:])\s+")
-_RECORD_LINE = re.compile(r"^\s*[\w$.\[\]\"'-]+\s*[:=]")
+# Comma and semicolon only. Splitting on a colon looks reasonable for prose
+# and mangles key/value text: in '$.package.version: 0.9.3\n$.package.name: x'
+# it swallows every following line, producing multi-key blobs as facts.
+_CLAUSE = re.compile(r"(?<=[,;])\s+")
+# A key at the start of a line: 'zone: coldroom', '$.learning_rate: 0.001'.
+_RECORD_LINE = re.compile(r"^\s*(?:\$\.?)?[\w\"'-]+(?:\.[\w-]+)*\s*[:=]")
+
+
+def _is_record_line(line: str) -> bool:
+    """True for a 'key: value' line, false for code that merely contains ':'.
+
+    A Java method reference like LineItem::declaredValue matches a naive ':'
+    test, and treating those lines as records produced multi-line code blobs
+    as gold facts. Requiring a key at the start of the line, with no '::'
+    anywhere in it, keeps windows for tables and config and away from code.
+    """
+    return "::" not in line and _RECORD_LINE.match(line) is not None
 
 
 def _shorten(piece: str) -> list[str]:
@@ -72,13 +97,53 @@ def _shorten(piece: str) -> list[str]:
     return parts
 
 
+def _record_key(line: str) -> str:
+    """The field name of a 'key: value' line, or '' when it has none."""
+    if not _is_record_line(line):
+        return ""
+    return re.split(r"[:=]", line, maxsplit=1)[0].strip().casefold()
+
+
+def _record_spans(lines: list[str]) -> list[str]:
+    """Split a key/value block into one span per record.
+
+    A repeated field name starts a new record, which is how tabular data
+    repeats its schema. Sliding a fixed-width window over the lines instead
+    produced spans that straddled two records - 'sensor_id: TH-001' with
+    'zone: storefront' but not the reading, so the fact named the zone without
+    its temperature.
+    """
+    spans: list[str] = []
+    current: list[str] = []
+    seen: set[str] = set()
+    for line in lines:
+        key = _record_key(line)
+        if current and key and key in seen:
+            spans.append("\n".join(current))
+            current, seen = [], set()
+        current.append(line)
+        if key:
+            seen.add(key)
+    if current:
+        spans.append("\n".join(current))
+    return spans
+
+
+def _is_record_block(text: str) -> bool:
+    lines = [line for line in text.splitlines() if line.strip()]
+    records = [line for line in lines if _is_record_line(line)]
+    # Every line a record, not merely enough of them. A code block that happens
+    # to contain three assignments is not a table, and treating it as one
+    # produced multi-line source blobs as gold facts.
+    return len(lines) >= 4 and len(records) >= 3 and len(records) >= 0.8 * len(lines)
+
+
 def _spans(text: str) -> list[str]:
-    """Candidate evidence spans: sentences or clause-sized pieces.
+    """Candidate evidence spans: sentences, clause pieces, records, key lines.
 
     Structured formats put a record across several lines - 'zone: coldroom'
-    then 'reading: -19.1' - and neither line alone answers the question.
-    Consecutive lines are also offered as one span so the pair can be the
-    fact, capped at the same length so it stays checkable by eye.
+    then 'reading: -19.1' - and neither line alone answers the question, so the
+    whole record is offered as one span alongside the individual lines.
     """
     parts: list[str] = []
     for part in _SENTENCE.split(text):
@@ -87,17 +152,8 @@ def _spans(text: str) -> list[str]:
             parts.extend(_shorten(part))
 
     lines = [line for line in text.splitlines() if line.strip()]
-    if sum(1 for line in lines if _RECORD_LINE.match(line)) >= 3:
-        window: list[str] = []
-        for line in lines:
-            window.append(line)
-            joined = "\n".join(window)
-            if len(joined) > MAX_FACT_CHARS:
-                window = window[1:]
-                joined = "\n".join(window)
-            if len(window) >= 2:
-                parts.append(joined)
-        parts.append("\n".join(lines))
+    if _is_record_block(text):
+        parts.extend(_record_spans(lines))
 
     return [
         part
@@ -106,8 +162,29 @@ def _spans(text: str) -> list[str]:
     ]
 
 
-def _overlap(terms: set[str], text: str) -> int:
-    return len(terms & set(content_terms(text)))
+def _idf(spans: Sequence[str]) -> Callable[[str], float]:
+    """Weight a term by how rare it is across the spans of one document.
+
+    Counting shared terms cannot tell 'training' from 'rows', so a generic key
+    beat the specific one on file order alone: 'How many training rows are
+    there?' matched '$.training.epochs: 140' exactly as well as
+    '$.data.train_rows: 4820000'. Down-weighting the terms a document uses
+    everywhere is the insight BM25 rests on, and it hands the match to the
+    discriminative term.
+    """
+    counts: dict[str, int] = {}
+    for span in spans:
+        for term in set(content_terms(span)):
+            counts[term] = counts.get(term, 0) + 1
+    total = max(1, len(spans))
+    return lambda term: math.log(1.0 + total / (1.0 + counts.get(term, 0)))
+
+
+def _overlap(terms: set[str], text: str, weight: Callable[[str], float] | None = None) -> float:
+    shared = terms & set(content_terms(text))
+    if weight is None:
+        return float(len(shared))
+    return sum(weight(term) for term in shared)
 
 
 def _scoring_text(block: parsers.Block) -> str:
@@ -142,6 +219,11 @@ def _looks_like_evidence(span: str, heading: str) -> bool:
     """
     if len(span) < MIN_FACT_CHARS:
         return False
+    # A comment describes code without being an answer, and its words match the
+    # question as well as the code does - 'Cart totals with progressive
+    # discount tiers' ranks top for a question about discount tiers.
+    if re.match(r"\s*(//|#|--|/\*|\*)", span):
+        return False
     if heading:
         for part in re.split(r"\s*>\s*", heading):
             if part.strip() and normalize(span) == normalize(part):
@@ -150,9 +232,10 @@ def _looks_like_evidence(span: str, heading: str) -> bool:
     # most deterministic kind there is: 'pool_size: 25' needs no reading.
     if re.search(r"\d", span) and re.search(r"[:=]", span):
         return True
-    # Code and query text terminates on ';' and states relations with '=', so
-    # 'ORDER BY avg_seconds DESC;' is an answer even without a full stop.
-    if span.rstrip().endswith(";") or "=" in span:
+    # Code and query text terminates on ';' or '{' and states relations with
+    # '=', so 'ORDER BY avg_seconds DESC;' and a method signature are answers
+    # even without a full stop.
+    if span.rstrip().endswith((";", "{")) or "=" in span:
         return True
     words = span.split()
     if len(words) <= 3:
@@ -180,21 +263,45 @@ def _propose(
     if not positions:
         return [], [], "no block shares a term with the question"
 
-    candidates: list[tuple[int, int, str]] = []
+    # 'Which zone is warmest?' and 'Which region has the highest return rate?'
+    # are answered by comparing records, not by quoting one. A lexical match
+    # picks a plausible-looking record that is not the answer, and a wrong gold
+    # fact is worse than an absent one, because it is indistinguishable from a
+    # retriever failure once scoring starts.
+    if any(_COMPARISON.fullmatch(term) for term in terms) and any(
+        _is_record_block(blocks[p].text) for p in positions
+    ):
+        return [], [], "the question compares records, so a human must supply the fact"
+
+    candidates: list[tuple[float, int, str]] = []
+    # Rarity is measured over the whole document, not just the two blocks that
+    # matched: a term can be rare in a neighbour and common everywhere else.
+    all_spans = {index: _spans(block.text) for index, block in enumerate(blocks)}
+    weight = _idf([span for spans in all_spans.values() for span in spans])
     for position in positions:
         heading = blocks[position].heading
-        for span in _spans(blocks[position].text):
+        for span in all_spans[position]:
             if not _looks_like_evidence(span, heading):
                 continue
-            candidates.append((_overlap(terms, span), position, span))
+            candidates.append((_overlap(terms, span, weight), position, span))
     candidates.sort(key=lambda item: (-item[0], item[1]))
+
+    # Keep only facts that match the question as strongly as the best one, and at
+    # most one per block. Demanding a second fact unconditionally pads the gold
+    # set with spans that are on-topic but do not answer anything, and every one
+    # of those becomes an unmeetable recall requirement later. Two equally good
+    # spans inside one block are usually the same fact twice - a config file
+    # where every key repeats the section name ties on every key.
+    if not candidates:
+        return [], [], "matching blocks found, but no span read like a fact"
+    best = candidates[0][0]
 
     facts: list[str] = []
     contributors: list[int] = []
     seen: set[str] = set()
     for score, position, span in candidates:
         key = normalize(span)
-        if not score or key in seen:
+        if not score or score < best or key in seen or position in contributors:
             continue
         seen.add(key)
         facts.append(span)
@@ -204,7 +311,19 @@ def _propose(
             break
     if not facts:
         return [], [], "matching blocks found, but no span read like a fact"
-    return sorted(contributors), facts, ""
+
+    # Every block holding the fact is gold, not just the one it was drafted
+    # from. Overlapping chunks repeat their boundary text on purpose, and a
+    # label that names only the first copy is unreachable: the retriever
+    # returns the second copy, it is a correct answer, and recall calls it a
+    # miss. Customs.java caught exactly that - 'requiresLicence' sits in two
+    # chunks and the gold named one of them.
+    holders = [
+        index
+        for index, block in enumerate(blocks)
+        if any(normalize(fact) in normalize(block.text) for fact in facts)
+    ]
+    return sorted(holders) or sorted(contributors), facts, ""
 
 
 def _difficulty(question: str, facts: list[str]) -> str:
@@ -228,7 +347,12 @@ def build() -> dict:
         blocks = parsers.parse(path)
 
         for question in questions["relevant"][:QUESTIONS_PER_DOC]:
-            positions, facts, why = _propose(question, blocks, wanted=2)
+            # One fact, not two. A second span of equal standing is usually a
+            # near-duplicate rather than a second requirement, and every extra
+            # fact becomes another way for recall@k to fail for a reason that
+            # has nothing to do with retrieval. Where a question genuinely
+            # needs two pieces of evidence, the human review adds them.
+            positions, facts, why = _propose(question, blocks, wanted=1)
             if not facts:
                 # Worth surfacing rather than dropping: either the question is
                 # unanswerable from this document, or the proposer missed it.

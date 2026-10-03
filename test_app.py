@@ -1106,6 +1106,65 @@ def test_retrieval_metric_definitions(client: TestClient = None) -> None:
     print("  metrics: definitions behave as documented")
 
 
+def test_gold_set_cannot_be_scored_until_verified(client: TestClient = None) -> None:
+    import json as _json
+    import tempfile
+
+    from app import parsers
+    from experiments import eval_gold, metrics
+
+    items = eval_gold.load_gold()
+    assert items, "the committed gold set must not be empty"
+
+    # The file on disk is unverified, so nothing in it may be scored.
+    scorable, excluded = eval_gold.partition(items)
+    assert not scorable, [i["id"] for i in scorable]
+    assert len(excluded) == len(items)
+
+    # A dry run must be explicit, and only a dry run.
+    dry, _ = eval_gold.partition(items, include_unverified=True)
+    assert len(dry) == sum(1 for i in items if i["answerable"])
+
+    # Traps never reach the ranking metrics; they are counted separately.
+    dry_ids = {i["id"] for i in dry}
+    for item in items:
+        if not item["answerable"]:
+            assert not item["required_facts"], item["id"]
+            assert item["id"] not in dry_ids, item["id"]
+
+    # Every gold position must hold the fact it is labelled with, and every
+    # required fact must be a verbatim substring of the parser's own output.
+    blocks: dict[str, list] = {}
+    for item in items:
+        if not item["required_facts"]:
+            continue
+        if item["source"] not in blocks:
+            blocks[item["source"]] = parsers.parse(eval_gold.CORPUS / item["source"])
+        parsed = blocks[item["source"]]
+        for position in item["expected_positions"]:
+            assert position < len(parsed), (item["id"], position)
+        context = "\n".join(parsed[p].text for p in item["expected_positions"])
+        covered = metrics.fact_coverage(item["required_facts"], context)
+        assert covered["covered"] == covered["total"], (item["id"], covered["missing"])
+
+    # A malformed file must be rejected rather than half-scored.
+    missing_key = dict(items[0])
+    missing_key.pop("required_facts")
+    for label, bad in (
+        ("missing key", [missing_key]),
+        ("answerable with no facts", [{**items[0], "required_facts": []}]),
+    ):
+        with tempfile.TemporaryDirectory() as folder:
+            target = Path(folder) / "gold.json"
+            target.write_text(_json.dumps({"items": bad}), encoding="utf-8")
+            try:
+                eval_gold.load_gold(target)
+            except (ValueError, KeyError):
+                continue
+            raise AssertionError(f"a gold file with a {label} must be rejected")
+    print("  gold set: unverified labels cannot be scored")
+
+
 def test_hybrid_lexical_index(client: TestClient = None) -> None:
     from app.lexical import content_terms, tokenize
 
@@ -1315,6 +1374,7 @@ ORDER = [
     ("index survives a restart", test_sources_survive_a_store_restart),
     ("refused question skips the model", test_refused_question_never_calls_the_model),
     # Clears the notebook, so it must stay last.
+    ("unverified gold cannot be scored", test_gold_set_cannot_be_scored_until_verified),
     ("source deletion", test_source_deletion),
 ]
 
