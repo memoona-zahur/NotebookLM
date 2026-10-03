@@ -996,6 +996,47 @@ def test_type_aware_parsing(client: TestClient) -> None:
     print(f"  parsers ok: {len(parsers.SUPPORTED)} supported suffixes")
 
 
+def _shared_seam(before: str, after: str) -> int:
+    """Characters shared where two consecutive chunks overlap."""
+    for n in range(min(len(before), len(after)), 0, -1):
+        if before[-n:] == after[:n]:
+            return n
+    return 0
+
+
+def test_word_sections_respect_the_chunk_ceiling(client: TestClient) -> None:
+    from app import parsers
+    import tempfile
+
+    from docx import Document
+
+    tmp = Path(tempfile.mkdtemp())
+    path = tmp / "s.docx"
+
+    doc = Document()
+    doc.add_heading("Runbook", level=1)
+    body = " ".join(f"step {i} verifies the rollback path" for i in range(60))
+    doc.add_paragraph(body)
+    doc.save(path)
+
+    size = 400
+    overlap = 120
+    blocks = parsers.parse(path, chunk_size=size, chunk_overlap=overlap)
+
+    assert len(blocks) > 1, "a long Word section must be split, not returned whole"
+    assert all(len(b.text) <= size for b in blocks), [len(b.text) for b in blocks]
+    assert {b.heading for b in blocks} == {"Runbook"}, [b.heading for b in blocks]
+
+    texts = [b.text for b in blocks]
+    seams = [_shared_seam(texts[i], texts[i + 1]) for i in range(len(texts) - 1)]
+    assert min(seams) >= overlap - 10, seams
+
+    tight = parsers.parse(path, chunk_size=size, chunk_overlap=0)
+    assert [b.text for b in tight] != texts, "chunk_overlap is ignored, not applied"
+    assert max(_shared_seam(a.text, b.text) for a, b in zip(tight, tight[1:])) == 0
+    print(f"  word chunking: {len(blocks)} chunks, ceiling {size}, overlap honoured")
+
+
 def test_hybrid_lexical_index(client: TestClient = None) -> None:
     from app.lexical import content_terms, tokenize
 
@@ -1178,6 +1219,7 @@ ORDER = [
     ("numeric damping respects order", test_numeric_damping_respects_relative_order),
     ("uniform numeric corpus undamped", test_uniform_numeric_corpus_is_not_damped),
     ("type-aware parsing", test_type_aware_parsing),
+    ("word sections chunked", test_word_sections_respect_the_chunk_ceiling),
     ("config formats as data", test_config_formats_parsed_as_data),
     ("hard-wrapped text rejoined", test_hard_wrapped_text_is_rejoined),
     ("hybrid tokenisation", test_hybrid_lexical_index),

@@ -436,8 +436,10 @@ non-zero if any failed.
   path cleans up its own files; a hard crash mid-session can still leave an orphan.
 - No reranking. Fused dense + BM25 order goes straight to the prompt. See the entity-overlap
   note above for the one case that measurably needs a cross-encoder.
-- Table content is **dropped rather than parsed**. Structured extraction (repeating the
-  header row onto each data row) would make tables searchable instead of discarded.
+- PDF tables are **not reconstructed**. Every other table format is parsed with its header row
+  attached (`.csv`/`.tsv`, Markdown pipe tables, DOCX), but a PDF only yields positioned text
+  runs, so a table there stays numeric-flat. Those chunks are flagged rather than dropped, and
+  detecting the header row across the ruled lines is still open work.
 - A cross-encoder reranker was evaluated and **is not wired in**: on the test handbook its
   scores for legitimate questions (0.002-0.597) overlapped those for unanswerable ones
   (0.000-0.125), so it cannot serve as an absolute relevance threshold. It may still help

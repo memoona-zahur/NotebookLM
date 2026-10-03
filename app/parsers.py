@@ -44,6 +44,12 @@ def default_chunk_size() -> int:
     return config.CHUNK_SIZE
 
 
+def default_chunk_overlap() -> int:
+    from . import config
+
+    return config.CHUNK_OVERLAP
+
+
 _HEADING_RE = re.compile(r"^(#{1,6})\s+(.*\S)\s*$")
 _MD_ROW_RE = re.compile(r"^\s*\|.*\|\s*$")
 _MD_SEP_RE = re.compile(r"^\s*\|[\s:|-]+\|\s*$")
@@ -498,7 +504,7 @@ def _parse_pdf(path: Path) -> list[Block]:
     return blocks
 
 
-def _parse_docx(path: Path, size: int) -> list[Block]:
+def _parse_docx(path: Path) -> list[Block]:
     from docx import Document
 
     doc = Document(path)
@@ -582,15 +588,20 @@ def _parse_html(path: Path) -> list[Block]:
     return blocks or ([Block(text=_clean(soup.get_text("\n")))] if soup.get_text(strip=True) else [])
 
 
-def parse(path: Path, chunk_size: int | None = None) -> list[Block]:
+def parse(
+    path: Path,
+    chunk_size: int | None = None,
+    chunk_overlap: int | None = None,
+) -> list[Block]:
     """Extract indexable blocks from any supported file."""
     size = chunk_size or default_chunk_size()
+    overlap = chunk_overlap if chunk_overlap is not None else default_chunk_overlap()
     suffix = path.suffix.lower()
 
     if suffix == ".pdf":
-        return _split_long(_parse_pdf(path), size)
+        return _split_long(_parse_pdf(path), size, overlap)
     if suffix == ".docx":
-        blocks = _parse_docx(path, size)
+        blocks = _parse_docx(path)
     elif suffix in {".html", ".htm"}:
         blocks = _parse_html(path)
     elif suffix in TABLE_SUFFIXES:
@@ -608,9 +619,7 @@ def parse(path: Path, chunk_size: int | None = None) -> list[Block]:
     else:
         raise ValueError(f"Unsupported file type: {suffix or path.name}")
 
-    if suffix == ".docx":
-        return blocks
-    return _split_long(blocks, size)
+    return _split_long(blocks, size, overlap)
 
 
 def chunk_text(text: str, size: int, overlap: int) -> list[str]:
@@ -657,12 +666,12 @@ def chunk_text(text: str, size: int, overlap: int) -> list[str]:
     return chunks
 
 
-def _split_long(blocks: list[Block], size: int) -> list[Block]:
+def _split_long(blocks: list[Block], size: int, overlap: int) -> list[Block]:
     out: list[Block] = []
     for block in blocks:
         if len(block.text) <= size:
             out.append(block)
             continue
-        for piece in chunk_text(block.text, size, max(50, size // 6)):
+        for piece in chunk_text(block.text, size, overlap):
             out.append(Block(text=piece, page=block.page, heading=block.heading))
     return out
