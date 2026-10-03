@@ -1,0 +1,112 @@
+{
+  "baseline_config": {
+    "chunk_overlap": 150,
+    "chunk_size": 900
+  },
+  "documents": 24,
+  "gold_file": "C:\\Users\\DELL\\OneDrive\\Documents\\Notebooklm\\experiments\\gold\\cloze_set.json",
+  "human_verified": false,
+  "items": 84,
+  "k": 5,
+  "label_basis": "machine-checked",
+  "mode": "shared",
+  "note": "precision@k is a lower bound: labels cover the blocks that answer each question, not every block on topic. fact_coverage and gold_intact are the measures to compare settings on.",
+  "settings": [
+    {
+      "chunk_overlap": 50,
+      "chunk_size": 300,
+      "chunks_stored": 161,
+      "fact_coverage": 0.9642857142857143,
+      "gold_intact": 0.9523809523809523,
+      "means": {
+        "hit_rate@5": 1.0,
+        "mrr@5": 0.925,
+        "ndcg@5": 0.9446394630357184,
+        "precision@5": 0.20249999999999974,
+        "recall@5": 1.0
+      },
+      "scored": 80,
+      "unresolvable": 4
+    },
+    {
+      "chunk_overlap": 75,
+      "chunk_size": 450,
+      "chunks_stored": 137,
+      "fact_coverage": 1.0,
+      "gold_intact": 0.9880952380952381,
+      "means": {
+        "hit_rate@5": 1.0,
+        "mrr@5": 0.9337349397590361,
+        "ndcg@5": 0.9510870757745303,
+        "precision@5": 0.2048192771084334,
+        "recall@5": 1.0
+      },
+      "scored": 83,
+      "unresolvable": 1
+    },
+    {
+      "chunk_overlap": 100,
+      "chunk_size": 600,
+      "chunks_stored": 128,
+      "fact_coverage": 1.0,
+      "gold_intact": 1.0,
+      "means": {
+        "hit_rate@5": 1.0,
+        "mrr@5": 0.9107142857142857,
+        "ndcg@5": 0.9340945988520455,
+        "precision@5": 0.20238095238095205,
+        "recall@5": 1.0
+      },
+      "scored": 84,
+      "unresolvable": 0
+    },
+    {
+      "chunk_overlap": 150,
+      "chunk_size": 900,
+      "chunks_stored": 117,
+      "fact_coverage": 1.0,
+      "gold_intact": 1.0,
+      "means": {
+        "hit_rate@5": 1.0,
+        "mrr@5": 0.9146825396825398,
+        "ndcg@5": 0.9369296047193918,
+        "precision@5": 0.20238095238095205,
+        "recall@5": 1.0
+      },
+      "scored": 84,
+      "unresolvable": 0
+    },
+    {
+      "chunk_overlap": 200,
+      "chunk_size": 1200,
+      "chunks_stored": 113,
+      "fact_coverage": 1.0,
+      "gold_intact": 1.0,
+      "means": {
+        "hit_rate@5": 1.0,
+        "mrr@5": 0.9444444444444445,
+        "ndcg@5": 0.9588980717687101,
+        "precision@5": 0.20238095238095205,
+        "recall@5": 1.0
+      },
+      "scored": 84,
+      "unresolvable": 0
+    },
+    {
+      "chunk_overlap": 266,
+      "chunk_size": 1600,
+      "chunks_stored": 113,
+      "fact_coverage": 1.0,
+      "gold_intact": 1.0,
+      "means": {
+        "hit_rate@5": 1.0,
+        "mrr@5": 0.9444444444444445,
+        "ndcg@5": 0.9588980717687101,
+        "precision@5": 0.20238095238095205,
+        "recall@5": 1.0
+      },
+      "scored": 84,
+      "unresolvable": 0
+    }
+  ]
+}

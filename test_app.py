@@ -1310,6 +1310,57 @@ def test_machine_checked_labels_are_gated_not_trusted(client: TestClient = None)
     print("  machine labels: re-checked at scoring time, stale ones refused")
 
 
+def test_bakeoff_resolves_gold_by_text_not_position(client: TestClient = None) -> None:
+    import json as _json
+    import tempfile
+
+    from experiments import chunker_bakeoff as bakeoff
+
+    chunks = [
+        ("c0", "sensor_id: TH-001\nzone: storefront\nreading: 21.4"),
+        ("c1", "sensor_id: TH-002\nzone: warehouse\nreading: 17.9"),
+        ("c2", "sensor_id: TH-003"),
+    ]
+    item = {
+        "id": "X",
+        "required_facts": ["sensor_id: TH-002\nzone: warehouse\nreading: 17.9"],
+    }
+    # chunks.position is the parser's block index, so at a different chunk size
+    # position 1 is a different block. Resolving by text is the only way one
+    # label set can score several settings.
+    assert bakeoff.resolve_gold(item, chunks) == ["c1"]
+
+    # A fact straddling two chunks resolves to nothing, and the caller reports
+    # that instead of scoring zero: the label stopped existing, the retriever
+    # did not fail.
+    straddling = [{"id": "Y", "required_facts": ["zone: storefront\nreading: 21.4\nsensor_id: TH-002"]}]
+    assert bakeoff.resolve_gold(straddling[0], chunks) == []
+    # The same fields, in the order they were stored, do resolve.
+    whole = [{"id": "Y2", "required_facts": ["sensor_id: TH-001\nzone: storefront"]}]
+    assert bakeoff.resolve_gold(whole[0], chunks) == ["c0"]
+
+    # Every fact must be present, and a fact matching several chunks credits all
+    # of them - overlap duplicates evidence on purpose.
+    multi = [{"id": "Z", "required_facts": ["sensor_id: TH-001", "zone: warehouse"]}]
+    assert bakeoff.resolve_gold(multi[0], chunks) == ["c0", "c1"]
+
+    # The bakeoff must refuse labels that no longer pass their checks.
+    from experiments import eval_gold
+
+    stale = [dict(eval_gold.load_gold(bakeoff.CLOZE_PATH)[0])]
+    stale[0]["required_facts"] = ["not in any document"]
+    with tempfile.TemporaryDirectory() as folder:
+        path = Path(folder) / "stale.json"
+        path.write_text(_json.dumps({"items": stale}), encoding="utf-8")
+        try:
+            bakeoff.run([900], 1 / 6, 5, "shared", gold_path=path)
+        except SystemExit:
+            pass
+        else:
+            raise AssertionError("the bakeoff must refuse stale labels")
+    print("  bakeoff: gold resolved by text, so chunk size can change")
+
+
 def test_hybrid_lexical_index(client: TestClient = None) -> None:
     from app.lexical import content_terms, tokenize
 
@@ -1522,6 +1573,7 @@ ORDER = [
     ("unverified gold cannot be scored", test_gold_set_cannot_be_scored_until_verified),
     ("cloze labels are checked mechanically", test_cloze_labels_are_checked_mechanically),
     ("machine labels are gated not trusted", test_machine_checked_labels_are_gated_not_trusted),
+    ("bakeoff resolves gold by text", test_bakeoff_resolves_gold_by_text_not_position),
     ("source deletion", test_source_deletion),
 ]
 
