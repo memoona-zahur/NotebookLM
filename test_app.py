@@ -563,6 +563,11 @@ def test_the_prompt_tells_the_model_sources_are_data(client: TestClient) -> None
     assert "untrusted" in lowered, SYSTEM_PROMPT
     assert "not instructions" in lowered, SYSTEM_PROMPT
     assert "ignore them" in lowered, SYSTEM_PROMPT
+    # The client renders a defined Markdown subset, so the prompt has to name the
+    # limit. Asking for Markdown and then stripping it is how an answer arrives
+    # full of literal '**' or '<table>'.
+    assert "plain text only" in lowered, SYSTEM_PROMPT
+    assert "no html" in lowered, SYSTEM_PROMPT
 
 
 def test_static_and_empty_question(client: TestClient) -> None:

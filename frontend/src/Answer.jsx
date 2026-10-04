@@ -1,4 +1,5 @@
 import React, { useEffect } from "react";
+import { Markdown } from "./markdown.jsx";
 
 /**
  * Renders answer text, turning `[n]` markers into clickable citation chips.
@@ -12,41 +13,11 @@ export function Answer({ text, cited, linkable = true }) {
   // role and nothing else). Rendering `undefined` into the markup would throw
   // and take the whole thread down with it.
   text = typeof text === "string" ? text : "";
-  const parts = [];
-  const re = /\[(\d{1,3})\]/g;
-  let last = 0;
-  let match;
-
-  while ((match = re.exec(text)) !== null) {
-    const index = parseInt(match[1], 10) - 1;
-    // An out-of-range marker means the model cited something it was never
-    // given. The server strips those, but rendering a dead link here would be
-    // worse than showing nothing.
-    if (index < 0 || (cited && cited.length && index >= cited.length)) continue;
-
-    if (match.index > last) parts.push(text.slice(last, match.index));
-
-    if (!linkable) {
-      // Keep the marker as literal text rather than a link with nowhere to go.
-      parts.push(match[0]);
-    } else {
-      parts.push(
-        <a
-          key={`${match.index}-${index}`}
-          className="ref"
-          href={`#cite-${index + 1}`}
-          data-cite={index + 1}
-          title={`Jump to source ${index + 1}`}
-        >
-          {match[0]}
-        </a>,
-      );
-    }
-    last = match.index + match[0].length;
-  }
-  if (last < text.length) parts.push(text.slice(last));
-
-  return <div className="answer">{parts.length ? parts : text}</div>;
+  return (
+    <div className="answer">
+      <Markdown text={text} cited={cited} linkable={linkable} />
+    </div>
+  );
 }
 
 /**
