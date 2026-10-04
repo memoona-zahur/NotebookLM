@@ -29,6 +29,12 @@ _load_dotenv(BASE_DIR / ".env")
 UPLOAD_DIR = Path(os.getenv("UPLOAD_DIR") or (DATA_DIR / "uploads")).resolve()
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
+# Ceiling on a single upload. Without it a large file is read into memory whole
+# before anything can object, and one 2 GB PDF could take the process down.
+# Generous for prose, low enough that "I uploaded a huge scan" is answered rather
+# than fatal.
+MAX_UPLOAD_BYTES = int(os.getenv("MAX_UPLOAD_MB", "100")) * 1024 * 1024
+
 EMBED_MODEL = os.getenv("EMBED_MODEL", "sentence-transformers/all-MiniLM-L6-v2")
 EMBED_DIM = 384
 

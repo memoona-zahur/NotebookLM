@@ -22,6 +22,35 @@ CODE_SUFFIXES = {
     ".sql",
 }
 
+
+class UnreadableDocument(ValueError):
+    """The file parsed cleanly but contains nothing retrievable.
+
+    Distinct from a malformed file: a rejected PDF is not a broken PDF, it is one
+    the app genuinely cannot read. Callers surface the message as-is, because it
+    says what to do next ("re-save as text") rather than "could not read file".
+    """
+
+
+def _page_list(pages: list[int]) -> str:
+    """'1, 2 and 7' - so the message names the pages, not just their count."""
+    if len(pages) == 1:
+        return str(pages[0])
+    if len(pages) == 2:
+        return f"{pages[0]} and {pages[1]}"
+    return f"{', '.join(str(p) for p in pages[:-1])} and {pages[-1]}"
+
+
+def _warn_unreadable_pages(pages: list[int], total: int) -> None:
+    import logging
+
+    logging.getLogger(__name__).warning(
+        "Skipped %d of %d pages with no text layer (pages %s); this build has no OCR.",
+        len(pages),
+        total,
+        _page_list(pages),
+    )
+
 TABLE_SUFFIXES = {".csv", ".tsv"}
 STRUCTURED_SUFFIXES = {".json"}
 CONFIG_SUFFIXES = {".yaml", ".yml", ".toml", ".ini", ".cfg", ".conf", ".properties"}
@@ -494,13 +523,38 @@ def _parse_pdf(path: Path) -> list[Block]:
 
     doc = pymupdf.open(path)
     blocks: list[Block] = []
+    # Pages that yielded no text but do hold images. A phone photo of a receipt
+    # and a genuinely blank page look identical from the text alone, so the
+    # distinction has to be made from the page's images.
+    image_pages: list[int] = []
+    total_pages = doc.page_count
     try:
         for number, page in enumerate(doc, start=1):
             content = _clean(page.get_text())
             if content:
                 blocks.append(Block(text=content, page=number))
+            elif page.get_images(full=True):
+                image_pages.append(number)
     finally:
         doc.close()
+
+    if image_pages and not blocks:
+        # Refuse rather than index nothing. An empty source used to be accepted
+        # silently, so the file appeared in Sources and the assistant later
+        # claimed it was not there - a wrong answer with nothing to point at.
+        pages = "page" if len(image_pages) == 1 else "pages"
+        raise UnreadableDocument(
+            f"No text found on any page, but {_page_list(image_pages)} "
+            f"{pages} contain only images. This looks like a scanned document "
+            f"or a photo, and this build has no OCR, so none of it can be "
+            f"indexed. Re-save it as a text-based PDF or a .txt/.md file."
+        )
+    if image_pages:
+        # Mixed document: the text pages index normally. Recorded so the caller
+        # can say what was missed rather than implying full coverage. The page
+        # count is read before close, since len() on a closed document raises.
+        _warn_unreadable_pages(image_pages, total_pages)
+
     return blocks
 
 

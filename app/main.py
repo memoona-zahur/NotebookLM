@@ -8,13 +8,18 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 from . import config, db
-from .parsers import SUPPORTED
+from .llm import detect_injection
+from .parsers import SUPPORTED, UnreadableDocument
 from .store import SearchResult, store
 from . import store as store_module
 
 ALLOWED = SUPPORTED
 
 MAX_QUESTION_CHARS = 4000
+
+# Uploads are copied to disk in pieces this size rather than one `file.read()`,
+# which would hold the whole file in memory with no ceiling on it.
+UPLOAD_CHUNK_BYTES = 1024 * 1024
 MAX_SESSION_NAME_CHARS = 120
 
 @asynccontextmanager
@@ -86,6 +91,10 @@ def _evidence(search: SearchResult, audit, verdict: str) -> dict:
         "cited": audit.cited,
         "invalid": audit.invalid,
         "ungrounded": audit.ungrounded,
+        # Passages that tried to instruct the model rather than inform it. They
+        # are still cited and still counted; this only says the upload was
+        # adversarial, so a surprising answer can be traced to the source.
+        "injection": detect_injection(search.hits),
     }
 
 
@@ -217,10 +226,18 @@ async def add_source(
     )
 
     target = config.UPLOAD_DIR / f"{uuid.uuid4().hex}{suffix}"
-    target.write_bytes(await file.read())
+    # Streamed in bounded chunks and cut off at MAX_UPLOAD_BYTES. `await
+    # file.read()` loads the whole upload into memory with nothing stopping it,
+    # so one large file could take the process down.
+    await _write_upload(file, target)
 
     try:
         source = store.add(target, display_name=original.name, session_id=str(session.id))
+    except UnreadableDocument as exc:
+        # Readable file, unusable content. The parser's message says what to do
+        # about it, so it is not flattened into a generic parse failure.
+        target.unlink(missing_ok=True)
+        raise HTTPException(400, str(exc)) from exc
     except Exception as exc:  # noqa: BLE001
         # A file we could not parse is not worth keeping; one we parsed is
         # retained so the session can be re-indexed without a re-upload.
@@ -228,6 +245,30 @@ async def add_source(
         raise HTTPException(400, f"Could not read file: {exc}") from exc
 
     return {"source": vars(source), **store.stats(str(session.id))}
+
+
+async def _write_upload(file: UploadFile, target: Path) -> None:
+    """Write the upload to disk in bounded chunks, refusing oversized files.
+
+    The partial file is removed on any failure, including the oversize case, so
+    a rejected upload leaves nothing behind.
+    """
+    limit = config.MAX_UPLOAD_BYTES
+    written = 0
+    try:
+        with target.open("wb") as out:
+            while chunk := await file.read(UPLOAD_CHUNK_BYTES):
+                written += len(chunk)
+                if written > limit:
+                    raise HTTPException(
+                        413,
+                        f"File is larger than {limit // (1024 * 1024)} MB. "
+                        f"Split it, or raise MAX_UPLOAD_BYTES.",
+                    )
+                out.write(chunk)
+    except Exception:
+        target.unlink(missing_ok=True)
+        raise
 
 
 @app.delete("/api/sources/{source_id}")
