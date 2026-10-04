@@ -119,7 +119,7 @@ To use a database elsewhere, set `TEST_DATABASE_ADMIN_URL` and
 ```bash
 cd frontend
 npm install
-npm test           # 35 checks, jsdom, no database or API key needed
+npm test           # 92 checks, jsdom, no database or API key needed
 npm run test:watch # re-runs on save
 ```
 
@@ -216,9 +216,52 @@ session; without one it uses the default session.
 | `DELETE` | `/api/sources` | Clear the session's sources |
 | `POST` | `/api/ask` | `{question}` → `{answer, citations, evidence}` |
 | `POST` | `/api/summarize` | `{instruction}` → `{summary, citations, evidence}` |
+| `GET` | `/api/occurrences` | `{term}` → every place this session's documents use the word |
 
 If the LLM backend is unreachable, `/api/ask` returns `503` with a message telling you
 what to fix instead of a raw 500.
+
+## Finding a word in the documents
+
+`GET /api/occurrences?term=velocity` returns every place the active session's
+documents use a word, with the exact character spans of each hit:
+
+```json
+{
+  "term": "velocity",
+  "count": 412,
+  "truncated": true,
+  "occurrences": [
+    {
+      "source": "handbook.pdf",
+      "kind": "pdf",
+      "position": 3,
+      "page": 12,
+      "heading": "",
+      "text": "Escape velocity at the surface is 11.2 km/s.",
+      "matches": [[7, 15]],
+      "count": 2
+    }
+  ]
+}
+```
+
+The spans are the contract. They are computed once, server-side, from the same
+chunk text the client renders, so the highlight can never disagree with what the
+server reported. Marking them in place is therefore always safe: a span that
+does not fit the text is skipped rather than slicing the string backwards.
+
+Matching is case-insensitive but word-bounded, so `rate` does not light up
+inside `generate`. Results are capped at 40 passages and `truncated` says so,
+because a common word like `the` appears in nearly every chunk of a large
+document, and a silently short list would read as "that is all of them".
+
+In the UI this is reachable two ways, both running the same search: type the
+word into the **Highlight a word** box in the Sources drawer, or say
+`highlight velocity` (also `where does velocity appear`, `mark every mention of
+…`) in the composer. A recognised command opens the drawer with the word
+marked and never reaches the model — it is a lookup, not a question. Anything
+the parser does not recognise falls through to `/api/ask` untouched.
 
 ## Grounding guarantees
 
@@ -365,6 +408,41 @@ constant is not load-bearing and a swinging row means the default is a guess. It
 `MIN_RATIO` and `NUMERIC_PENALTY_SHARE` currently change nothing measurable - they are
 precautions, not validated wins, and are documented as such.
 
+### Does chunking lose the answer?
+
+Retrieval quality is only half the question. The other half is whether a fact
+survives being cut into chunks and re-found, so there is a second harness:
+
+```powershell
+.venv\Scripts\python -m experiments.build_cloze_gold --write
+.venv\Scripts\python -m experiments.eval_gold --gold experiments/gold/cloze_set.json --allow-machine
+```
+
+Each item blanks a value out of a real corpus document and asks for it back, so
+the gold answers are the documents' own text rather than anything invented.
+The set holds **117 items across 24 of the 27 corpus documents**: 32 field, 24
+record, 32 value, 22 multi-block, and 7 traps that must be refused. The
+multi-block items need two or three separate passages, which is what makes them
+able to fail - an earlier set of single-passage items could not tell a working
+ranker from a lucky one.
+
+Current result: recall@5 **0.953**, fact coverage **0.919**, MRR **0.959**,
+nDCG **0.931**, traps leaked **0**. Precision@5 is **0.227**, which is the
+point of the traps: the alternative to retrieving a sixth passage that happens
+to contain the word is retrieving five that do not.
+
+`--allow-machine` is required, and it is a real caveat rather than a formality.
+These labels are **machine-checked, not human-reviewed**: every item satisfies
+the mechanical checks in `experiments/build_cloze_gold`, and `eval_gold` re-runs
+them before scoring anything, which makes the set reproducible and impossible to
+score stale. It does not make it expert-checked. What it proves is that a value
+survives chunking attached to its key and can be retrieved again - not that the
+system understands the question. `test_app.py` asserts the labels can actually
+fail, so a passing suite is not the set agreeing with itself.
+
+Three corpus documents are still uncovered: `catalysis.txt`, `glaciology.pdf`,
+`music.txt`.
+
 ### Known retrieval limits
 
 - **Entity-overlap traps leak.** Asked a pharmacology document "which antibiotics treat
@@ -414,7 +492,7 @@ precautions, not validated wins, and are documented as such.
 
 ## Tests
 
-53 checks covering upload, per-format parsing (including YAML/TOML/INI and hard-wrapped
+63 checks covering upload, per-format parsing (including YAML/TOML/INI and hard-wrapped
 text), chunking, hybrid retrieval, numeric damping, citations, the 503 LLM-down path, Groq
 routing, BOM handling, the built frontend resolving every asset it references, migrations
 (schema at head, idempotency, column-for-column agreement with the app, and the `role`
