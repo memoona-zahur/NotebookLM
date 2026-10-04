@@ -1184,14 +1184,15 @@ def test_cloze_labels_are_checked_mechanically(client: TestClient = None) -> Non
         assert made[2] not in forbidden, (line, made)
 
     # 'thirty six months' has to match as one value with its unit. An alternation
-    # written as 'number|one|two|...|sixteen(?:[- ]one|...)' binds the compound
+    # written as 'number|one|two|...|billion(?:[- ]one|...)' binds the compound
     # group to its last branch alone, which silently dropped every spelled
-    # value that had a unit.
+    # value that had a unit. The question is the value's own sentence, not the
+    # whole line: quoting the line gave the retriever the answer's context.
     assert cloze._cloze_from_line(
         "This agreement continues for an initial term of thirty six months. Either party"
     ) == (
         "value",
-        "This agreement continues for an initial term of _____. Either party",
+        "This agreement continues for an initial term of _____ .",
         "thirty six months",
     )
 
@@ -1212,8 +1213,8 @@ def test_cloze_labels_are_checked_mechanically(client: TestClient = None) -> Non
         "$.limits.timeout: _____",
         "thirty seconds",
     )
-    # 'timeout' alone is under the offset floor for a numeric blank, so it falls
-    # through to the field path.
+    # 'timeout' alone is under the offset floor for a numeric blank and has no
+    # sentence to cut down to, so it comes out as a whole-line field question.
     assert cloze._cloze_from_line("timeout: thirty seconds") == (
         "field",
         "timeout: _____",
@@ -1359,6 +1360,56 @@ def test_bakeoff_resolves_gold_by_text_not_position(client: TestClient = None) -
         else:
             raise AssertionError("the bakeoff must refuse stale labels")
     print("  bakeoff: gold resolved by text, so chunk size can change")
+
+
+def test_labels_can_actually_fail(client: TestClient = None) -> None:
+    from app import parsers
+    from experiments import build_cloze_gold as cloze
+    from experiments import eval_gold
+
+    items = eval_gold.load_gold(cloze.DEFAULT_OUT)
+    answerable = [i for i in items if i["answerable"]]
+    assert answerable
+
+    # A question has to be smaller than the evidence it is answered from. When
+    # the question quoted the whole line, lexical overlap alone nearly solved it
+    # and recall@5 came out 1.000 for every chunker tried - a harness that
+    # cannot fail is not a measurement. A two-block question is compared to the
+    # evidence for both of its blanks.
+    for item in answerable:
+        evidence = sum(len(fact) for fact in item["required_facts"])
+        assert len(item["question"]) < evidence, (
+            item["id"],
+            len(item["question"]),
+            evidence,
+        )
+
+    # Some items must need more than one block. Those are the only ones where
+    # partial credit exists, so they are the only ones that can separate a
+    # retriever from another.
+    multi = [i for i in answerable if len(i["required_facts"]) > 1]
+    assert multi, "no item requires two blocks, so nothing can score between 0 and 1"
+    for item in multi:
+        assert len(item["answers"]) == len(item["required_facts"])
+        assert item["question"].count("_____") == len(item["required_facts"])
+        assert len(set(item["expected_positions"])) >= 2, item["id"]
+        # The two blocks must genuinely differ, or it is one fact written twice.
+        assert item["windows"][0] != item["windows"][1], item["id"]
+
+    # And a committed item that stops matching its evidence must be rejected,
+    # including the second fact of a two-block item.
+    broken = [dict(multi[0])]
+    broken[0]["required_facts"] = [item["required_facts"][0], "text from nowhere"]
+    failures = eval_gold.machine_failures(broken)
+    assert failures, "a missing second fact must fail the checks"
+
+    blocks = {
+        p.name: parsers.parse(cloze.CORPUS / p.name)
+        for p in cloze.CORPUS.iterdir()
+        if p.is_file()
+    }
+    assert all(not cloze.check_item(i, blocks) for i in items if i["answerable"])
+    print("  labels: questions are smaller than their evidence, and can fail")
 
 
 def test_hybrid_lexical_index(client: TestClient = None) -> None:
@@ -1572,6 +1623,7 @@ ORDER = [
     # Clears the notebook, so it must stay last.
     ("unverified gold cannot be scored", test_gold_set_cannot_be_scored_until_verified),
     ("cloze labels are checked mechanically", test_cloze_labels_are_checked_mechanically),
+    ("labels can actually fail", test_labels_can_actually_fail),
     ("machine labels are gated not trusted", test_machine_checked_labels_are_gated_not_trusted),
     ("bakeoff resolves gold by text", test_bakeoff_resolves_gold_by_text_not_position),
     ("source deletion", test_source_deletion),

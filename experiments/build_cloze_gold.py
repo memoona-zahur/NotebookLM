@@ -58,7 +58,10 @@ HERE = Path(__file__).resolve().parent
 CORPUS = HERE / "corpus"
 DEFAULT_OUT = HERE / "gold" / "cloze_set.json"
 
-PER_DOCUMENT = 3
+# Six per document. Two-block items are built first and are the only kind that
+# can score between zero and one, so the budget goes to them; past six the
+# extra items are duplicates of what a document already says.
+PER_DOCUMENT = 6
 MIN_LINE_CHARS = 45
 MAX_LINE_CHARS = 170
 
@@ -106,16 +109,43 @@ DIGITS = re.compile(r"\d")
 # are not held to the prose length floor.
 KEY_VALUE = re.compile(r"(?P<key>[$A-Za-z_][\w$.\[\]]*)\s*[:=]\s(?P<value>\S.*?)\s*$")
 MAX_VALUE_CHARS = 60
+# A question has to be able to identify a block on its own: long enough to
+# carry meaning, and carrying more than a term or two to match on.
+MIN_QUESTION_CHARS = 24
+MIN_QUESTION_TERMS = 3
+# 'timeout: _____' is 16 characters and is still a good question: a field
+# question is identified by its key, not by having a sentence around it, and
+# the document-frequency check rejects generic keys. Holding it to the prose
+# sentence floor threw away every short config line.
+MIN_FIELD_QUESTION_CHARS = 12
 # A key term appearing in at most this many documents is specific enough to
 # identify its own value.
 RARE_TERMS = 3
 
 
-def _candidate_lines(blocks: list[parsers.Block]) -> list[tuple[int, str]]:
-    out: list[tuple[int, str]] = []
+def _continuation(lines: list[str], at: int) -> str:
+    """The text a wrapped line runs on into, bounded to its own paragraph.
+
+    A value at the end of a physical line is usually continued on the next one:
+    'The block narrows to nineteen metres' / 'in behind the ball'. Cutting the
+    question at the newline gave 'The block narrows to _____', a fragment that
+    identifies no block at all and reads like a typo.
+    """
+    tail: list[str] = []
+    for nxt in lines[at + 1 : at + 4]:
+        nxt = nxt.strip()
+        if not nxt or COMMENT.match(nxt) or SKIP.match(nxt):
+            break
+        tail.append(nxt)
+    return "\n" + "\n".join(tail) if tail else ""
+
+
+def _candidate_lines(blocks: list[parsers.Block]) -> list[tuple[int, str, str]]:
+    out: list[tuple[int, str, str]] = []
     for index, block in enumerate(blocks):
-        for line in block.text.splitlines():
-            line = line.strip()
+        lines = block.text.splitlines()
+        for at, raw in enumerate(lines):
+            line = raw.strip()
             if SKIP.match(line) or COMMENT.match(line):
                 continue
             if len(line) > MAX_LINE_CHARS:
@@ -126,7 +156,7 @@ def _candidate_lines(blocks: list[parsers.Block]) -> list[tuple[int, str]]:
             line = TIMESTAMPED.sub("", line).strip()
             if len(line) < MIN_LINE_CHARS and not _field_value(line):
                 continue
-            out.append((index, line))
+            out.append((index, line, _continuation(lines, at)))
     return out
 
 
@@ -178,16 +208,60 @@ def _blanks(line: str) -> list[tuple[int, int, str]]:
     return found
 
 
-def _cloze_from_line(line: str) -> tuple[str, str, str] | None:
+def _window(line: str, start: int, end: int, value: str) -> str | None:
+    """The question: the one sentence around the blank, not the whole line.
+
+    A question built from the entire line quotes the block it is answered from,
+    so lexical overlap alone nearly solves it and recall@5 sits at 1.000 for
+    every chunker - the harness cannot tell a good retriever from a bad one.
+    Cutting the question down to its sentence keeps the label mechanically
+    checkable while making retrieval do real work: the rest of the block is
+    evidence the retriever has to find on its own.
+
+    Returns None when the sentence is too thin to identify anything.
+    """
+    left = 0
+    for stop in (". ", "! ", "? ", "; ", ": "):
+        at = line.rfind(stop, 0, start)
+        if at != -1 and at + len(stop) > left:
+            left = at + len(stop)
+    right = len(line)
+    for stop in (". ", "! ", "? ", "; ", ": "):
+        at = line.find(stop, end)
+        if at != -1 and at < right:
+            right = at
+    if right < len(line):
+        right += 1
+    while right < len(line) and line[right] in ".;:!?":
+        right += 1
+    before, after = line[left:start].strip(), line[end:right].strip()
+    # The blank always survives, even when the value sits at either end of its
+    # sentence: dropping it when a side was empty turned '0.0.0.0:8443' into
+    # the question '0.0.0.0:', which is not a question at all.
+    question = f"{before} _____ {after}".strip()
+    if len(question) < MIN_QUESTION_CHARS:
+        return None
+    return question
+
+
+def _cloze_from_line(
+    line: str, continuation: str = ""
+) -> tuple[str, str, str] | None:
     """Blank one value out of a line. Returns (kind, question, answer).
 
     Only values are blanked. An earlier version also blanked a single
     distinctive word, which produced 'held at a single temperature for _____ an
     hour' answered 'roughly' - a filler adverb that answers nothing. Every
     item here asks for a value the document states.
+
+    `continuation` is the text a wrapped line runs on into. The sentence is cut
+    from the pair, not from `line` alone, or a value on the last line of a
+    paragraph loses everything that explains it.
     """
     # Strip the clock here rather than trusting every caller to have done it.
     line = TIMESTAMPED.sub("", line).strip()
+    # `line` is a prefix of this, so the offsets below are valid in both.
+    haystack = line + continuation
 
     # Numbers first. A 'key: value' match fires on prose that merely contains a
     # colon, and taking it first dropped whole documents from the set.
@@ -199,13 +273,37 @@ def _cloze_from_line(line: str) -> tuple[str, str, str] | None:
             best = (start, end, candidate)
     if best is not None:
         start, end, candidate = best
-        return "value", line[:start] + "_____" + line[end:], candidate
+        # Prefer the value's own sentence. Fall back to the whole line when the
+        # sentence is too thin to stand alone, which is what a config line looks
+        # like: '$.training.epochs: 140' has no surrounding prose to cut down to.
+        # _window already returns the blanked question, so it must not be blanked
+        # a second time - doing so found no value and dropped the item.
+        question = _window(haystack, start, end, candidate) or (
+            line[:start] + "_____" + line[end:]
+        )
+        # A prose question of one or two terms cannot identify a block: 'of
+        # _____ months' is a guess with a blank in it.
+        if len({*content_terms(question)}) >= MIN_QUESTION_TERMS:
+            return "value", question, candidate
 
     value = _field_value(line)
     if value is not None:
         at = line.rindex(value)
-        return "field", line[:at] + "_____" + line[at + len(value) :], value
+        question = line[:at] + "_____" + line[at + len(value) :]
+        # A field question carries no prose term floor. A distinctive key is
+        # exactly what identifies it - '$.limits.rpm' says which limit is meant
+        # - and _distinctive rejects the ones that do not.
+        if len(question) >= MIN_FIELD_QUESTION_CHARS:
+            return "field", question, value
     return None
+
+
+def _blank(window: str, value: str) -> str | None:
+    """One blank, one value. The value must be unambiguous inside its window."""
+    if window.count(value) != 1:
+        return None
+    at = window.index(value)
+    return window[:at] + "_____" + window[at + len(value) :]
 
 
 RECORD_LINE = re.compile(r"^\s*(?:\$\.?)?[\w\"'-]+(?:\.[\w-]+)*\s*[:=]\s*\S")
@@ -241,6 +339,24 @@ def _records(blocks: list[parsers.Block]) -> list[tuple[int, list[str]]]:
         if current:
             out.append((index, current))
     return out
+
+
+def _evidence(blocks: list[parsers.Block], window: str) -> tuple[str, list[int]] | None:
+    """The block a question came from, as the evidence that must come back.
+
+    The fact is the whole parser block, not the line the blank sits on. Citing
+    only the line made fact_coverage nearly unfailable - the retriever had
+    already been handed the answer's own sentence in the query. Citing the block
+    asks whether the evidence around the value came back with it.
+    """
+    for block in blocks:
+        if normalize(window) in normalize(block.text):
+            fact = block.text.strip()
+            positions = [
+                i for i, other in enumerate(blocks) if normalize(fact) in normalize(other.text)
+            ]
+            return fact, positions
+    return None
 
 
 def _record_items(
@@ -297,16 +413,20 @@ def _record_items(
             continue
         at = target.rindex(value)
         blanked = target[:at] + "_____" + target[at + len(value) :]
+        evidence = _evidence(blocks, body)
+        if evidence is None:
+            continue
+        fact, positions = evidence
         built.append(
             {
                 "source": name,
                 "kind": "record_cloze",
                 "question": body.replace(target, blanked, 1),
                 "answer": value,
-                "required_facts": [body],
-                "expected_positions": [
-                    i for i, b in enumerate(blocks) if normalize(body) in normalize(b.text)
-                ],
+                "answers": [value],
+                "windows": [target],
+                "required_facts": [fact],
+                "expected_positions": positions,
             }
         )
     return built
@@ -330,6 +450,105 @@ def _distinctive(key: str, df: dict[str, int], ceiling: int) -> bool:
     return any(df.get(term, 0) <= ceiling for term in terms)
 
 
+def _usable_pair_answer(answer: str) -> bool:
+    """Whether an answer is worth asking for when it comes from a pair.
+
+    Pairing raised the yield a lot, and most of what it picked up was not worth
+    asking: 'const TIERS = _____' answered '[', 'count: _____' answered
+    'int = SPATIAL_FOLDS):', and a reStructuredText underline answered a
+    heading. All of it came from code and config lines, where the text either
+    side of the colon is punctuation.
+    """
+    if re.search(r"[^\w\s]{3,}", answer):
+        return False  # '===', '):', '[', '0;'
+    if not re.search(r"[A-Za-z]{3,}", answer) and not re.search(r"\d", answer):
+        return False  # no word and no digit: nothing to ask for
+    return True
+
+
+def _pair_items(
+    name: str, blocks: list[parsers.Block], per_document: int, df: dict[str, int]
+) -> list[dict]:
+    """Questions whose answer needs two different blocks.
+
+    A single-block cloze cannot discriminate between retrievers, and that is
+    structural rather than a matter of tuning: the question has to name
+    something in the block that answers it, so lexical overlap alone nearly
+    solves it. Every single-block item scored recall@5 1.000 across every chunk
+    size tried.
+
+    Two blocks give partial credit. The retriever has to bring back the second
+    block as well as the most obvious one, which is the actual product failure
+    this system has already had once - an answer that spans two sources used to
+    cite only one. It also makes precision@k meaningful, because now more than
+    one retrieved chunk is labelled correct.
+    """
+    built: list[dict] = []
+    candidates: list[tuple[int, str, str]] = []
+    for position, line, continuation in _candidate_lines(blocks):
+        made = _cloze_from_line(line, continuation)
+        if made is None:
+            continue
+        kind, question, answer = made
+        window = question.replace("_____", answer)
+        # A two-block question only works if each half can stand on its own.
+        # 'category: _____' or 'index: _____' names a field, not a block, and
+        # the pair of them reads as a config diff rather than a question.
+        if len(question) < MIN_QUESTION_CHARS or not _usable_pair_answer(answer):
+            continue
+        if kind == "field":
+            # Take the key from the refilled window. The blanked side has no
+            # value left for the 'key: value' pattern to match, so reading it
+            # from the question returned nothing and dropped every field pair.
+            key = _key_of(window)
+            if df and not _distinctive(key or "", df, RARE_TERMS):
+                continue
+        candidates.append((position, window, answer))
+
+    for i, (position_a, window_a, answer_a) in enumerate(candidates):
+        if len(built) >= per_document:
+            break
+        for position_b, window_b, answer_b in candidates[i + 1 :]:
+            if position_b == position_a:
+                continue  # two blocks, or the item is just a single-block one
+            # Two blocks that share most of their wording are one fact, not two.
+            overlap = set(content_terms(window_a)) & set(content_terms(window_b))
+            if len(overlap) > 0.6 * min(
+                len(set(content_terms(window_a))), len(set(content_terms(window_b)))
+            ):
+                continue
+            if answer_a == answer_b:
+                continue
+            blanked_a, blanked_b = _blank(window_a, answer_a), _blank(window_b, answer_b)
+            if blanked_a is None or blanked_b is None:
+                continue
+            evidence = [_evidence(blocks, window_a), _evidence(blocks, window_b)]
+            if any(part is None for part in evidence):
+                continue
+            facts = [part[0] for part in evidence]  # type: ignore[index]
+            positions = sorted({p for part in evidence for p in part[1]})  # type: ignore[union-attr]
+            # The evidence has to be two different blocks. Both windows can land
+            # in one block even when their lines came from different blocks, and
+            # an item citing one block twice is a single-block item wearing a
+            # two-block label - it cannot score between zero and one.
+            if normalize(facts[0]) == normalize(facts[1]) or len(positions) < 2:
+                continue
+            built.append(
+                {
+                    "source": name,
+                    "kind": "two_block_cloze",
+                    "question": f"{blanked_a}\n{blanked_b}",
+                    "answer": answer_a,
+                    "answers": [answer_a, answer_b],
+                    "windows": [window_a, window_b],
+                    "required_facts": facts,
+                    "expected_positions": positions,
+                }
+            )
+            break
+    return built
+
+
 def _items_for_document(
     name: str, per_document: int, df: dict[str, int] | None = None
 ) -> list[dict]:
@@ -338,9 +557,14 @@ def _items_for_document(
         return []
     blocks = parsers.parse(path)
     df = df or {}
-    # Tabular documents first: a record names itself and gives a decisive
+    # Two-block items first: they are the only kind here that can tell a good
+    # retriever from a bad one, so they take priority over easier labels.
+    built = _pair_items(name, blocks, per_document, df)
+    if len(built) >= per_document:
+        return built
+    # Tabular documents next: a record names itself and gives a decisive
     # question, where a bare field name repeated down a file does not.
-    built = _record_items(name, blocks, per_document)
+    built += _record_items(name, blocks, per_document - len(built))
     if len(built) >= per_document:
         return built
 
@@ -354,10 +578,10 @@ def _items_for_document(
                 keys_in_doc[key] = keys_in_doc.get(key, 0) + 1
 
     seen_questions: set[str] = set()
-    for position, line in _candidate_lines(blocks):
+    for position, line, continuation in _candidate_lines(blocks):
         if len(built) >= per_document:
             break
-        clozed = _cloze_from_line(line)
+        clozed = _cloze_from_line(line, continuation)
         if clozed is None:
             continue
         kind, question, answer = clozed
@@ -377,15 +601,20 @@ def _items_for_document(
         if key in seen_questions:
             continue
         seen_questions.add(key)
-        holders = [i for i, b in enumerate(blocks) if normalize(line) in normalize(b.text)]
+        evidence = _evidence(blocks, question.replace("_____", answer))
+        if evidence is None:
+            continue  # the question's own sentence is not in any parsed block
+        fact, positions = evidence
         built.append(
             {
                 "source": name,
                 "kind": f"{kind}_cloze",
                 "question": question,
                 "answer": answer,
-                "required_facts": [line],
-                "expected_positions": holders,
+                "answers": [answer],
+                "windows": [question.replace("_____", answer)],
+                "required_facts": [fact],
+                "expected_positions": positions,
             }
         )
     return built
@@ -454,19 +683,35 @@ def check_item(item: dict, blocks: dict[str, list]) -> list[str]:
     for position in positions:
         if position >= len(parsed):
             problems.append(f"position {position} does not exist")
-        elif normalize(facts[0]) not in normalize(parsed[position].text):
-            problems.append(f"position {position} does not contain the fact")
 
-    fact = facts[0]
-    answer = item["answer"]
-    if normalize(answer) not in normalize(fact):
-        problems.append("the answer is not in the fact")
-    if normalize(answer) in normalize(item["question"]):
-        problems.append("the answer leaks into the question")
-    if normalize(item["question"]).count("_____") != 1:
-        problems.append("the question must contain exactly one blank")
-    elif normalize(item["question"].replace("_____", answer)) != normalize(fact):
-        problems.append("refilling the blank does not reproduce the fact")
+    answers = item.get("answers") or [item["answer"]]
+    windows = item.get("windows") or [item["question"].replace("_____", item["answer"])]
+    if len(answers) != len(facts) or len(windows) != len(facts):
+        problems.append("each fact needs exactly one answer and one window")
+        return problems
+    if normalize(item["question"]).count("_____") != len(facts):
+        problems.append(f"the question must contain exactly {len(facts)} blanks")
+
+    haystack = normalize(item["question"])
+    for fact, answer, window in zip(facts, answers, windows):
+        # Every fact must be a real block: cited positions must actually hold it.
+        if not any(
+            position < len(parsed) and normalize(fact) in normalize(parsed[position].text)
+            for position in positions
+        ):
+            problems.append("no cited position contains its fact")
+        if normalize(answer) not in normalize(fact):
+            problems.append(f"the answer {answer!r} is not in its fact")
+        if normalize(answer) in haystack:
+            problems.append(f"the answer {answer!r} leaks into the question")
+        # The window is the text the blank was cut from. It must be verbatim
+        # text of the fact, and blanking it must reproduce part of the question,
+        # or the label was written by something other than the parser's output.
+        if normalize(window) not in normalize(fact):
+            problems.append("the window is not text from its fact")
+        blanked = _blank(window, answer)
+        if blanked is None or normalize(blanked) not in haystack:
+            problems.append("the window is not in the question")
     if len(positions) != len({*positions}):
         problems.append("duplicate positions")
     return problems
@@ -498,6 +743,8 @@ def build(per_document: int = PER_DOCUMENT, traps: int = 10) -> dict:
                     "id": f"C{len(items):03d}",
                     "question": draft["question"],
                     "answer": draft["answer"],
+                    "answers": draft["answers"],
+                    "windows": draft["windows"],
                     "source": draft["source"],
                     "answerable": True,
                     "kind": draft["kind"],
@@ -535,12 +782,14 @@ def build(per_document: int = PER_DOCUMENT, traps: int = 10) -> dict:
         "corpus": "experiments/corpus",
         "warning": (
             "Machine-checked labels, not human-reviewed. Every item satisfies the "
-            "four mechanical checks recorded in experiments.build_cloze_gold, and "
+            "mechanical checks recorded in experiments.build_cloze_gold, and "
             "experiments.eval_gold re-runs them before scoring anything. That makes "
             "the labels reproducible and impossible to score stale; it does not make "
             "them expert-checked. These items prove a value survives chunking "
             "attached to its key and can be retrieved again - not that the system "
-            "understands the question."
+            "understands the question. A two_block_cloze item needs two separate "
+            "blocks, so it can be partly right; the rest have one right answer and "
+            "measure only whether it was found."
         ),
         "checked": len(items) - len(broken),
         "failed": len(broken),
