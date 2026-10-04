@@ -289,10 +289,23 @@ describe("chat-first layout", () => {
   });
 
   it("reports the source count on the toggle and again in the drawer", async () => {
+    // The count comes from /api/status, whose harness default is deliberately
+    // empty, so a test about a count has to script the documents it counts.
+    on("GET", "/api/status", () => ({
+      provider: "groq",
+      model: "openai/gpt-oss-120b",
+      embed_model: "sentence-transformers/all-MiniLM-L6-v2",
+      min_score: 0.25,
+      sources: [{ name: "kepler.pdf", kind: "pdf", chunks: 2 }, { name: "notes.txt", kind: "txt", chunks: 1 }],
+      chunks: 3,
+    }));
+
     const user = await boot();
     const toggle = screen.getByRole("button", { name: /sources/i });
 
-    expect(toggle).toHaveTextContent(/2 sources/);
+    // The heading appears before the source list has loaded, so the count has
+    // to be waited for rather than read on the first paint.
+    await waitFor(() => expect(toggle).toHaveTextContent(/2 sources/));
 
     await user.click(toggle);
 

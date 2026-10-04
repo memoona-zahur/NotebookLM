@@ -152,6 +152,15 @@ export default function App() {
     }
   }
 
+  // Where a word appears in this session's sources. Errors are thrown rather
+  // than toasted so the highlight box can show the message next to the word
+  // that could not be found, which is where the user is looking.
+  async function findOccurrences(term) {
+    const id = sessionRef.current;
+    if (!id) throw new Error("No session is open.");
+    return api.occurrences(id, term);
+  }
+
   async function send(question) {
     const id = sessionRef.current;
     if (!id) return;
@@ -230,6 +239,7 @@ export default function App() {
           onUpload={upload}
           onDeleteSource={deleteSource}
           onClearSources={clearSources}
+          onFindOccurrences={findOccurrences}
         />
       ) : null}
 

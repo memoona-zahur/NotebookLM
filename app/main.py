@@ -10,6 +10,7 @@ from pydantic import BaseModel, Field
 from . import config, db
 from .parsers import SUPPORTED
 from .store import SearchResult, store
+from . import store as store_module
 
 ALLOWED = SUPPORTED
 
@@ -178,6 +179,26 @@ def status(request: Request, session_id: str | None = None) -> dict:
         "api_base": _base_url(request),
         **store.stats(str(session.id)),
     }
+
+
+@app.get("/api/occurrences")
+def occurrences(term: str, request: Request, session_id: str | None = None) -> dict:
+    """Where a word appears in this session's sources.
+
+    Scoped to one session like every other read: a highlight must not surface
+    text from a document the user never opened.
+    """
+    term = (term or "").strip()
+    if not term:
+        raise HTTPException(400, "No word given")
+    if len(term) > store_module.MAX_TERM_CHARS:
+        raise HTTPException(
+            400, f"Word too long (max {store_module.MAX_TERM_CHARS} characters)"
+        )
+    session = (
+        _session_or_404(session_id) if session_id else db.ensure_default_session()
+    )
+    return store.find_occurrences(term, str(session.id))
 
 
 @app.post("/api/sources")

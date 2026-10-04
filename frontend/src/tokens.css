@@ -36,6 +36,12 @@ below references these, so the whole surface retunes from this block.
      it reads as a marker pen rather than a system alert. */
   --flash: #f2d99a66;
 
+  /* The word the user asked to see, marked in place. Same marker-pen idea as
+     --flash but a step stronger, because this one stays on screen instead of
+     fading, and it must not be mistaken for the citation flash. */
+  --mark: #f0d492;
+  --mark-ink: #7a4a12;
+
   --good: #3f7d52;
   --mid: #9a6b1f;
   --warn: #a63f3f;

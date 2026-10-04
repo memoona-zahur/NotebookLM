@@ -81,6 +81,9 @@ export const api = {
     request(`/api/sources/${encodeURIComponent(sourceId)}`, { method: "DELETE", sessionId }),
   clearSources: (sessionId) => request("/api/sources", { method: "DELETE", sessionId }),
 
+  occurrences: (sessionId, term) =>
+    request(`/api/occurrences?term=${encodeURIComponent(term || "")}`, { sessionId }),
+
   ask: (sessionId, question, signal) =>
     request("/api/ask", { method: "POST", body: { question }, sessionId, signal }),
   summarize: (sessionId, instruction, signal) =>

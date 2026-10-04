@@ -1,3 +1,4 @@
+import re
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -6,6 +7,36 @@ from . import db
 from . import parsers
 from .embeddings import embed_query, embed_texts, score_against_query
 from .lexical import BM25, fuse
+
+# How much of a highlight response one request may return. A common word can
+# appear in every chunk of every document, and the browser is worse off for
+# rendering all of it.
+OCCURRENCE_LIMIT = 40
+# Per chunk, so one repetitive passage cannot crowd out every other source.
+OCCURRENCE_PER_CHUNK = 10
+MAX_TERM_CHARS = 80
+
+
+def _occurrence_pattern(term: str) -> re.Pattern[str] | None:
+    """Match `term` case-insensitively, on word boundaries where it is a word.
+
+    Highlighting 'rate' inside 'generate' is noise, and a bare substring search
+    for '4' lights up every number in the corpus. Boundaries go on only at the
+    edges that start or end on a word character, so a phrase like '(old)' or
+    '4.8 ' still matches exactly as written.
+    """
+    term = term.strip()
+    if not term:
+        return None
+    lead = r"\b" if term[0].isalnum() or term[0] == "_" else ""
+    trail = r"\b" if term[-1].isalnum() or term[-1] == "_" else ""
+    return re.compile(f"{lead}{re.escape(term)}{trail}", re.IGNORECASE)
+
+
+def _ilike(term: str) -> str:
+    """A pattern for ILIKE, with the wildcards in the user's term escaped."""
+    escaped = term.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+    return f"%{escaped}%"
 
 
 @dataclass
@@ -201,6 +232,67 @@ class VectorStore:
             "sources": [vars(s) for s in records],
             "chunks": sum(s.chunks for s in records),
             "numeric": sum(s.numeric for s in records),
+        }
+
+    def find_occurrences(
+        self,
+        term: str,
+        session_id: str,
+        limit: int = OCCURRENCE_LIMIT,
+        per_chunk: int = OCCURRENCE_PER_CHUNK,
+    ) -> dict:
+        """Every place `term` appears in this session's indexed text.
+
+        Returns the character spans rather than the terms, so the caller marks
+        what was matched instead of searching again and risking a different
+        answer. Rows come back ordered by source name then chunk position, which
+        is what makes a location stable enough to link to twice.
+        """
+        pattern = _occurrence_pattern(term)
+        if pattern is None:
+            return {"term": term, "occurrences": [], "count": 0, "truncated": False}
+
+        term = term.strip()[:MAX_TERM_CHARS]
+        with db.connection() as conn:
+            rows = conn.execute(
+                """
+                SELECT s.name, s.kind, c.position, c.page, c.heading, c.text
+                FROM chunks c
+                JOIN sources s ON s.id = c.source_id
+                WHERE s.session_id = %s AND c.text ILIKE %s ESCAPE '\\'
+                ORDER BY s.name, c.position
+                """,
+                (session_id, _ilike(term)),
+            ).fetchall()
+
+        occurrences: list[dict] = []
+        total = 0
+        truncated = False
+        for name, kind, position, page, heading, text in rows:
+            spans = [m.span() for m in pattern.finditer(text)]
+            if not spans:
+                continue  # ILIKE and the word-boundary pattern disagree
+            total += len(spans)
+            if len(occurrences) >= limit:
+                truncated = True
+                continue
+            occurrences.append(
+                {
+                    "source": name,
+                    "kind": kind,
+                    "position": position,
+                    "page": page,
+                    "heading": heading,
+                    "text": text,
+                    "matches": [list(span) for span in spans[:per_chunk]],
+                    "count": len(spans),
+                }
+            )
+        return {
+            "term": term,
+            "occurrences": occurrences,
+            "count": total,
+            "truncated": truncated,
         }
 
     # -- retrieval ---------------------------------------------------------

@@ -537,6 +537,125 @@ def test_bom_stripping(client: TestClient) -> None:
     print("  BOM stripping: OK")
 
 
+def test_a_named_word_is_highlighted_where_it_appears(client: TestClient) -> None:
+    """The feature: name a word, see every place the session's documents use it."""
+    session = client.post("/api/sessions", json={"name": "highlight"}).json()["id"]
+    upload(client, "orbit.pdf", make_pdf(), session_id=session)
+
+    # 'velocity' appears in the body; 'orbit' is the common word and appears in
+    # more than one place. Both must come back with their spans.
+    body = client.get(
+        "/api/occurrences", params={"term": "velocity", "session_id": session}
+    ).json()
+    assert body["count"] > 0, body
+    assert body["term"] == "velocity"
+    first = body["occurrences"][0]
+    assert first["source"] == "orbit.pdf", first
+    assert first["position"] >= 0 and first["count"] >= 1, first
+
+    # The spans are the contract: the client marks what was returned instead of
+    # searching again, so each span has to reproduce the word in that exact text.
+    for occurrence in body["occurrences"]:
+        text = occurrence["text"]
+        for start, end in occurrence["matches"]:
+            assert text[start:end].casefold() == "velocity", (text[start:end], occurrence)
+        # And they must be in order and non-overlapping, or marking runs off.
+        spans = occurrence["matches"]
+        assert spans == sorted(spans), occurrence
+        assert all(a[1] <= b[0] for a, b in zip(spans, spans[1:])), occurrence
+
+    # A fragment typed without its first letter is a different word, not a
+    # shorter way of writing this one: the boundary stops it matching mid-word.
+    fragment = client.get(
+        "/api/occurrences", params={"term": "elocity", "session_id": session}
+    ).json()
+    assert fragment["count"] == 0, fragment
+
+    # 'generate' contains 'rate', and highlighting inside it would be noise.
+    generated = client.get(
+        "/api/occurrences", params={"term": "generate", "session_id": session}
+    ).json()
+    assert generated["count"] > 0, generated
+    rate = client.get(
+        "/api/occurrences", params={"term": "rate", "session_id": session}
+    ).json()
+    for occurrence in rate["occurrences"]:
+        for start, end in occurrence["matches"]:
+            around = occurrence["text"][max(0, start - 3) : end + 3]
+            assert "generate" not in around, around
+
+    # Matching is case-insensitive but the document's own spelling is returned.
+    upper = client.get(
+        "/api/occurrences", params={"term": "ORBIT", "session_id": session}
+    ).json()
+    assert upper["count"] > 0, upper
+
+    # Nothing indexed, nothing to highlight: an empty list, not an error.
+    empty = client.post("/api/sessions", json={"name": "empty"}).json()["id"]
+    assert client.get(
+        "/api/occurrences", params={"term": "velocity", "session_id": empty}
+    ).json() == {"term": "velocity", "occurrences": [], "count": 0, "truncated": False}
+
+    assert client.get(
+        "/api/occurrences", params={"term": "  ", "session_id": session}
+    ).status_code == 400
+    assert client.get(
+        "/api/occurrences",
+        params={"term": "x" * 200, "session_id": session},
+    ).status_code == 400
+    print(f"  named word located in {body['count']} places with exact spans: OK")
+
+
+def test_highlight_never_leaves_the_session(client: TestClient) -> None:
+    one = client.post("/api/sessions", json={"name": "hl-one"}).json()["id"]
+    two = client.post("/api/sessions", json={"name": "hl-two"}).json()["id"]
+    upload(client, "a.pdf", make_pdf(), session_id=one)
+
+    mine = client.get(
+        "/api/occurrences", params={"term": "velocity", "session_id": one}
+    ).json()
+    theirs = client.get(
+        "/api/occurrences", params={"term": "velocity", "session_id": two}
+    ).json()
+    assert mine["count"] > 0, mine
+    assert theirs["count"] == 0 and theirs["occurrences"] == [], theirs
+    assert all(o["source"] == "a.pdf" for o in mine["occurrences"])
+    print("  a highlight cannot surface another session's text: OK")
+
+
+def test_a_common_word_is_capped_not_truncated_silently(client: TestClient) -> None:
+    from app import store as store_module
+
+    session = client.post("/api/sessions", json={"name": "hl-cap"}).json()["id"]
+    upload(client, "orbit.pdf", make_pdf(pages=3), session_id=session)
+
+    body = client.get(
+        "/api/occurrences", params={"term": "the", "session_id": session}
+    ).json()
+    assert body["count"] > 0, body
+    # Every occurrence in this document was returned, and it says so.
+    assert body["truncated"] is False, body
+    assert sum(o["count"] for o in body["occurrences"]) == body["count"], body
+
+    # Now the same question with a ceiling of one chunk. The count still reports
+    # every place the word appears, and the truncation is declared rather than
+    # left for the user to infer from a short list.
+    from app.store import store as vector_store
+
+    capped = vector_store.find_occurrences("the", session, limit=1)
+    assert len(capped["occurrences"]) == 1, capped
+    assert capped["truncated"] is True, capped
+    assert capped["count"] > capped["occurrences"][0]["count"], capped
+
+    # A chunk reporting more matches than it returns says so in `count` rather
+    # than implying those were all of them.
+    tight = vector_store.find_occurrences("the", session, per_chunk=1)
+    assert any(o["count"] > len(o["matches"]) for o in tight["occurrences"]), tight
+    assert all(len(o["matches"]) == 1 for o in tight["occurrences"]), tight
+    assert store_module.OCCURRENCE_LIMIT < 1000
+    print("  a common word is capped and says so: OK")
+
+
 def test_source_deletion(client: TestClient) -> None:
     stats = client.get("/api/status").json()
     assert client.delete(f"/api/sources/{stats['sources'][0]['id']}").status_code == 200
@@ -1628,6 +1747,9 @@ ORDER = [
     ("unknown session 404", test_unknown_session_is_404),
     ("sources scoped to session", test_sources_are_scoped_to_their_session),
     ("retrieval does not cross sessions", test_retrieval_never_crosses_sessions),
+    ("named word is highlighted", test_a_named_word_is_highlighted_where_it_appears),
+    ("highlight stays in session", test_highlight_never_leaves_the_session),
+    ("common word is capped loudly", test_a_common_word_is_capped_not_truncated_silently),
     ("chat history persists", test_chat_history_persists_and_is_isolated),
     ("deleting session removes data", test_deleting_a_session_removes_its_data),
     ("clear history keeps sources", test_clear_history_keeps_sources),

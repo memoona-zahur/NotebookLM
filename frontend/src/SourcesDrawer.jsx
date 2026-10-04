@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
+import { Occurrences } from "./Highlight.jsx";
 
 /**
  * The uploaded documents for the active session, in a drawer over the thread.
@@ -6,6 +7,9 @@ import React, { useEffect, useRef, useState } from "react";
  * Also carries the index statistics, which are only interesting while someone
  * is thinking about whether the sources are enough — so they belong here rather
  * than permanently occupying a column.
+ *
+ * `onFindOccurrences` is optional. Without it there is nothing to search, so the
+ * highlight control is left out rather than shown and broken.
  */
 export function SourcesDrawer({
   status,
@@ -14,10 +18,12 @@ export function SourcesDrawer({
   onUpload,
   onDeleteSource,
   onClearSources,
+  onFindOccurrences,
 }) {
   const fileInput = useRef(null);
   const closeButton = useRef(null);
   const [dragging, setDragging] = useState(false);
+  const [finding, setFinding] = useState(false);
 
   // Escape closes, and focus moves into the drawer so keyboard users are not
   // left tabbing through the thread behind the overlay.
@@ -117,6 +123,25 @@ export function SourcesDrawer({
               ))
             )}
           </div>
+
+          {onFindOccurrences ? (
+            <div className="occ-holder">
+              <button
+                className="occ-toggle"
+                type="button"
+                aria-expanded={finding}
+                onClick={() => setFinding((open) => !open)}
+              >
+                {finding ? "Close highlight" : "Highlight a word"}
+              </button>
+              {finding ? (
+                <Occurrences
+                  onFind={onFindOccurrences}
+                  onClose={() => setFinding(false)}
+                />
+              ) : null}
+            </div>
+          ) : null}
         </div>
 
         {status ? (
