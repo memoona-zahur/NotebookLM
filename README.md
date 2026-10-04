@@ -13,6 +13,7 @@ answers with inline citations that link back to the exact source passage.
 | Embeddings | `sentence-transformers/all-MiniLM-L6-v2` (runs locally) |
 | LLM | Groq (`openai/gpt-oss-120b`) by default, or OpenAI / Ollama |
 | Frontend | React 18 + Vite, compiled to static assets |
+| OCR | Tesseract via PyMuPDF, for scanned PDFs |
 | Deployment | Docker Compose |
 
 One Postgres holds everything persistent: sessions, source records, chunk text,
@@ -35,6 +36,13 @@ so an existing volume is upgraded in place and a fresh one needs no manual step.
 The app image is a two-stage build: Node compiles the React bundle, then only
 Python and the compiled assets reach the runtime, so no toolchain ships to
 production.
+
+The build also fetches Tesseract's language data so the container reads scanned
+PDFs without extra setup. Add `--build-arg OCR_LANGUAGES="eng deu"` for other
+languages, or `--build-arg OCR_LANGUAGES=none` to skip the download entirely
+(needed behind a firewall; scans are then refused with instructions). A failed
+download fails the build rather than shipping an image that silently cannot
+read them.
 
 Data survives `docker compose down`: source vectors live in the `pgdata`
 volume and uploaded files in the `uploads` volume. Use
@@ -83,6 +91,16 @@ cp .env.example .env        # then paste your GROQ_API_KEY into .env
 Point `DATABASE_URL` in `.env` at your server if it is not on
 `localhost:5432` with the default credentials.
 
+Fetch the OCR language data so scanned PDFs work too - the Docker image already
+has it, but a local run does not:
+
+```bash
+.venv/bin/python -m app.ocr --install
+```
+
+Skipped, scans are refused with the same instruction in the error message rather
+than indexed as empty. See [Scanned documents](#scanned-documents-are-read-not-refused).
+
 To reach the dev server from another machine on the LAN, set `HOST` — it binds
 loopback by default, since the app has no auth and `0.0.0.0` would expose
 every session to the network:
@@ -113,6 +131,11 @@ docker compose up -d db
 
 To use a database elsewhere, set `TEST_DATABASE_ADMIN_URL` and
 `TEST_DATABASE_NAME`.
+
+The OCR checks skip themselves when no language data is installed, and the
+check that a missing install produces the right message runs instead - so the
+suite is meaningful both with and without it. `python -m app.ocr --install` makes
+all of them run.
 
 ### Frontend
 
@@ -223,7 +246,7 @@ If the LLM backend is unreachable, `/api/ask` returns `503` with a message telli
 what to fix instead of a raw 500. An upload over `MAX_UPLOAD_MB` returns `413` and
 the partial file is deleted, so a rejected upload leaves nothing behind.
 
-## Uploads that cannot be read are refused, not indexed
+## Scanned documents are read, not refused
 
 A PDF with no text layer - a phone photo of a receipt, a scan - used to upload
 successfully, appear in Sources, and contribute zero chunks. The assistant then
@@ -231,15 +254,37 @@ answered from the other documents as if that file were not there, which is the
 worst possible outcome: a confident answer with no hint that evidence was
 missing.
 
-Now `POST /api/sources` detects an image-only document and returns `400` with a
-message saying the file has no text layer and needs OCR. A mixed document - a
-typed report with scanned appendices - keeps its readable pages, because
-refusing the whole file would throw away text that is there; the skipped pages
-are recorded in the log.
+Refusing it was better than indexing nothing, but it was still wrong: a scan is a
+real document that happens to be stored as an image, and its text is
+recoverable. Scanned pages are now rasterised and run through OCR (Tesseract,
+embedded in PyMuPDF), and the recovered text indexes and cites like any other
+source.
 
-No OCR is bundled. Installing Tesseract would turn a rejection into a partial
-index, which is better, but a scan of a receipt is still a worse source than the
-`.txt` you get by exporting it, and saying so is more useful than guessing.
+OCR is on by default and costs about a second per page, so it is bounded by
+`OCR_MAX_PAGES` (50). A document with more image pages than that is refused
+rather than partly indexed, with the number to raise named in the message: a
+partial index that reports success is the failure this replaced. A mixed
+document - a typed report with a scanned cover - indexes both halves, with the
+pages kept in their original order so a citation still points at the right
+place.
+
+OCR needs Tesseract's language data, which is tens of megabytes per language and
+therefore not committed:
+
+```bash
+python -m app.ocr --install          # fetch eng.traineddata into data/tessdata
+python -m app.ocr --install deu fra  # add languages
+python -m app.ocr --status           # what is available, and where
+```
+
+The Docker image fetches it at build time, so a container handles scans out of
+the box. When the data is missing, a scanned upload is refused with the exact
+command that fixes it. A scan that OCR reads nothing from - a blank page, a photo
+too dark or low-contrast to recognise - is refused the same way, since there is
+nothing to index; the `.txt` you get by exporting it is still the better source.
+
+Settings live in `.env`: `OCR_ENABLED`, `TESSDATA_DIR`, `OCR_LANGUAGES`,
+`OCR_DPI`, `OCR_MAX_PAGES`.
 
 ## Treating your documents as data, not instructions
 
@@ -562,10 +607,12 @@ Three corpus documents are still uncovered: `catalysis.txt`, `glaciology.pdf`,
 
 ## Tests
 
-69 checks covering upload, per-format parsing (including YAML/TOML/INI and hard-wrapped
-text), unreadable-upload rejection (an image-only PDF refused with an actionable
-message and no stored source, a mixed PDF keeping its text pages, an oversized
-upload refused at 413 with the partial file removed), chunking, hybrid retrieval,
+76 checks covering upload, per-format parsing (including YAML/TOML/INI and hard-wrapped
+text), OCR (a scanned page recovered and searchable, pages kept in order, both halves of a
+mixed PDF indexed, a blank scan refused with an actionable message, the missing-language
+message naming the install command, an over-cap document refused rather than indexed
+partly, and a normal PDF untouched by any of it), an oversized upload refused at 413 with
+the partial file removed, chunking, hybrid retrieval,
 numeric damping, citations, the 503 LLM-down path, Groq routing, BOM handling, the
 built frontend resolving every asset it references, migrations (schema at head,
 idempotency, column-for-column agreement with the app, and the `role` check and
@@ -603,8 +650,12 @@ non-zero if any failed.
 - Uploads are streamed to disk in 1 MiB chunks and capped at `MAX_UPLOAD_MB` (100 MB
   by default), but indexing still runs on the event loop, so a large PDF blocks the
   server for as long as it takes.
-- No OCR. An image-only PDF is refused with an actionable message rather than indexed
-  as nothing, and a mixed PDF keeps only its text pages.
+- OCR of scanned pages costs roughly a second per page and runs inline during indexing,
+  bounded by `OCR_MAX_PAGES` (50); a document over the cap is refused rather than indexed
+  partially. Handwriting and very low-contrast photocopies need `tessdata_best` dropped
+  into the folder, since the bundled models are the fast ones.
+- A blank scan, or one OCR recognises nothing in, is still refused - with the command to
+  install language data if that was the cause.
 - Sessions persist in Postgres, but there is no auth: anyone who can reach the app owns
   every session in it. Single-user by assumption, not by enforcement.
 - Answers render a Markdown subset, so raw HTML, images and tables from the model show

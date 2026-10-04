@@ -41,15 +41,17 @@ def _page_list(pages: list[int]) -> str:
     return f"{', '.join(str(p) for p in pages[:-1])} and {pages[-1]}"
 
 
-def _warn_unreadable_pages(pages: list[int], total: int) -> None:
+def _warn_unreadable_pages(pages: list[int], total: int, reason: str) -> None:
     import logging
 
     logging.getLogger(__name__).warning(
-        "Skipped %d of %d pages with no text layer (pages %s); this build has no OCR.",
+        "Skipped %d of %d pages that held only images (pages %s): %s",
         len(pages),
         total,
         _page_list(pages),
+        reason,
     )
+
 
 TABLE_SUFFIXES = {".csv", ".tsv"}
 STRUCTURED_SUFFIXES = {".json"}
@@ -518,8 +520,99 @@ def _parse_code_generic(text: str) -> list[Block]:
 # --------------------------------------------------------------------------
 
 
+def _ocr_page(page, tessdata: str) -> str:
+    """Read one image-only page. Empty string when nothing legible is found."""
+    from . import config
+
+    textpage = page.get_textpage_ocr(
+        language=config.OCR_LANGUAGES or "eng",
+        dpi=config.OCR_DPI,
+        tessdata=tessdata,
+    )
+    return _clean(page.get_text("text", textpage=textpage))
+
+
+def _ocr_ready() -> tuple[bool, str]:
+    """Whether OCR can run, and why not when it cannot.
+
+    Separate from the call itself because the failure has two very different
+    causes - missing language data, which the user can fix in one command, and
+    no Tesseract at all, which they cannot - and the message has to name the
+    right one.
+
+    The language file is checked here rather than left to the first page, which
+    would otherwise fail one page at a time and report "OCR found no text"
+    instead of "OCR is not installed". `pymupdf.get_tessdata` cannot be trusted
+    for this: it echoes back whatever folder it is given without checking that
+    anything is in it, so a configured-but-empty TESSDATA_DIR looks ready and
+    only fails later, inside the library, as a code=3 with a Tesseract usage
+    message attached.
+    """
+    import pymupdf
+
+    from . import ocr
+
+    wanted = _tessdata_languages()
+    if not wanted:
+        return False, "no OCR language is configured (set OCR_LANGUAGES)"
+
+    folder = _tessdata_dir()
+    absent = [code for code in wanted if not (folder / f"{code}.traineddata").is_file()]
+    if absent:
+        fix = f"run: python -m app.ocr --install {' '.join(absent)}"
+        found = ocr.available_languages(folder)
+        if found:
+            return False, (
+                f"OCR language data for {', '.join(absent)} is missing from "
+                f"{folder} (available there: {', '.join(found)}); {fix}"
+            )
+        return False, (
+            f"no Tesseract language data for {', '.join(absent)} in {folder}; {fix}"
+        )
+
+    try:
+        return True, pymupdf.get_tessdata(str(folder))
+    except Exception:  # noqa: BLE001 - the library raises bare RuntimeError
+        return False, (
+            "Tesseract language data is present but PyMuPDF could not load it; "
+            "check TESSDATA_PREFIX"
+        )
+
+
+def _tessdata_dir() -> Path:
+    from . import config
+
+    return config.TESSDATA_DIR
+
+
+def _tessdata_languages() -> list[str]:
+    from . import config
+
+    return [c for c in config.OCR_LANGUAGES.replace("+", " ").split() if c]
+
+
+def _merge_by_page(typed: list[Block], recovered: list[Block]) -> list[Block]:
+    """Interleave OCR'd pages with text pages in page order.
+
+    OCR runs after the text pass, so appending its results would put page 40 of
+    a mixed document before page 2. A chunker that merges neighbouring blocks
+    would then join the end of the document to its own beginning, and the
+    citation would point at text that reads as nonsense.
+    """
+    if not recovered:
+        return typed
+    if not typed:
+        return recovered
+    merged = {block.page: block for block in recovered}
+    for block in typed:
+        merged.setdefault(block.page, block)
+    return [merged[page] for page in sorted(merged)]
+
+
 def _parse_pdf(path: Path) -> list[Block]:
     import pymupdf
+
+    from . import config
 
     doc = pymupdf.open(path)
     blocks: list[Block] = []
@@ -538,24 +631,137 @@ def _parse_pdf(path: Path) -> list[Block]:
     finally:
         doc.close()
 
-    if image_pages and not blocks:
-        # Refuse rather than index nothing. An empty source used to be accepted
-        # silently, so the file appeared in Sources and the assistant later
-        # claimed it was not there - a wrong answer with nothing to point at.
+    if not image_pages:
+        return blocks
+
+    # The whole document is images. That is a scan, and the text is recoverable,
+    # so OCR runs whether or not OCR_ENABLED is set - refusing a readable
+    # document is worse than spending a second per page on one nobody expected
+    # to be a scan.
+    scanned_document = not blocks
+    reason = ""
+    if scanned_document or config.OCR_ENABLED:
+        recovered, unresolved, reason = _ocr_image_pages(
+            path, image_pages, scanned_document
+        )
+        blocks = _merge_by_page(blocks, recovered)
+        if not unresolved:
+            return blocks
+        image_pages = unresolved
+    elif image_pages:
+        reason = "OCR is disabled (OCR_ENABLED=0)"
+
+    # Still nothing. Say what happened and what to do, rather than indexing an
+    # empty source: an empty source appears in Sources and the assistant later
+    # claims the file is not there, which is a wrong answer with nothing to
+    # point at.
+    #
+    # The reason from the OCR attempt is preferred over the generic status: a
+    # document that hit the page cap and one where OCR found nothing both end up
+    # here, and they need different sentences.
+    if not blocks:
         pages = "page" if len(image_pages) == 1 else "pages"
+        verb = "contains" if len(image_pages) == 1 else "contain"
+        detail = reason or _ocr_status_for_user()
         raise UnreadableDocument(
             f"No text found on any page, but {_page_list(image_pages)} "
-            f"{pages} contain only images. This looks like a scanned document "
-            f"or a photo, and this build has no OCR, so none of it can be "
-            f"indexed. Re-save it as a text-based PDF or a .txt/.md file."
+            f"{pages} {verb} only images. This looks like a scanned document "
+            f"or a photo, and its text could not be recovered. {detail} "
+            f"Otherwise, re-save the file as a text-based PDF or a .txt/.md file."
         )
-    if image_pages:
-        # Mixed document: the text pages index normally. Recorded so the caller
-        # can say what was missed rather than implying full coverage. The page
-        # count is read before close, since len() on a closed document raises.
-        _warn_unreadable_pages(image_pages, total_pages)
+    # Mixed document: the text pages indexed normally. Recorded so the message
+    # can say what was missed rather than implying full coverage. The page
+    # count is read before close, since len() on a closed document raises.
+    _warn_unreadable_pages(image_pages, total_pages, reason or _ocr_status_for_user())
 
     return blocks
+
+
+def _ocr_image_pages(
+    path: Path, image_pages: list[int], whole_document: bool
+) -> tuple[list[Block], list[int], str]:
+    """OCR the given pages. Returns (blocks, pages still unread, reason)."""
+    import logging
+
+    import pymupdf
+
+    from . import config
+
+    log = logging.getLogger(__name__)
+    ready, detail = _ocr_ready()
+    if not ready:
+        reason = f"OCR is unavailable ({detail})"
+        if whole_document:
+            log.warning("%s", reason)
+        return [], list(image_pages), reason
+
+    budget = config.OCR_MAX_PAGES
+    if len(image_pages) > budget:
+        # Indexing the first 50 pages of a 400-page scan and reporting success is
+        # the exact failure mode this whole path exists to remove: the source
+        # looks complete and is not, and nothing in the response says so. So the
+        # document is refused instead, and the message names the number to raise.
+        log.warning(
+            "OCR skipped: %d image pages exceeds the %d-page cap",
+            len(image_pages),
+            budget,
+        )
+        return [], list(image_pages), (
+            f"OCR_MAX_PAGES is {budget} and this document has {len(image_pages)} "
+            f"image pages, so none of them were read. Raise OCR_MAX_PAGES or "
+            f"split the document, or re-save it as a text-based PDF"
+        )
+
+    blocks: list[Block] = []
+    unresolved: list[int] = []
+    doc = pymupdf.open(path)
+    tessdata = detail
+    try:
+        for number in image_pages:
+            try:
+                content = _ocr_page(doc[number - 1], tessdata)
+            except Exception as exc:  # noqa: BLE001 - one bad page is not fatal
+                log.warning("OCR failed on page %d of %s: %s", number, path.name, exc)
+                unresolved.append(number)
+                continue
+            if content:
+                blocks.append(Block(text=content, page=number))
+            else:
+                # A blank or near-blank scan page. Not an error: it genuinely
+                # may have no text on it.
+                unresolved.append(number)
+    finally:
+        doc.close()
+
+    reason = ""
+    if unresolved:
+        pages = "page" if len(unresolved) == 1 else "pages"
+        reason = f"OCR found no text on {len(unresolved)} {pages}"
+    if blocks:
+        log.info(
+            "Recovered text from %d scanned page(s) in %s via OCR",
+            len(blocks),
+            path.name,
+        )
+    return blocks, unresolved, reason
+
+
+def _ocr_status_for_user() -> str:
+    """The next action, in the user's terms rather than the library's."""
+    from .ocr import missing_languages
+
+    absent = missing_languages(_tessdata_dir())
+    if absent:
+        return (
+            f"To enable OCR, run: python -m app.ocr --install {' '.join(absent)}"
+        )
+    ready, detail = _ocr_ready()
+    if ready:
+        return (
+            "OCR is configured but returned no text; the scan may be blank or "
+            "too low-contrast"
+        )
+    return f"OCR is unavailable ({detail}); run: python -m app.ocr --install"
 
 
 def _parse_docx(path: Path, size: int) -> list[Block]:

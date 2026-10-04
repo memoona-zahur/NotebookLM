@@ -35,6 +35,40 @@ UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 # than fatal.
 MAX_UPLOAD_BYTES = int(os.getenv("MAX_UPLOAD_MB", "100")) * 1024 * 1024
 
+# OCR for scanned documents. A scan is a real document that happens to be an
+# image, so refusing it is the wrong answer where the text can be recovered.
+# PyMuPDF embeds Tesseract, so this needs no external binary - only the language
+# data below.
+#
+# On by default, because a scan that gets refused is a document the user cannot
+# search. The cost is roughly a second per page, which is fine for a receipt and
+# wrong to impose on a 400-page upload nobody expected to be a scan - hence
+# OCR_MAX_PAGES below. Set to 0 to keep only the text pages of a mixed document.
+#
+# A document that is entirely images gets OCR regardless of this flag; the
+# alternative is refusing it outright.
+OCR_ENABLED = os.getenv("OCR_ENABLED", "1") not in {"0", "false", "no"}
+
+# Folder holding <lang>.traineddata files. PyMuPDF looks here, then at
+# TESSDATA_PREFIX, then at a Tesseract install. Downloaded into data/tessdata by
+# `python -m app.ocr --install`.
+TESSDATA_DIR = Path(os.getenv("TESSDATA_DIR") or (DATA_DIR / "tessdata"))
+
+# Tesseract language codes. "eng" is right for most documents; add e.g. "deu"
+# for German or "fra" for French. The files must exist in TESSDATA_DIR.
+OCR_LANGUAGES = os.getenv("OCR_LANGUAGES", "eng").strip()
+
+# Resolution the page is rasterised at before recognition. 300 is the usual
+# "good enough to be accurate" figure for printed text and is what Tesseract's
+# own docs recommend; higher mostly costs time.
+OCR_DPI = int(os.getenv("OCR_DPI", "300"))
+
+# Pages per document OCR will touch. A cap rather than a limit on quality: a
+# thousand-page scan costs real time and the app has no progress bar to show it.
+# A document over the cap is refused rather than partly indexed, because a
+# partial index that reports success is the failure this replaced.
+OCR_MAX_PAGES = int(os.getenv("OCR_MAX_PAGES", "50"))
+
 EMBED_MODEL = os.getenv("EMBED_MODEL", "sentence-transformers/all-MiniLM-L6-v2")
 EMBED_DIM = 384
 

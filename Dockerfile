@@ -42,10 +42,24 @@ COPY migrations ./migrations
 # already serves, so the image ships the same assets a local build produces.
 COPY --from=build /static ./static
 
-# The app runs as a normal user. It needs the upload directory to be writable
-# and nothing else, so the volume is mounted there rather than at /app.
-RUN useradd --create-home --uid 10001 appuser \
+# OCR language data, fetched here so a container can read a scan out of the box.
+# Without it every scanned upload is refused with instructions to run the
+# installer - correct, but a poor first run for something the image can fix.
+# Build-time rather than first-upload-time because the app has no progress bar:
+# a download halfway through indexing looks like a hang.
+#
+# The download failing fails the build. Shipping an image that quietly cannot
+# read scans reintroduces exactly the silent failure this feature removed. Build
+# with --build-arg OCR_LANGUAGES=none to skip it deliberately, which is also the
+# escape hatch for building behind a firewall.
+ARG OCR_LANGUAGES=eng
+RUN if [ "${OCR_LANGUAGES}" = "none" ]; then \
+        echo "skipping OCR language data (OCR_LANGUAGES=none)"; \
+    else \
+        python -m app.ocr --install ${OCR_LANGUAGES}; \
+    fi \
     && mkdir -p /data/uploads "$HF_HOME" \
+    && useradd --create-home --uid 10001 appuser \
     && chown -R appuser:appuser /app /data "$HF_HOME"
 USER appuser
 

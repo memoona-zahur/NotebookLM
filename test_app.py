@@ -18,6 +18,8 @@ except Exception:  # noqa: BLE001
 # ---------------------------------------------------------------------------
 import os
 
+import pytest
+
 ADMIN_URL = os.getenv(
     "TEST_DATABASE_ADMIN_URL",
     "postgresql://notebooklm:notebooklm@localhost:5432/notebooklm",
@@ -53,10 +55,27 @@ from fastapi.testclient import TestClient
 
 from app.main import app
 from app import config as cfg
-from app import db, llm
+from app import db, llm, ocr, parsers
 from app.store import SearchResult
 
 db.migrate()
+
+# Where the parser tests drop files. A scratch directory rather than the
+# project's own data folder, so a test run never leaves something behind that
+# looks like a real upload.
+TMP = Path(os.environ.get("TEMP") or ".") / "notebooklm-parse-tests"
+
+
+def missing_ocr_languages() -> list[str]:
+    """OCR language codes configured but not installed.
+
+    The OCR tests skip themselves when this is non-empty. OCR needs language data
+    that is deliberately not committed (tens of megabytes, dozens of languages),
+    so its absence is a deployment state rather than a failure - and the message
+    it produces is asserted separately, which is the part a user depends on.
+    """
+    TMP.mkdir(parents=True, exist_ok=True)
+    return ocr.missing_languages(cfg.TESSDATA_DIR)
 
 # One scratch session shared by the API tests. Tests that need isolation create
 # their own via new_session().
@@ -96,6 +115,14 @@ all three axes.
 RELEVANT_Q = "What is the escape velocity from the surface?"
 IRRELEVANT_Q = "What is the best recipe for sourdough bread with rye flour?"
 
+# Large and plain on purpose: OCR accuracy tests are not worth failing over a
+# font that Tesseract struggles with.
+SCAN_TEXT = (
+    "Warehouse Safety Notice\n"
+    "All visitors must wear high visibility vests in the loading area.\n"
+    "Forklifts operate at a maximum speed of 12 km/h indoors.\n"
+)
+
 _PROVIDERS = ("_openai", "_ollama", "_groq")
 
 
@@ -109,18 +136,38 @@ def make_pdf(pages: int = 2) -> bytes:
     return data
 
 
-def make_scanned_pdf(pages: int = 1) -> bytes:
+def make_scanned_pdf(pages: int = 1, text_pages: int = 0, readable: bool = True) -> bytes:
     """A PDF with no text layer - what a phone photo of a document produces.
 
+    Real text is rasterised into the page rather than a blank rectangle: OCR is
+    under test, and a scan of nothing proves nothing. `readable=False` produces
+    the genuinely blank scan, which must still be refused.
+
     Raster, not vector art: only a real embedded image makes `page.get_images()`
-    report something, which is what separates a scan from a genuinely blank page.
+    report something, which is what separates a scan from a blank page.
     """
+    pixmap = None
+    if readable:
+        source = pymupdf.open()
+        rendered = source.new_page(width=595, height=842)
+        rendered.insert_textbox(
+            pymupdf.Rect(50, 50, 545, 300), SCAN_TEXT, fontsize=18
+        )
+        pixmap = rendered.get_pixmap(dpi=200)
+        source.close()
+    else:
+        pixmap = pymupdf.Pixmap(pymupdf.csGRAY, pymupdf.IRect(0, 0, 595, 842))
+        pixmap.set_rect(pixmap.irect, (255, 255, 255))
+
     doc = pymupdf.open()
     for _ in range(pages):
-        page = doc.new_page()
-        pixmap = pymupdf.Pixmap(pymupdf.csGRAY, pymupdf.IRect(0, 0, 200, 200))
-        pixmap.set_rect(pixmap.irect, (255, 255, 255))
-        page.insert_image(pymupdf.Rect(40, 40, 400, 400), pixmap=pixmap)
+        page = doc.new_page(width=595, height=842)
+        page.insert_image(page.rect, pixmap=pixmap)
+    for _ in range(text_pages):
+        typed = doc.new_page(width=595, height=842)
+        typed.insert_textbox(
+            pymupdf.Rect(50, 50, 545, 300), "Typed appendix with real text.", fontsize=14
+        )
     data = doc.tobytes()
     doc.close()
     return data
@@ -724,78 +771,210 @@ def test_a_named_word_is_highlighted_where_it_appears(client: TestClient) -> Non
     print(f"  named word located in {body['count']} places with exact spans: OK")
 
 
-def test_a_scan_is_refused_rather_than_indexed_as_nothing(client: TestClient) -> None:
+def test_a_scan_is_read_by_ocr(client: TestClient) -> None:
     """A phone photo of a document used to index as zero chunks, silently.
 
     The file appeared in Sources, the upload succeeded, and the assistant later
     said the receipt was not among the documents - a wrong answer with nothing
-    pointing at the cause. Now the upload is refused, and the message says why
-    and what to do instead.
+    pointing at the cause. A scan is a real document that happens to be an
+    image, so its text is recovered rather than refused.
+
+    Skipped when the language data is absent, since that is a deployment
+    choice rather than a defect; `test_ocr_tells_the_user_how_to_install_it`
+    covers the message in that case.
     """
+    if missing_ocr_languages():
+        print("  skipped: no OCR language data installed")
+        return
+
     session = client.post("/api/sessions", json={"name": "scan"}).json()["id"]
-
     res = client.post(
         "/api/sources",
-        files={"file": ("receipt.pdf", make_scanned_pdf(), "application/pdf")},
-        params={"session_id": session},
-    )
-    assert res.status_code == 400, res.text
-    detail = res.json()["detail"]
-    assert "no OCR" in detail, detail
-    # The message has to be actionable, not just a refusal.
-    assert "scanned" in detail or "photo" in detail, detail
-    assert ".txt" in detail or "text-based" in detail, detail
-
-    # Nothing was stored, so the refusal leaves no phantom source behind.
-    stats = client.get("/api/status", params={"session_id": session}).json()
-    assert stats["sources"] == [] and stats["chunks"] == 0, stats
-
-    # A real PDF still works, so the check is not simply rejecting PDFs.
-    ok = client.post(
-        "/api/sources",
-        files={"file": ("orbital.pdf", make_pdf(), "application/pdf")},
-        params={"session_id": session},
-    )
-    assert ok.status_code == 200, ok.text
-    assert ok.json()["source"]["chunks"] > 0, ok.json()
-
-
-def test_a_mixed_pdf_indexes_its_text_pages(client: TestClient) -> None:
-    """Half-scanned documents are common: a typed report with scanned appendices.
-
-    Refusing the whole file would throw away readable pages, so only the
-    text pages index. The pages that were skipped are recorded in the log rather
-    than silently dropped, because "it indexed" should not imply "all of it".
-    """
-    from app import parsers
-
-    doc = pymupdf.open()
-    page = doc.new_page()
-    page.insert_textbox(
-        pymupdf.Rect(50, 50, 545, 780), "Readable telemetry report. ", fontsize=11
-    )
-    scan = doc.new_page()
-    pixmap = pymupdf.Pixmap(pymupdf.csGRAY, pymupdf.IRect(0, 0, 200, 200))
-    pixmap.set_rect(pixmap.irect, (255, 255, 255))
-    scan.insert_image(pymupdf.Rect(40, 40, 400, 400), pixmap=pixmap)
-    mixed = doc.tobytes()
-    doc.close()
-
-    session = client.post("/api/sessions", json={"name": "mixed"}).json()["id"]
-    res = client.post(
-        "/api/sources",
-        files={"file": ("report.pdf", mixed, "application/pdf")},
+        files={"file": ("notice.pdf", make_scanned_pdf(), "application/pdf")},
         params={"session_id": session},
     )
     assert res.status_code == 200, res.text
     assert res.json()["source"]["chunks"] > 0, res.json()
 
+    # OCR output, not just "some chunks": the recovered text has to be findable
+    # by the thing that matters, which is a question about its content.
     from app.store import store
 
-    assert any("telemetry" in hit["text"] for hit in store.search(
-        "telemetry report", session, top_k=3
+    hits = store.search("What speed do forklifts travel indoors?", session, top_k=5)
+    assert hits, "OCR text was indexed but nothing retrieves it"
+    assert any("12" in hit["text"] for hit in hits), hits
+
+
+def test_ocr_keeps_pages_in_order(client: TestClient) -> None:
+    """A scan followed by a typed page must not index the typed page first.
+
+    OCR runs after the text pass, so appending its blocks would leave page 2
+    before page 1 - and a chunker that merges neighbours would then join the end
+    of the document to its own beginning.
+    """
+    if missing_ocr_languages():
+        print("  skipped: no OCR language data installed")
+        return
+
+    path = Path(TMP) / "ordered-scan.pdf"
+    path.write_bytes(make_scanned_pdf(pages=1, text_pages=1))
+
+    blocks = parsers.parse(path)
+    assert [block.page for block in blocks] == sorted(block.page for block in blocks), [
+        (block.page, block.text[:40]) for block in blocks
+    ]
+    assert blocks[0].text.startswith("Warehouse Safety Notice"), blocks[0].text
+    assert "Typed appendix" in blocks[-1].text, blocks[-1].text
+
+
+def test_a_mixed_pdf_indexes_both_halves(client: TestClient) -> None:
+    """Half-scanned documents are common: a typed report with a scanned cover.
+
+    Both halves have to index. Keeping only the text pages loses the part the
+    user could not have typed; refusing the file loses all of it.
+    """
+    if missing_ocr_languages():
+        print("  skipped: no OCR language data installed")
+        return
+
+    session = client.post("/api/sessions", json={"name": "mixed"}).json()["id"]
+    res = client.post(
+        "/api/sources",
+        files={
+            "file": (
+                "report.pdf",
+                make_scanned_pdf(pages=1, text_pages=1),
+                "application/pdf",
+            )
+        },
+        params={"session_id": session},
+    )
+    assert res.status_code == 200, res.text
+
+    from app.store import store
+
+    assert any("vests" in hit["text"] for hit in store.search(
+        "high visibility vests", session, top_k=5
     ))
-    assert parsers.UnreadableDocument is not None
+    assert any("appendix" in hit["text"] for hit in store.search(
+        "typed appendix", session, top_k=5
+    ))
+
+
+def test_a_blank_scan_is_refused_with_an_actionable_message(client: TestClient) -> None:
+    """A scan of genuinely nothing still has to be refused, and say why.
+
+    Refusal is only correct when the message names a next step. "Could not read
+    file" leaves the user with nothing to do.
+    """
+    session = client.post("/api/sessions", json={"name": "blank"}).json()["id"]
+    res = client.post(
+        "/api/sources",
+        files={"file": ("blank.pdf", make_scanned_pdf(readable=False), "application/pdf")},
+        params={"session_id": session},
+    )
+    assert res.status_code == 400, res.text
+    detail = res.json()["detail"]
+    assert "only images" in detail, detail
+    assert ".txt" in detail or "app.ocr" in detail, detail
+
+    # Nothing stored, so the refusal leaves no phantom source behind.
+    stats = client.get("/api/status", params={"session_id": session}).json()
+    assert stats["sources"] == [] and stats["chunks"] == 0, stats
+
+
+def test_ocr_tells_the_user_how_to_install_it(client: TestClient) -> None:
+    """When OCR cannot run, the message names the command that fixes it.
+
+    The alternative failure mode is a refusal that reads like the app is broken.
+    """
+    absent = missing_ocr_languages()
+    if not absent:
+        print("  skipped: OCR language data is installed")
+        return
+
+    session = client.post("/api/sessions", json={"name": "noocr"}).json()["id"]
+    res = client.post(
+        "/api/sources",
+        files={"file": ("notice.pdf", make_scanned_pdf(), "application/pdf")},
+        params={"session_id": session},
+    )
+    assert res.status_code == 400, res.text
+    detail = res.json()["detail"]
+    assert "python -m app.ocr --install" in detail, detail
+    for code in absent:
+        assert code in detail, detail
+
+
+def test_ocr_status_reports_what_is_installed(client: TestClient) -> None:
+    from app import ocr
+
+    folder = cfg.TESSDATA_DIR
+    codes = ocr.available_languages(folder)
+    assert codes == sorted(codes)
+    assert all(code.isalpha() for code in codes), codes
+    # A folder that does not exist is "no languages", not a crash.
+    assert ocr.available_languages(folder / "nope") == []
+
+
+def test_a_scan_over_the_page_cap_is_refused_not_half_indexed(client: TestClient) -> None:
+    """Indexing 50 of 400 pages and reporting success is the failure mode.
+
+    The cap exists so a huge scan cannot hold the request open. Partly reading
+    one is worse than refusing it: the source would appear complete, and a
+    question about page 300 would be answered "not among your documents" with
+    nothing to explain why.
+    """
+    if missing_ocr_languages():
+        print("  skipped: no OCR language data installed")
+        return
+
+    path = Path(TMP) / "cap-scan.pdf"
+    path.write_bytes(make_scanned_pdf(pages=3))
+
+    with provider("groq", OCR_MAX_PAGES=2):
+        with pytest.raises(parsers.UnreadableDocument) as caught:
+            parsers.parse(path)
+
+    message = str(caught.value)
+    assert "OCR_MAX_PAGES" in message, message
+    assert "none of them were read" in message, message
+
+    # A mixed document is different: its text pages are real and indexable, so
+    # only the scanned ones are given up on.
+    mixed = Path(TMP) / "cap-mixed.pdf"
+    mixed.write_bytes(make_scanned_pdf(pages=3, text_pages=1))
+    with provider("groq", OCR_MAX_PAGES=2):
+        blocks = parsers.parse(mixed)
+    assert [b.page for b in blocks] == [4], [b.page for b in blocks]
+
+
+def test_a_mixed_pdf_indexes_its_text_pages(client: TestClient) -> None:
+    """With OCR off, a mixed PDF keeps its text pages.
+
+    Refusing the whole file would throw away readable pages, and the pages that
+    were skipped are reported rather than silently dropped, because "it indexed"
+    should not imply "all of it".
+    """
+    path = Path(TMP) / "mixed-no-ocr.pdf"
+    path.write_bytes(make_scanned_pdf(pages=1, text_pages=1, readable=False))
+
+    with provider("groq", OCR_ENABLED=False):
+        blocks = parsers.parse(path)
+
+    assert len(blocks) == 1, [b.text for b in blocks]
+    assert "Typed appendix" in blocks[0].text
+    assert blocks[0].page == 2
+
+
+def test_parsers_reads_a_normal_pdf_unchanged(client: TestClient) -> None:
+    """OCR must not touch a document that already has a text layer."""
+    path = Path(TMP) / "typed.pdf"
+    path.write_bytes(make_pdf())
+
+    blocks = parsers.parse(path)
+    assert len(blocks) == 2
+    assert all("11.2" in block.text for block in blocks)
 
 
 def test_an_oversized_upload_is_refused_without_being_kept(client: TestClient) -> None:
@@ -1965,8 +2144,15 @@ ORDER = [
     ("named word is highlighted", test_a_named_word_is_highlighted_where_it_appears),
     ("highlight stays in session", test_highlight_never_leaves_the_session),
     ("common word is capped loudly", test_a_common_word_is_capped_not_truncated_silently),
-    ("scan is refused, not indexed empty", test_a_scan_is_refused_rather_than_indexed_as_nothing),
-    ("mixed pdf keeps its text pages", test_a_mixed_pdf_indexes_its_text_pages),
+    ("scan is read by ocr", test_a_scan_is_read_by_ocr),
+    ("ocr keeps pages in order", test_ocr_keeps_pages_in_order),
+    ("mixed pdf indexes both halves", test_a_mixed_pdf_indexes_both_halves),
+    ("blank scan is refused clearly", test_a_blank_scan_is_refused_with_an_actionable_message),
+    ("missing ocr says how to install", test_ocr_tells_the_user_how_to_install_it),
+    ("ocr status reports what is installed", test_ocr_status_reports_what_is_installed),
+    ("ocr page cap refuses, not half-reads", test_a_scan_over_the_page_cap_is_refused_not_half_indexed),
+    ("mixed pdf keeps text pages without ocr", test_a_mixed_pdf_indexes_its_text_pages),
+    ("normal pdf unchanged by ocr", test_parsers_reads_a_normal_pdf_unchanged),
     ("oversized upload refused", test_an_oversized_upload_is_refused_without_being_kept),
     ("chat history persists", test_chat_history_persists_and_is_isolated),
     ("deleting session removes data", test_deleting_a_session_removes_its_data),
