@@ -1389,12 +1389,25 @@ def test_labels_can_actually_fail(client: TestClient = None) -> None:
     # retriever from another.
     multi = [i for i in answerable if len(i["required_facts"]) > 1]
     assert multi, "no item requires two blocks, so nothing can score between 0 and 1"
+    for item in answerable:
+        # block_count is what the report reads to decide how much of an answer
+        # was retrieved, so it has to match the evidence rather than be trusted.
+        assert item["block_count"] == len(item["required_facts"]), item["id"]
     for item in multi:
         assert len(item["answers"]) == len(item["required_facts"])
         assert item["question"].count("_____") == len(item["required_facts"])
-        assert len(set(item["expected_positions"])) >= 2, item["id"]
-        # The two blocks must genuinely differ, or it is one fact written twice.
-        assert item["windows"][0] != item["windows"][1], item["id"]
+        # Each blank needs its own block, or the item cannot score between 0
+        # and 1 no matter what the retriever does.
+        assert len(set(item["expected_positions"])) == item["block_count"], item["id"]
+        # The blocks must genuinely differ, or it is one fact written twice.
+        assert len(set(item["windows"])) == item["block_count"], item["id"]
+        assert len(set(item["answers"])) == item["block_count"], item["id"]
+
+    # A pair can only score 0, 1/2 or 1. A triple scores in thirds, which is what
+    # tells apart a retriever that found two of three blocks from one that found
+    # one.
+    triples = [i for i in answerable if i["block_count"] > 2]
+    assert triples, "no item needs three blocks, so partial credit is only ever half"
 
     # And a committed item that stops matching its evidence must be rejected,
     # including the second fact of a two-block item.

@@ -42,6 +42,7 @@ question still reads as a question.
 from __future__ import annotations
 
 import argparse
+import itertools
 import json
 import re
 import sys
@@ -450,6 +451,25 @@ def _distinctive(key: str, df: dict[str, int], ceiling: int) -> bool:
     return any(df.get(term, 0) <= ceiling for term in terms)
 
 
+# A pair may use a shorter window than a prose item: its second half comes from
+# another block, so the question as a whole is long enough to identify the
+# document even when one blank sits on a short line. Below this it is config
+# furniture - 'category: _____', 'owner: _____' - and a pair of those reads as a
+# diff rather than a question.
+MIN_PAIR_WINDOW_CHARS = 18
+# Pairs before triples. A triple is the harder label, but pairs are the ones
+# already known to fail, and triples read worse when a third blank is tacked on
+# for no reason.
+PAIR_BUDGET = 4
+TRIPLE_BUDGET = 2
+
+# An answer has to be a value a document states, not a fragment of code. Pairing
+# reached into .py and .js files and produced 'last_error = _____' answered
+# 'str) -> str:', which is not a fact anyone could answer.
+CODEY = re.compile(r"->|\(|\)|\[\]|\{|\}|;|==|!=|=\s|\b(?:def|class|self|import|return)\b")
+LITERALS = {"none", "true", "false", "null", "undefined", "nan", "nil"}
+
+
 def _usable_pair_answer(answer: str) -> bool:
     """Whether an answer is worth asking for when it comes from a pair.
 
@@ -461,15 +481,24 @@ def _usable_pair_answer(answer: str) -> bool:
     """
     if re.search(r"[^\w\s]{3,}", answer):
         return False  # '===', '):', '[', '0;'
+    if CODEY.search(answer):
+        return False  # a signature or an assignment, not a value
+    if answer.casefold().strip() in LITERALS:
+        return False  # 'last_error = _____' answered 'None' asks nothing
     if not re.search(r"[A-Za-z]{3,}", answer) and not re.search(r"\d", answer):
         return False  # no word and no digit: nothing to ask for
     return True
 
 
-def _pair_items(
-    name: str, blocks: list[parsers.Block], per_document: int, df: dict[str, int]
+def _multi_block_items(
+    name: str,
+    blocks: list[parsers.Block],
+    per_document: int,
+    df: dict[str, int],
+    size: int,
+    limit: int,
 ) -> list[dict]:
-    """Questions whose answer needs two different blocks.
+    """Questions whose answer needs size different blocks.
 
     A single-block cloze cannot discriminate between retrievers, and that is
     structural rather than a matter of tuning: the question has to name
@@ -477,11 +506,12 @@ def _pair_items(
     solves it. Every single-block item scored recall@5 1.000 across every chunk
     size tried.
 
-    Two blocks give partial credit. The retriever has to bring back the second
-    block as well as the most obvious one, which is the actual product failure
-    this system has already had once - an answer that spans two sources used to
-    cite only one. It also makes precision@k meaningful, because now more than
-    one retrieved chunk is labelled correct.
+    More than one block gives partial credit. The retriever has to bring back
+    every block, not just the most obvious one, which is the actual product
+    failure this system has already had once - an answer that spans two sources
+    used to cite only one. It also makes precision@k meaningful, because now more
+    than one retrieved chunk is labelled correct. Three blocks go further and
+    score 1/3 or 2/3 rather than only half.
     """
     built: list[dict] = []
     candidates: list[tuple[int, str, str]] = []
@@ -491,10 +521,10 @@ def _pair_items(
             continue
         kind, question, answer = made
         window = question.replace("_____", answer)
-        # A two-block question only works if each half can stand on its own.
-        # 'category: _____' or 'index: _____' names a field, not a block, and
-        # the pair of them reads as a config diff rather than a question.
-        if len(question) < MIN_QUESTION_CHARS or not _usable_pair_answer(answer):
+        # Each half has to stand on its own. 'category: _____' or 'index: _____'
+        # names a field, not a block, and a pair of those reads as a config diff
+        # rather than a question.
+        if len(question) < MIN_PAIR_WINDOW_CHARS or not _usable_pair_answer(answer):
             continue
         if kind == "field":
             # Take the key from the refilled window. The blanked side has no
@@ -505,48 +535,63 @@ def _pair_items(
                 continue
         candidates.append((position, window, answer))
 
-    for i, (position_a, window_a, answer_a) in enumerate(candidates):
-        if len(built) >= per_document:
+    for combo in itertools.combinations(candidates, size):
+        if len(built) >= min(limit, per_document):
             break
-        for position_b, window_b, answer_b in candidates[i + 1 :]:
-            if position_b == position_a:
-                continue  # two blocks, or the item is just a single-block one
-            # Two blocks that share most of their wording are one fact, not two.
-            overlap = set(content_terms(window_a)) & set(content_terms(window_b))
-            if len(overlap) > 0.6 * min(
-                len(set(content_terms(window_a))), len(set(content_terms(window_b)))
-            ):
-                continue
-            if answer_a == answer_b:
-                continue
-            blanked_a, blanked_b = _blank(window_a, answer_a), _blank(window_b, answer_b)
-            if blanked_a is None or blanked_b is None:
-                continue
-            evidence = [_evidence(blocks, window_a), _evidence(blocks, window_b)]
-            if any(part is None for part in evidence):
-                continue
-            facts = [part[0] for part in evidence]  # type: ignore[index]
-            positions = sorted({p for part in evidence for p in part[1]})  # type: ignore[union-attr]
-            # The evidence has to be two different blocks. Both windows can land
-            # in one block even when their lines came from different blocks, and
-            # an item citing one block twice is a single-block item wearing a
-            # two-block label - it cannot score between zero and one.
-            if normalize(facts[0]) == normalize(facts[1]) or len(positions) < 2:
-                continue
-            built.append(
-                {
-                    "source": name,
-                    "kind": "two_block_cloze",
-                    "question": f"{blanked_a}\n{blanked_b}",
-                    "answer": answer_a,
-                    "answers": [answer_a, answer_b],
-                    "windows": [window_a, window_b],
-                    "required_facts": facts,
-                    "expected_positions": positions,
-                }
-            )
-            break
+        # size blanks have to come from size different blocks and carry
+        # size different answers, or the question has fewer right answers
+        # than it appears to.
+        if len({c[0] for c in combo}) != size or len({c[2] for c in combo}) != size:
+            continue
+        windows = [c[1] for c in combo]
+        answers = [c[2] for c in combo]
+        # Blocks that share most of their wording are one fact, not several.
+        terms = [set(content_terms(w)) for w in windows]
+        if any(
+            len(one & two) > 0.6 * min(len(one), len(two))
+            for one, two in itertools.combinations(terms, 2)
+        ):
+            continue
+        blanked = [_blank(w, a) for w, a in zip(windows, answers)]
+        if any(b is None for b in blanked):
+            continue
+        evidence = [_evidence(blocks, w) for w in windows]
+        if any(part is None for part in evidence):
+            continue
+        facts = [part[0] for part in evidence]  # type: ignore[index]
+        cited = sorted({p for part in evidence for p in part[1]})  # type: ignore[union-attr]
+        # The evidence has to be size different blocks. Windows can land in
+        # one block even when their lines came from different blocks, and an
+        # item citing one block twice is a single-block item wearing a
+        # multi-block label - it cannot score between zero and one.
+        if len({normalize(f) for f in facts}) != size or len(cited) < size:
+            continue
+        built.append(
+            {
+                "source": name,
+                "kind": "multi_block_cloze",
+                "block_count": size,
+                "question": "\n".join(blanked),
+                "answer": answers[0],
+                "answers": answers,
+                "windows": windows,
+                "required_facts": facts,
+                "expected_positions": cited,
+            }
+        )
     return built
+
+
+def _pair_items(
+    name: str, blocks: list[parsers.Block], per_document: int, df: dict[str, int]
+) -> list[dict]:
+    """Pairs first, then triples: the only items that can score between 0 and 1."""
+    built = _multi_block_items(name, blocks, per_document, df, 2, PAIR_BUDGET)
+    if len(built) < per_document:
+        built += _multi_block_items(
+            name, blocks, per_document, df, 3, PAIR_BUDGET + TRIPLE_BUDGET
+        )
+    return built[:per_document]
 
 
 def _items_for_document(
@@ -751,6 +796,10 @@ def build(per_document: int = PER_DOCUMENT, traps: int = 10) -> dict:
                     "label_provenance": f"machine-{draft['kind']}",
                     "expected_positions": draft["expected_positions"],
                     "required_facts": draft["required_facts"],
+                    # How many blocks a retriever has to bring back for this to
+                    # be fully answered. Recorded per item because it is what
+                    # decides whether the item can score between 0 and 1.
+                    "block_count": len(draft["required_facts"]),
                     "verified_by_human": False,
                 }
             )
@@ -787,9 +836,9 @@ def build(per_document: int = PER_DOCUMENT, traps: int = 10) -> dict:
             "the labels reproducible and impossible to score stale; it does not make "
             "them expert-checked. These items prove a value survives chunking "
             "attached to its key and can be retrieved again - not that the system "
-            "understands the question. A two_block_cloze item needs two separate "
-            "blocks, so it can be partly right; the rest have one right answer and "
-            "measure only whether it was found."
+            "understands the question. A multi_block_cloze item needs two or three "
+            "separate blocks, so it can be partly right; the rest have one right "
+            "answer and measure only whether it was found."
         ),
         "checked": len(items) - len(broken),
         "failed": len(broken),

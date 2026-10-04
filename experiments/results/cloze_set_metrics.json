@@ -1,8 +1,8 @@
 {
   "accounting": {
-    "answerable_scorable": 112,
+    "answerable_scorable": 110,
     "excluded_unverified": 0,
-    "items": 119,
+    "items": 117,
     "traps_checked": 7
   },
   "by_format": {
@@ -18,15 +18,15 @@
       "scored": 12
     },
     "docx": {
-      "fact_coverage": 1.0,
+      "fact_coverage": 0.9,
       "means": {
         "hit_rate@5": 1.0,
-        "mrr@5": 0.9583333333333334,
-        "ndcg@5": 0.9692441461309548,
+        "mrr@5": 0.9444444444444444,
+        "ndcg@5": 0.9160085495929907,
         "precision@5": 0.19999999999999998,
-        "recall@5": 1.0
+        "recall@5": 0.9444444444444444
       },
-      "scored": 12
+      "scored": 9
     },
     "html": {
       "fact_coverage": 1.0,
@@ -84,13 +84,13 @@
       "scored": 11
     },
     "log": {
-      "fact_coverage": 0.9090909090909091,
+      "fact_coverage": 0.7142857142857143,
       "means": {
         "hit_rate@5": 1.0,
         "mrr@5": 1.0,
-        "ndcg@5": 0.9355245321275764,
+        "ndcg@5": 0.7416954495090149,
         "precision@5": 0.3333333333333333,
-        "recall@5": 0.9166666666666666
+        "recall@5": 0.6944444444444443
       },
       "scored": 12
     },
@@ -100,18 +100,18 @@
         "hit_rate@5": 1.0,
         "mrr@5": 1.0,
         "ndcg@5": 1.0,
-        "precision@5": 0.24,
+        "precision@5": 0.26666666666666666,
         "recall@5": 1.0
       },
-      "scored": 5
+      "scored": 6
     },
     "pdf": {
-      "fact_coverage": 0.875,
+      "fact_coverage": 0.9090909090909091,
       "means": {
         "hit_rate@5": 1.0,
         "mrr@5": 1.0,
         "ndcg@5": 0.9447353132522084,
-        "precision@5": 0.19999999999999998,
+        "precision@5": 0.2857142857142857,
         "recall@5": 0.9285714285714286
       },
       "scored": 7
@@ -203,18 +203,18 @@
     "top_k": 6
   },
   "corpus_documents": 24,
-  "fact_coverage": 0.968503937007874,
+  "fact_coverage": 0.9191176470588235,
   "facts": {
-    "covered": 123,
-    "total": 127
+    "covered": 125,
+    "total": 136
   },
   "gold_file": "experiments\\gold\\cloze_set.json",
   "human_verified": false,
   "item_kinds": {
     "field_cloze": 32,
-    "record_cloze": 27,
-    "two_block_cloze": 15,
-    "value_cloze": 38
+    "multi_block_cloze": 22,
+    "record_cloze": 24,
+    "value_cloze": 32
   },
   "k": 5,
   "label_basis": "machine-checked",
@@ -222,59 +222,59 @@
     {
       "best_score": 0.0,
       "hits": 0,
-      "id": "C112",
+      "id": "C110",
       "leaked": false,
       "question": "How do I knit a scarf?"
     },
     {
       "best_score": 0.0,
       "hits": 0,
-      "id": "C113",
+      "id": "C111",
       "leaked": false,
       "question": "How do I make pasta?"
     },
     {
       "best_score": 0.0,
       "hits": 0,
-      "id": "C114",
+      "id": "C112",
       "leaked": false,
       "question": "How do I bake bread?"
     },
     {
       "best_score": 0.0,
       "hits": 0,
-      "id": "C115",
+      "id": "C113",
       "leaked": false,
       "question": "What is the capital of Peru?"
     },
     {
       "best_score": 0.0,
       "hits": 0,
-      "id": "C116",
+      "id": "C114",
       "leaked": false,
       "question": "How do I repot a fern?"
     },
     {
       "best_score": 0.0,
       "hits": 0,
-      "id": "C117",
+      "id": "C115",
       "leaked": false,
       "question": "Who won the 1998 world cup?"
     },
     {
       "best_score": 0.0,
       "hits": 0,
-      "id": "C118",
+      "id": "C116",
       "leaked": false,
       "question": "How do I tune a piano?"
     }
   ],
   "means": {
     "hit_rate@5": 1.0,
-    "mrr@5": 0.9598214285714286,
-    "ndcg@5": 0.9565263977964724,
-    "precision@5": 0.21964285714285672,
-    "recall@5": 0.9821428571428571
+    "mrr@5": 0.9590909090909091,
+    "ndcg@5": 0.9310741341322512,
+    "precision@5": 0.22727272727272688,
+    "recall@5": 0.953030303030303
   },
   "mode": "both",
   "precision_is_a_lower_bound": true,
@@ -301,7 +301,7 @@
       },
       "question": "this.declarationNumber = _____",
       "retrieved": [
-        "4460"
+        "5697"
       ],
       "source": "Customs.java"
     },
@@ -327,7 +327,7 @@
       },
       "question": "this.exportDate = _____",
       "retrieved": [
-        "4460"
+        "5697"
       ],
       "source": "Customs.java"
     },
@@ -353,8 +353,8 @@
       },
       "question": "this.lineItems = _____",
       "retrieved": [
-        "4461",
-        "4460"
+        "5698",
+        "5697"
       ],
       "source": "Customs.java"
     },
@@ -380,8 +380,8 @@
       },
       "question": "BigDecimal invoice = _____",
       "retrieved": [
-        "4460",
-        "4461"
+        "5697",
+        "5698"
       ],
       "source": "Customs.java"
     },
@@ -407,7 +407,7 @@
       },
       "question": "treatment: control\nnitrogen_kg_ha: 0\nowner: trial manager\ndays_to_harvest: _____",
       "retrieved": [
-        "4465"
+        "5702"
       ],
       "source": "agronomy.docx"
     },
@@ -433,8 +433,8 @@
       },
       "question": "treatment: low N\nnitrogen_kg_ha: 60\nowner: trial manager\ndays_to_harvest: _____",
       "retrieved": [
-        "4465",
-        "4464"
+        "5702",
+        "5701"
       ],
       "source": "agronomy.docx"
     },
@@ -460,7 +460,7 @@
       },
       "question": "treatment: high N\nnitrogen_kg_ha: 140\nowner: field lead\ndays_to_harvest: _____",
       "retrieved": [
-        "4465"
+        "5702"
       ],
       "source": "agronomy.docx"
     },
@@ -486,7 +486,7 @@
       },
       "question": "treatment: foliar\nnitrogen_kg_ha: 0\nowner: field lead\ndays_to_harvest: _____",
       "retrieved": [
-        "4465"
+        "5702"
       ],
       "source": "agronomy.docx"
     },
@@ -512,8 +512,8 @@
       },
       "question": "days_to_harvest: _____",
       "retrieved": [
-        "4464",
-        "4465"
+        "5701",
+        "5702"
       ],
       "source": "agronomy.docx"
     },
@@ -539,185 +539,191 @@
       },
       "question": "nitrogen_kg_ha: _____",
       "retrieved": [
-        "4465"
+        "5702"
       ],
       "source": "agronomy.docx"
     },
     {
       "all_positions_stored": true,
-      "best_score": 0.6651,
+      "best_score": 0.733,
       "facts": {
-        "covered": 2,
+        "covered": 1,
         "found": [
-          "2024-03-01 09:15:44 WARN  queue: ingest depth 4820 of 5000, shedding low priority",
-          "2024-03-01 09:15:45 INFO  queue: shed 214 low-priority frames"
+          "2024-03-01 09:15:44 WARN  queue: ingest depth 4820 of 5000, shedding low priority"
         ],
-        "missing": [],
-        "score": 1.0,
+        "missing": [
+          "2024-03-01 09:14:03 INFO  config: loaded limits from /etc/telemetry/limits.json"
+        ],
+        "score": 0.5,
         "total": 2
       },
       "id": "C010",
       "metrics": {
         "hit_rate@5": 1.0,
         "mrr@5": 1.0,
-        "ndcg@5": 1.0,
-        "precision@5": 0.4,
-        "recall@5": 1.0
+        "ndcg@5": 0.6131471927654584,
+        "precision@5": 0.2,
+        "recall@5": 0.5
       },
-      "question": "ingest depth _____ of 5000, shedding low priority\nshed _____ low-priority frames",
+      "question": "INFO  config: _____\ningest depth _____ of 5000, shedding low priority",
       "retrieved": [
-        "4470",
-        "4471",
-        "4485"
+        "5707",
+        "5722",
+        "5708",
+        "5725",
+        "5730"
       ],
       "source": "app.log"
     },
     {
       "all_positions_stored": true,
-      "best_score": 0.5302,
+      "best_score": 0.7099,
       "facts": {
-        "covered": 2,
+        "covered": 1,
         "found": [
-          "2024-03-01 09:15:45 INFO  queue: shed 214 low-priority frames",
-          "2024-03-01 09:31:07 INFO  ingest: flushed 12000 records to hot store"
+          "2024-03-01 09:15:45 INFO  queue: shed 214 low-priority frames"
         ],
-        "missing": [],
-        "score": 1.0,
+        "missing": [
+          "2024-03-01 09:14:03 INFO  config: loaded limits from /etc/telemetry/limits.json"
+        ],
+        "score": 0.5,
         "total": 2
       },
       "id": "C011",
       "metrics": {
         "hit_rate@5": 1.0,
         "mrr@5": 1.0,
-        "ndcg@5": 1.0,
-        "precision@5": 0.4,
-        "recall@5": 1.0
+        "ndcg@5": 0.6131471927654584,
+        "precision@5": 0.2,
+        "recall@5": 0.5
       },
-      "question": "shed _____ low-priority frames\nflushed _____ records to hot store",
+      "question": "INFO  config: _____\nshed _____ low-priority frames",
       "retrieved": [
-        "4471",
-        "4481",
-        "4488"
+        "5708",
+        "5707"
       ],
       "source": "app.log"
     },
     {
       "all_positions_stored": true,
-      "best_score": 0.5935,
+      "best_score": 0.6041,
       "facts": {
-        "covered": 2,
+        "covered": 1,
         "found": [
-          "2024-03-01 09:31:07 INFO  ingest: flushed 12000 records to hot store",
-          "2024-03-01 09:31:08 INFO  ingest: retention job scheduled, hot 7 warm 90"
+          "2024-03-01 09:31:07 INFO  ingest: flushed 12000 records to hot store"
         ],
-        "missing": [],
-        "score": 1.0,
+        "missing": [
+          "2024-03-01 09:14:03 INFO  config: loaded limits from /etc/telemetry/limits.json"
+        ],
+        "score": 0.5,
         "total": 2
       },
       "id": "C012",
       "metrics": {
         "hit_rate@5": 1.0,
         "mrr@5": 1.0,
-        "ndcg@5": 1.0,
-        "precision@5": 0.4,
-        "recall@5": 1.0
+        "ndcg@5": 0.6131471927654584,
+        "precision@5": 0.2,
+        "recall@5": 0.5
       },
-      "question": "flushed _____ records to hot store\nretention job scheduled, hot 7 warm _____",
+      "question": "INFO  config: _____\nflushed _____ records to hot store",
       "retrieved": [
-        "4481",
-        "4482",
-        "4489",
-        "4488"
+        "5718",
+        "5725"
       ],
       "source": "app.log"
     },
     {
       "all_positions_stored": true,
-      "best_score": 0.5706,
+      "best_score": 0.6741,
       "facts": {
-        "covered": 2,
+        "covered": 1,
         "found": [
-          "2024-03-01 09:31:08 INFO  ingest: retention job scheduled, hot 7 warm 90",
-          "2024-03-01 09:38:52 WARN  metrics: drop rate 0.014 exceeds threshold 0.01"
+          "2024-03-01 09:31:08 INFO  ingest: retention job scheduled, hot 7 warm 90"
         ],
-        "missing": [],
-        "score": 1.0,
+        "missing": [
+          "2024-03-01 09:14:03 INFO  config: loaded limits from /etc/telemetry/limits.json"
+        ],
+        "score": 0.5,
         "total": 2
       },
       "id": "C013",
       "metrics": {
         "hit_rate@5": 1.0,
         "mrr@5": 1.0,
-        "ndcg@5": 1.0,
-        "precision@5": 0.4,
-        "recall@5": 1.0
+        "ndcg@5": 0.6131471927654584,
+        "precision@5": 0.2,
+        "recall@5": 0.5
       },
-      "question": "retention job scheduled, hot 7 warm _____\ndrop rate _____ exceeds threshold 0.01",
+      "question": "INFO  config: _____\nretention job scheduled, hot 7 warm _____",
       "retrieved": [
-        "4482",
-        "4483",
-        "4489",
-        "4484"
+        "5719",
+        "5726",
+        "5718"
       ],
       "source": "app.log"
     },
     {
       "all_positions_stored": true,
-      "best_score": 0.5949,
+      "best_score": 0.6654,
       "facts": {
         "covered": 2,
         "found": [
-          "2024-03-01 09:38:52 WARN  metrics: drop rate 0.014 exceeds threshold 0.01",
-          "2024-03-01 09:44:19 INFO  ingest: backpressure cleared, queue depth 12"
+          "2024-03-01 09:15:44 WARN  queue: ingest depth 4820 of 5000, shedding low priority",
+          "2024-03-01 09:15:45 INFO  queue: shed 214 low-priority frames"
         ],
-        "missing": [],
-        "score": 1.0,
-        "total": 2
+        "missing": [
+          "2024-03-01 09:14:03 INFO  config: loaded limits from /etc/telemetry/limits.json"
+        ],
+        "score": 0.6666666666666666,
+        "total": 3
       },
       "id": "C014",
       "metrics": {
         "hit_rate@5": 1.0,
         "mrr@5": 1.0,
-        "ndcg@5": 1.0,
+        "ndcg@5": 0.7653606369886217,
         "precision@5": 0.4,
-        "recall@5": 1.0
+        "recall@5": 0.6666666666666666
       },
-      "question": "drop rate _____ exceeds threshold 0.01\nbackpressure cleared, queue depth _____",
+      "question": "INFO  config: _____\ningest depth _____ of 5000, shedding low priority\nshed _____ low-priority frames",
       "retrieved": [
-        "4483",
-        "4485",
-        "4470",
-        "4484",
-        "4471"
+        "5707",
+        "5708",
+        "5722"
       ],
       "source": "app.log"
     },
     {
       "all_positions_stored": true,
-      "best_score": 0.6171,
+      "best_score": 0.6183,
       "facts": {
         "covered": 2,
         "found": [
-          "2024-03-01 09:44:19 INFO  ingest: backpressure cleared, queue depth 12",
-          "2024-03-01 10:20:18 INFO  ingest: final flush complete, 380 records"
+          "2024-03-01 09:15:44 WARN  queue: ingest depth 4820 of 5000, shedding low priority",
+          "2024-03-01 09:31:07 INFO  ingest: flushed 12000 records to hot store"
         ],
-        "missing": [],
-        "score": 1.0,
-        "total": 2
+        "missing": [
+          "2024-03-01 09:14:03 INFO  config: loaded limits from /etc/telemetry/limits.json"
+        ],
+        "score": 0.6666666666666666,
+        "total": 3
       },
       "id": "C015",
       "metrics": {
         "hit_rate@5": 1.0,
         "mrr@5": 1.0,
-        "ndcg@5": 1.0,
+        "ndcg@5": 0.7653606369886217,
         "precision@5": 0.4,
-        "recall@5": 1.0
+        "recall@5": 0.6666666666666666
       },
-      "question": "backpressure cleared, queue depth _____\nfinal flush complete, _____ records",
+      "question": "INFO  config: _____\ningest depth _____ of 5000, shedding low priority\nflushed _____ records to hot store",
       "retrieved": [
-        "4485",
-        "4493",
-        "4470"
+        "5718",
+        "5707",
+        "5725",
+        "5722",
+        "5708"
       ],
       "source": "app.log"
     },
@@ -743,7 +749,7 @@
       },
       "question": "$.service: _____",
       "retrieved": [
-        "4495"
+        "5732"
       ],
       "source": "app.yaml"
     },
@@ -769,7 +775,7 @@
       },
       "question": "$.runtime.replicas: _____",
       "retrieved": [
-        "4495"
+        "5732"
       ],
       "source": "app.yaml"
     },
@@ -795,7 +801,7 @@
       },
       "question": "_____ $.runtime.cpu_limit:",
       "retrieved": [
-        "4495"
+        "5732"
       ],
       "source": "app.yaml"
     },
@@ -821,7 +827,7 @@
       },
       "question": "_____ $.runtime.graceful_shutdown_seconds:",
       "retrieved": [
-        "4495"
+        "5732"
       ],
       "source": "app.yaml"
     },
@@ -847,7 +853,7 @@
       },
       "question": "_____ $.database.engine:",
       "retrieved": [
-        "4495"
+        "5732"
       ],
       "source": "app.yaml"
     },
@@ -873,7 +879,7 @@
       },
       "question": "$.database.engine: _____",
       "retrieved": [
-        "4495"
+        "5732"
       ],
       "source": "app.yaml"
     },
@@ -901,7 +907,91 @@
       },
       "question": "Home Brewing Guide: _____\nA balanced grain bill for an all-grain pale ale pairs a _____ base malt with\na small proportion of crystal malt for body and a larger share of hops for\nbitterness.",
       "retrieved": [
-        "4498"
+        "5735"
+      ],
+      "source": "brew-guide.pdf"
+    },
+    {
+      "all_positions_stored": true,
+      "best_score": 0.6749,
+      "facts": {
+        "covered": 2,
+        "found": [
+          "Home Brewing Guide: Wort Production\nMashing converts the grain starches into fermentable sugars. The mash tun is\nheld at a single temperature for roughly an hour, and the temperature chosen\ndetermines how much of the fermentable wort will be produced. A single infusion\nmash at sixty-six degrees Celsius favours a balanced body.\nAfter the wort is drained, it is boiled for at least sixty minutes. The boil\nunwortifies the wort and drives off volatile hop character precursors. Whirlpool\nand knockout steps concentrate the hop additions late in the boil.\nFermentation is carried out by Saccharomyces cerevisiae at a controlled\ntemperature. Ale strains prefer warmer fermentation around eighteen to twenty\ndegrees, while lager strains are pitched cooler and held for longer.",
+          "Water Chemistry and Grain Bill\nMalt extract and mineral content are adjusted with gypsum and calcium chloride\nto bring the mash liquor into a desirable range. Sulphate in the finished beer\ntightens the mouthfeel and bittering perception, while chloride softens it.\nA balanced grain bill for an all-grain pale ale pairs a two row base malt with\na small proportion of crystal malt for body and a larger share of hops for\nbitterness. The mash temperature must be recalculated whenever the grist\nchanges, because a grist rich in crystal malt will gel and can foul the mash tun.\nFermentability is a ratio, not an absolute. A wort that started at 1.048 and\nfinished at 1.010 is about 79 percent apparent attenuation, which is normal for\nan ale, and 1.002 would suggest the mash or the attenuation curve is off."
+        ],
+        "missing": [],
+        "score": 1.0,
+        "total": 2
+      },
+      "id": "C023",
+      "metrics": {
+        "hit_rate@5": 1.0,
+        "mrr@5": 1.0,
+        "ndcg@5": 1.0,
+        "precision@5": 0.4,
+        "recall@5": 1.0
+      },
+      "question": "Home Brewing Guide: _____\nA wort that started at _____ and\nfinished at 1.010 is about 79 percent apparent attenuation, which is normal for\nan ale, and 1.002 would suggest the mash or the attenuation curve is off.",
+      "retrieved": [
+        "5735",
+        "5733"
+      ],
+      "source": "brew-guide.pdf"
+    },
+    {
+      "all_positions_stored": true,
+      "best_score": 0.6276,
+      "facts": {
+        "covered": 2,
+        "found": [
+          "Home Brewing Guide: Wort Production\nMashing converts the grain starches into fermentable sugars. The mash tun is\nheld at a single temperature for roughly an hour, and the temperature chosen\ndetermines how much of the fermentable wort will be produced. A single infusion\nmash at sixty-six degrees Celsius favours a balanced body.\nAfter the wort is drained, it is boiled for at least sixty minutes. The boil\nunwortifies the wort and drives off volatile hop character precursors. Whirlpool\nand knockout steps concentrate the hop additions late in the boil.\nFermentation is carried out by Saccharomyces cerevisiae at a controlled\ntemperature. Ale strains prefer warmer fermentation around eighteen to twenty\ndegrees, while lager strains are pitched cooler and held for longer.",
+          "Water Chemistry and Grain Bill\nMalt extract and mineral content are adjusted with gypsum and calcium chloride\nto bring the mash liquor into a desirable range. Sulphate in the finished beer\ntightens the mouthfeel and bittering perception, while chloride softens it.\nA balanced grain bill for an all-grain pale ale pairs a two row base malt with\na small proportion of crystal malt for body and a larger share of hops for\nbitterness. The mash temperature must be recalculated whenever the grist\nchanges, because a grist rich in crystal malt will gel and can foul the mash tun.\nFermentability is a ratio, not an absolute. A wort that started at 1.048 and\nfinished at 1.010 is about 79 percent apparent attenuation, which is normal for\nan ale, and 1.002 would suggest the mash or the attenuation curve is off."
+        ],
+        "missing": [],
+        "score": 1.0,
+        "total": 2
+      },
+      "id": "C024",
+      "metrics": {
+        "hit_rate@5": 1.0,
+        "mrr@5": 1.0,
+        "ndcg@5": 1.0,
+        "precision@5": 0.4,
+        "recall@5": 1.0
+      },
+      "question": "Home Brewing Guide: _____\nfinished at 1.010 is about _____ apparent attenuation, which is normal for\nan ale, and 1.002 would suggest the mash or the attenuation curve is off.",
+      "retrieved": [
+        "5735",
+        "5733"
+      ],
+      "source": "brew-guide.pdf"
+    },
+    {
+      "all_positions_stored": true,
+      "best_score": 0.6138,
+      "facts": {
+        "covered": 2,
+        "found": [
+          "Home Brewing Guide: Wort Production\nMashing converts the grain starches into fermentable sugars. The mash tun is\nheld at a single temperature for roughly an hour, and the temperature chosen\ndetermines how much of the fermentable wort will be produced. A single infusion\nmash at sixty-six degrees Celsius favours a balanced body.\nAfter the wort is drained, it is boiled for at least sixty minutes. The boil\nunwortifies the wort and drives off volatile hop character precursors. Whirlpool\nand knockout steps concentrate the hop additions late in the boil.\nFermentation is carried out by Saccharomyces cerevisiae at a controlled\ntemperature. Ale strains prefer warmer fermentation around eighteen to twenty\ndegrees, while lager strains are pitched cooler and held for longer.",
+          "Water Chemistry and Grain Bill\nMalt extract and mineral content are adjusted with gypsum and calcium chloride\nto bring the mash liquor into a desirable range. Sulphate in the finished beer\ntightens the mouthfeel and bittering perception, while chloride softens it.\nA balanced grain bill for an all-grain pale ale pairs a two row base malt with\na small proportion of crystal malt for body and a larger share of hops for\nbitterness. The mash temperature must be recalculated whenever the grist\nchanges, because a grist rich in crystal malt will gel and can foul the mash tun.\nFermentability is a ratio, not an absolute. A wort that started at 1.048 and\nfinished at 1.010 is about 79 percent apparent attenuation, which is normal for\nan ale, and 1.002 would suggest the mash or the attenuation curve is off."
+        ],
+        "missing": [],
+        "score": 1.0,
+        "total": 2
+      },
+      "id": "C025",
+      "metrics": {
+        "hit_rate@5": 1.0,
+        "mrr@5": 1.0,
+        "ndcg@5": 1.0,
+        "precision@5": 0.4,
+        "recall@5": 1.0
+      },
+      "question": "Home Brewing Guide: _____\nan ale, and _____ would suggest the mash or the attenuation curve is off.",
+      "retrieved": [
+        "5735",
+        "5733"
       ],
       "source": "brew-guide.pdf"
     },
@@ -917,7 +1007,7 @@
         "score": 1.0,
         "total": 1
       },
-      "id": "C023",
+      "id": "C026",
       "metrics": {
         "hit_rate@5": 1.0,
         "mrr@5": 1.0,
@@ -927,93 +1017,14 @@
       },
       "question": "Home Brewing Guide: _____",
       "retrieved": [
-        "4496",
-        "4498"
+        "5733",
+        "5735"
       ],
       "source": "brew-guide.pdf"
     },
     {
       "all_positions_stored": true,
       "best_score": 0.6834,
-      "facts": {
-        "covered": 1,
-        "found": [
-          "Water Chemistry and Grain Bill\nMalt extract and mineral content are adjusted with gypsum and calcium chloride\nto bring the mash liquor into a desirable range. Sulphate in the finished beer\ntightens the mouthfeel and bittering perception, while chloride softens it.\nA balanced grain bill for an all-grain pale ale pairs a two row base malt with\na small proportion of crystal malt for body and a larger share of hops for\nbitterness. The mash temperature must be recalculated whenever the grist\nchanges, because a grist rich in crystal malt will gel and can foul the mash tun.\nFermentability is a ratio, not an absolute. A wort that started at 1.048 and\nfinished at 1.010 is about 79 percent apparent attenuation, which is normal for\nan ale, and 1.002 would suggest the mash or the attenuation curve is off."
-        ],
-        "missing": [],
-        "score": 1.0,
-        "total": 1
-      },
-      "id": "C024",
-      "metrics": {
-        "hit_rate@5": 1.0,
-        "mrr@5": 1.0,
-        "ndcg@5": 1.0,
-        "precision@5": 0.2,
-        "recall@5": 1.0
-      },
-      "question": "A balanced grain bill for an all-grain pale ale pairs a _____ base malt with\na small proportion of crystal malt for body and a larger share of hops for\nbitterness.",
-      "retrieved": [
-        "4498"
-      ],
-      "source": "brew-guide.pdf"
-    },
-    {
-      "all_positions_stored": true,
-      "best_score": 0.6464,
-      "facts": {
-        "covered": 1,
-        "found": [
-          "Water Chemistry and Grain Bill\nMalt extract and mineral content are adjusted with gypsum and calcium chloride\nto bring the mash liquor into a desirable range. Sulphate in the finished beer\ntightens the mouthfeel and bittering perception, while chloride softens it.\nA balanced grain bill for an all-grain pale ale pairs a two row base malt with\na small proportion of crystal malt for body and a larger share of hops for\nbitterness. The mash temperature must be recalculated whenever the grist\nchanges, because a grist rich in crystal malt will gel and can foul the mash tun.\nFermentability is a ratio, not an absolute. A wort that started at 1.048 and\nfinished at 1.010 is about 79 percent apparent attenuation, which is normal for\nan ale, and 1.002 would suggest the mash or the attenuation curve is off."
-        ],
-        "missing": [],
-        "score": 1.0,
-        "total": 1
-      },
-      "id": "C025",
-      "metrics": {
-        "hit_rate@5": 1.0,
-        "mrr@5": 1.0,
-        "ndcg@5": 1.0,
-        "precision@5": 0.2,
-        "recall@5": 1.0
-      },
-      "question": "A wort that started at _____ and\nfinished at 1.010 is about 79 percent apparent attenuation, which is normal for\nan ale, and 1.002 would suggest the mash or the attenuation curve is off.",
-      "retrieved": [
-        "4498",
-        "4496"
-      ],
-      "source": "brew-guide.pdf"
-    },
-    {
-      "all_positions_stored": true,
-      "best_score": 0.5901,
-      "facts": {
-        "covered": 1,
-        "found": [
-          "Water Chemistry and Grain Bill\nMalt extract and mineral content are adjusted with gypsum and calcium chloride\nto bring the mash liquor into a desirable range. Sulphate in the finished beer\ntightens the mouthfeel and bittering perception, while chloride softens it.\nA balanced grain bill for an all-grain pale ale pairs a two row base malt with\na small proportion of crystal malt for body and a larger share of hops for\nbitterness. The mash temperature must be recalculated whenever the grist\nchanges, because a grist rich in crystal malt will gel and can foul the mash tun.\nFermentability is a ratio, not an absolute. A wort that started at 1.048 and\nfinished at 1.010 is about 79 percent apparent attenuation, which is normal for\nan ale, and 1.002 would suggest the mash or the attenuation curve is off."
-        ],
-        "missing": [],
-        "score": 1.0,
-        "total": 1
-      },
-      "id": "C026",
-      "metrics": {
-        "hit_rate@5": 1.0,
-        "mrr@5": 1.0,
-        "ndcg@5": 1.0,
-        "precision@5": 0.2,
-        "recall@5": 1.0
-      },
-      "question": "finished at 1.010 is about _____ apparent attenuation, which is normal for\nan ale, and 1.002 would suggest the mash or the attenuation curve is off.",
-      "retrieved": [
-        "4498"
-      ],
-      "source": "brew-guide.pdf"
-    },
-    {
-      "all_positions_stored": true,
-      "best_score": 0.5252,
       "facts": {
         "covered": 1,
         "found": [
@@ -1031,10 +1042,9 @@
         "precision@5": 0.2,
         "recall@5": 1.0
       },
-      "question": "an ale, and _____ would suggest the mash or the attenuation curve is off.",
+      "question": "A balanced grain bill for an all-grain pale ale pairs a _____ base malt with\na small proportion of crystal malt for body and a larger share of hops for\nbitterness.",
       "retrieved": [
-        "4498",
-        "4496"
+        "5735"
       ],
       "source": "brew-guide.pdf"
     },
@@ -1060,9 +1070,9 @@
       },
       "question": "const TIERS = _____",
       "retrieved": [
-        "4500",
-        "4501",
-        "4504"
+        "5737",
+        "5738",
+        "5741"
       ],
       "source": "cart.js"
     },
@@ -1088,8 +1098,8 @@
       },
       "question": "const tier = _____",
       "retrieved": [
-        "4501",
-        "4500"
+        "5738",
+        "5737"
       ],
       "source": "cart.js"
     },
@@ -1115,8 +1125,8 @@
       },
       "question": "return tier ? tier.rate : _____",
       "retrieved": [
-        "4501",
-        "4500"
+        "5738",
+        "5737"
       ],
       "source": "cart.js"
     },
@@ -1142,8 +1152,8 @@
       },
       "question": "const discounted = _____",
       "retrieved": [
-        "4504",
-        "4501"
+        "5741",
+        "5738"
       ],
       "source": "cart.js"
     },
@@ -1169,9 +1179,9 @@
       },
       "question": "item: Espresso Blend\nregion: EMEA\ncategory: Beverage\nunits_sold: 1240\nunit_price: 12.50\nrevenue: 15500.00\nreturn_rate_pct: _____",
       "retrieved": [
-        "4505",
-        "4506",
-        "4507"
+        "5742",
+        "5743",
+        "5744"
       ],
       "source": "coffee_sales.csv"
     },
@@ -1197,9 +1207,9 @@
       },
       "question": "item: Espresso Blend\nregion: APAC\ncategory: Beverage\nunits_sold: 1402\nunit_price: 12.50\nrevenue: 17525.00\nreturn_rate_pct: _____",
       "retrieved": [
-        "4505",
-        "4506",
-        "4507"
+        "5742",
+        "5743",
+        "5744"
       ],
       "source": "coffee_sales.csv"
     },
@@ -1225,9 +1235,9 @@
       },
       "question": "item: Espresso Blend\nregion: AMER\ncategory: Beverage\nunits_sold: 1610\nunit_price: 12.50\nrevenue: 20125.00\nreturn_rate_pct: _____",
       "retrieved": [
-        "4505",
-        "4507",
-        "4506"
+        "5742",
+        "5744",
+        "5743"
       ],
       "source": "coffee_sales.csv"
     },
@@ -1253,9 +1263,9 @@
       },
       "question": "item: Filter Papers\nregion: EMEA\ncategory: Accessory\nunits_sold: 3200\nunit_price: 3.20\nrevenue: 10240.00\nreturn_rate_pct: _____",
       "retrieved": [
-        "4505",
-        "4507",
-        "4506"
+        "5742",
+        "5744",
+        "5743"
       ],
       "source": "coffee_sales.csv"
     },
@@ -1281,9 +1291,9 @@
       },
       "question": "item: Filter Papers\nregion: APAC\ncategory: Accessory\nunits_sold: 2870\nunit_price: 3.20\nrevenue: 9184.00\nreturn_rate_pct: _____",
       "retrieved": [
-        "4505",
-        "4507",
-        "4506"
+        "5742",
+        "5744",
+        "5743"
       ],
       "source": "coffee_sales.csv"
     },
@@ -1309,9 +1319,9 @@
       },
       "question": "item: Filter Papers\nregion: AMER\ncategory: Accessory\nunits_sold: 3480\nunit_price: 3.20\nrevenue: 11136.00\nreturn_rate_pct: _____",
       "retrieved": [
-        "4505",
-        "4507",
-        "4506"
+        "5742",
+        "5744",
+        "5743"
       ],
       "source": "coffee_sales.csv"
     },
@@ -1338,8 +1348,8 @@
       },
       "question": "may terminate for convenience on _____ written notice.\nInvoices are payable within _____ of receipt.",
       "retrieved": [
-        "4512",
-        "4510"
+        "5749",
+        "5747"
       ],
       "source": "contract.html"
     },
@@ -1365,7 +1375,7 @@
       },
       "question": "may terminate for convenience on _____ written notice.",
       "retrieved": [
-        "4510"
+        "5747"
       ],
       "source": "contract.html"
     },
@@ -1391,7 +1401,7 @@
       },
       "question": "Invoices are payable within _____ of receipt.",
       "retrieved": [
-        "4512"
+        "5749"
       ],
       "source": "contract.html"
     },
@@ -1417,10 +1427,10 @@
       },
       "question": "region: EMEA\nquarter: Q1\nproduct: core\nrevenue_usd: 412300\nunits: 1180\nmargin_pct: 22.5\nchurn_pct: _____",
       "retrieved": [
-        "4513",
-        "4514",
-        "4516",
-        "4515"
+        "5750",
+        "5751",
+        "5753",
+        "5752"
       ],
       "source": "finance.csv"
     },
@@ -1446,10 +1456,10 @@
       },
       "question": "region: EMEA\nquarter: Q2\nproduct: core\nrevenue_usd: 438900\nunits: 1245\nmargin_pct: 23.0\nchurn_pct: _____",
       "retrieved": [
-        "4513",
-        "4514",
-        "4516",
-        "4515"
+        "5750",
+        "5751",
+        "5753",
+        "5752"
       ],
       "source": "finance.csv"
     },
@@ -1475,10 +1485,10 @@
       },
       "question": "region: EMEA\nquarter: Q3\nproduct: core\nrevenue_usd: 401200\nunits: 1155\nmargin_pct: 21.9\nchurn_pct: _____",
       "retrieved": [
-        "4513",
-        "4514",
-        "4516",
-        "4515"
+        "5750",
+        "5751",
+        "5753",
+        "5752"
       ],
       "source": "finance.csv"
     },
@@ -1504,10 +1514,10 @@
       },
       "question": "region: EMEA\nquarter: Q4\nproduct: core\nrevenue_usd: 455600\nunits: 1301\nmargin_pct: 24.2\nchurn_pct: _____",
       "retrieved": [
-        "4513",
-        "4516",
-        "4514",
-        "4515"
+        "5750",
+        "5753",
+        "5751",
+        "5752"
       ],
       "source": "finance.csv"
     },
@@ -1533,10 +1543,10 @@
       },
       "question": "region: APAC\nquarter: Q1\nproduct: core\nrevenue_usd: 388100\nunits: 1402\nmargin_pct: 19.8\nchurn_pct: _____",
       "retrieved": [
-        "4513",
-        "4516",
-        "4514",
-        "4515"
+        "5750",
+        "5753",
+        "5751",
+        "5752"
       ],
       "source": "finance.csv"
     },
@@ -1562,10 +1572,10 @@
       },
       "question": "region: APAC\nquarter: Q2\nproduct: core\nrevenue_usd: 410700\nunits: 1478\nmargin_pct: 20.4\nchurn_pct: _____",
       "retrieved": [
-        "4513",
-        "4516",
-        "4514",
-        "4515"
+        "5750",
+        "5753",
+        "5751",
+        "5752"
       ],
       "source": "finance.csv"
     },
@@ -1592,8 +1602,36 @@
       },
       "question": "Counter pressing starts within _____ of losing the ball.\nThe block narrows to _____ in behind the ball and thirty five metres in front of it.",
       "retrieved": [
-        "4519",
-        "4518"
+        "5756",
+        "5755"
+      ],
+      "source": "football.md"
+    },
+    {
+      "all_positions_stored": true,
+      "best_score": 0.7475,
+      "facts": {
+        "covered": 2,
+        "found": [
+          "Counter pressing starts within two seconds of losing the ball. The nearest\nplayer delays the restart rather than diving in, and the second man screens the\nmost obvious forward pass. Counter pressing fails when the first defender\npresses without cover, which leaves the pivot free to play long.",
+          "When counter pressing is broken the side drops into a back five, conceding\nterritory in exchange for a compact block. The block narrows to nineteen metres\nin behind the ball and thirty five metres in front of it."
+        ],
+        "missing": [],
+        "score": 1.0,
+        "total": 2
+      },
+      "id": "C048",
+      "metrics": {
+        "hit_rate@5": 1.0,
+        "mrr@5": 1.0,
+        "ndcg@5": 1.0,
+        "precision@5": 0.4,
+        "recall@5": 1.0
+      },
+      "question": "Counter pressing starts within _____ of losing the ball.\nin behind the ball and _____ in front of it.",
+      "retrieved": [
+        "5756",
+        "5755"
       ],
       "source": "football.md"
     },
@@ -1609,7 +1647,7 @@
         "score": 1.0,
         "total": 1
       },
-      "id": "C048",
+      "id": "C049",
       "metrics": {
         "hit_rate@5": 1.0,
         "mrr@5": 1.0,
@@ -1619,41 +1657,14 @@
       },
       "question": "Counter pressing starts within _____ of losing the ball.",
       "retrieved": [
-        "4518",
-        "4519"
+        "5755",
+        "5756"
       ],
       "source": "football.md"
     },
     {
       "all_positions_stored": true,
       "best_score": 0.6121,
-      "facts": {
-        "covered": 1,
-        "found": [
-          "When counter pressing is broken the side drops into a back five, conceding\nterritory in exchange for a compact block. The block narrows to nineteen metres\nin behind the ball and thirty five metres in front of it."
-        ],
-        "missing": [],
-        "score": 1.0,
-        "total": 1
-      },
-      "id": "C049",
-      "metrics": {
-        "hit_rate@5": 1.0,
-        "mrr@5": 1.0,
-        "ndcg@5": 1.0,
-        "precision@5": 0.2,
-        "recall@5": 1.0
-      },
-      "question": "The block narrows to _____ in behind the ball and thirty five metres in front of it.",
-      "retrieved": [
-        "4519",
-        "4520"
-      ],
-      "source": "football.md"
-    },
-    {
-      "all_positions_stored": true,
-      "best_score": 0.4554,
       "facts": {
         "covered": 1,
         "found": [
@@ -1671,10 +1682,37 @@
         "precision@5": 0.2,
         "recall@5": 1.0
       },
+      "question": "The block narrows to _____ in behind the ball and thirty five metres in front of it.",
+      "retrieved": [
+        "5756",
+        "5757"
+      ],
+      "source": "football.md"
+    },
+    {
+      "all_positions_stored": true,
+      "best_score": 0.4554,
+      "facts": {
+        "covered": 1,
+        "found": [
+          "When counter pressing is broken the side drops into a back five, conceding\nterritory in exchange for a compact block. The block narrows to nineteen metres\nin behind the ball and thirty five metres in front of it."
+        ],
+        "missing": [],
+        "score": 1.0,
+        "total": 1
+      },
+      "id": "C051",
+      "metrics": {
+        "hit_rate@5": 1.0,
+        "mrr@5": 1.0,
+        "ndcg@5": 1.0,
+        "precision@5": 0.2,
+        "recall@5": 1.0
+      },
       "question": "in behind the ball and _____ in front of it.",
       "retrieved": [
-        "4519",
-        "4520"
+        "5756",
+        "5757"
       ],
       "source": "football.md"
     },
@@ -1690,7 +1728,7 @@
         "score": 1.0,
         "total": 1
       },
-      "id": "C051",
+      "id": "C052",
       "metrics": {
         "hit_rate@5": 1.0,
         "mrr@5": 1.0,
@@ -1700,82 +1738,25 @@
       },
       "question": "Mandatory passivation is required within _____ of end of life.",
       "retrieved": [
-        "4521"
+        "5758"
       ],
       "source": "handbook.pdf"
     },
     {
       "all_positions_stored": true,
-      "best_score": 0.7002,
-      "facts": {
-        "covered": 2,
-        "found": [
-          "2024-11-03 06:00:01 INFO  scheduler: loaded 14 fields from parcels_v3.parquet",
-          "2024-11-03 06:00:04 WARN  io: field soil_ph missing for 38 of 12480 rows"
-        ],
-        "missing": [],
-        "score": 1.0,
-        "total": 2
-      },
-      "id": "C052",
-      "metrics": {
-        "hit_rate@5": 1.0,
-        "mrr@5": 1.0,
-        "ndcg@5": 1.0,
-        "precision@5": 0.4,
-        "recall@5": 1.0
-      },
-      "question": "loaded _____ fields from parcels_v3.parquet\nfield soil_ph missing for 38 of _____",
-      "retrieved": [
-        "4526",
-        "4525",
-        "4527"
-      ],
-      "source": "harvest.log"
-    },
-    {
-      "all_positions_stored": true,
-      "best_score": 0.8151,
-      "facts": {
-        "covered": 2,
-        "found": [
-          "2024-11-03 06:00:04 WARN  io: field soil_ph missing for 38 of 12480 rows",
-          "2024-11-03 06:00:04 INFO  io: imputed soil_ph with field median 6.4"
-        ],
-        "missing": [],
-        "score": 1.0,
-        "total": 2
-      },
-      "id": "C053",
-      "metrics": {
-        "hit_rate@5": 1.0,
-        "mrr@5": 1.0,
-        "ndcg@5": 1.0,
-        "precision@5": 0.4,
-        "recall@5": 1.0
-      },
-      "question": "field soil_ph missing for 38 of _____\nimputed soil_ph with field median _____",
-      "retrieved": [
-        "4527",
-        "4526"
-      ],
-      "source": "harvest.log"
-    },
-    {
-      "all_positions_stored": true,
-      "best_score": 0.7815,
+      "best_score": 0.9029,
       "facts": {
         "covered": 1,
         "found": [
-          "2024-11-03 06:00:04 INFO  io: imputed soil_ph with field median 6.4"
+          "2024-11-03 06:00:01 INFO  scheduler: loaded 14 fields from parcels_v3.parquet"
         ],
         "missing": [
-          "2024-11-03 06:00:09 INFO  gis: reprojected 12480 geometries to EPSG:4326"
+          "2024-11-03 06:00:01 INFO  scheduler: harvest plan run starting"
         ],
         "score": 0.5,
         "total": 2
       },
-      "id": "C054",
+      "id": "C053",
       "metrics": {
         "hit_rate@5": 1.0,
         "mrr@5": 1.0,
@@ -1783,23 +1764,53 @@
         "precision@5": 0.2,
         "recall@5": 0.5
       },
-      "question": "imputed soil_ph with field median _____\nreprojected _____ to EPSG:4326",
+      "question": "INFO  scheduler: _____\nloaded _____ fields from parcels_v3.parquet",
       "retrieved": [
-        "4527",
-        "4526"
+        "5762"
       ],
       "source": "harvest.log"
     },
     {
       "all_positions_stored": true,
-      "best_score": 0.5776,
+      "best_score": 0.7961,
+      "facts": {
+        "covered": 2,
+        "found": [
+          "2024-11-03 06:00:01 INFO  scheduler: harvest plan run starting",
+          "2024-11-03 06:00:04 WARN  io: field soil_ph missing for 38 of 12480 rows"
+        ],
+        "missing": [],
+        "score": 1.0,
+        "total": 2
+      },
+      "id": "C054",
+      "metrics": {
+        "hit_rate@5": 1.0,
+        "mrr@5": 1.0,
+        "ndcg@5": 0.8772153153380493,
+        "precision@5": 0.4,
+        "recall@5": 1.0
+      },
+      "question": "INFO  scheduler: _____\nfield soil_ph missing for 38 of _____",
+      "retrieved": [
+        "5763",
+        "5764",
+        "5762",
+        "5761",
+        "5772"
+      ],
+      "source": "harvest.log"
+    },
+    {
+      "all_positions_stored": true,
+      "best_score": 0.7988,
       "facts": {
         "covered": 1,
         "found": [
-          "2024-11-03 06:00:18 INFO  model: training on 11864 rows, 22 features"
+          "2024-11-03 06:00:04 INFO  io: imputed soil_ph with field median 6.4"
         ],
         "missing": [
-          "2024-11-03 06:00:09 INFO  gis: reprojected 12480 geometries to EPSG:4326"
+          "2024-11-03 06:00:01 INFO  scheduler: harvest plan run starting"
         ],
         "score": 0.5,
         "total": 2
@@ -1812,62 +1823,106 @@
         "precision@5": 0.2,
         "recall@5": 0.5
       },
-      "question": "reprojected _____ to EPSG:4326\ntraining on 11864 rows, _____",
+      "question": "INFO  scheduler: _____\nimputed soil_ph with field median _____",
       "retrieved": [
-        "4531"
+        "5764",
+        "5763",
+        "5762",
+        "5772"
       ],
       "source": "harvest.log"
     },
     {
       "all_positions_stored": true,
-      "best_score": 0.7817,
+      "best_score": 0.4382,
       "facts": {
-        "covered": 1,
+        "covered": 2,
         "found": [
-          "2024-11-03 06:00:01 INFO  scheduler: loaded 14 fields from parcels_v3.parquet"
+          "2024-11-03 06:00:01 INFO  scheduler: harvest plan run starting",
+          "2024-11-03 06:00:09 INFO  gis: reprojected 12480 geometries to EPSG:4326"
         ],
         "missing": [],
         "score": 1.0,
-        "total": 1
+        "total": 2
       },
       "id": "C056",
       "metrics": {
         "hit_rate@5": 1.0,
         "mrr@5": 1.0,
-        "ndcg@5": 1.0,
-        "precision@5": 0.2,
+        "ndcg@5": 0.9197207891481876,
+        "precision@5": 0.4,
         "recall@5": 1.0
       },
-      "question": "loaded _____ fields from parcels_v3.parquet",
+      "question": "INFO  scheduler: _____\nreprojected _____ to EPSG:4326",
       "retrieved": [
-        "4525"
+        "5765",
+        "5772",
+        "5761",
+        "5762"
       ],
       "source": "harvest.log"
     },
     {
       "all_positions_stored": true,
-      "best_score": 0.815,
+      "best_score": 0.7674,
       "facts": {
-        "covered": 1,
+        "covered": 3,
         "found": [
+          "2024-11-03 06:00:01 INFO  scheduler: harvest plan run starting",
+          "2024-11-03 06:00:01 INFO  scheduler: loaded 14 fields from parcels_v3.parquet",
           "2024-11-03 06:00:04 WARN  io: field soil_ph missing for 38 of 12480 rows"
         ],
         "missing": [],
         "score": 1.0,
-        "total": 1
+        "total": 3
       },
       "id": "C057",
       "metrics": {
         "hit_rate@5": 1.0,
         "mrr@5": 1.0,
-        "ndcg@5": 1.0,
-        "precision@5": 0.2,
+        "ndcg@5": 0.9469024295259745,
+        "precision@5": 0.6,
         "recall@5": 1.0
       },
-      "question": "field soil_ph missing for 38 of _____",
+      "question": "INFO  scheduler: _____\nloaded _____ fields from parcels_v3.parquet\nfield soil_ph missing for 38 of _____",
       "retrieved": [
-        "4526",
-        "4527"
+        "5762",
+        "5763",
+        "5764",
+        "5772",
+        "5761"
+      ],
+      "source": "harvest.log"
+    },
+    {
+      "all_positions_stored": true,
+      "best_score": 0.748,
+      "facts": {
+        "covered": 3,
+        "found": [
+          "2024-11-03 06:00:01 INFO  scheduler: harvest plan run starting",
+          "2024-11-03 06:00:01 INFO  scheduler: loaded 14 fields from parcels_v3.parquet",
+          "2024-11-03 06:00:04 INFO  io: imputed soil_ph with field median 6.4"
+        ],
+        "missing": [],
+        "score": 1.0,
+        "total": 3
+      },
+      "id": "C058",
+      "metrics": {
+        "hit_rate@5": 1.0,
+        "mrr@5": 1.0,
+        "ndcg@5": 0.9469024295259745,
+        "precision@5": 0.6,
+        "recall@5": 1.0
+      },
+      "question": "INFO  scheduler: _____\nloaded _____ fields from parcels_v3.parquet\nimputed soil_ph with field median _____",
+      "retrieved": [
+        "5762",
+        "5764",
+        "5763",
+        "5772",
+        "5761"
       ],
       "source": "harvest.log"
     },
@@ -1883,7 +1938,7 @@
         "score": 1.0,
         "total": 1
       },
-      "id": "C058",
+      "id": "C059",
       "metrics": {
         "hit_rate@5": 1.0,
         "mrr@5": 1.0,
@@ -1893,7 +1948,7 @@
       },
       "question": "Rotate brassicas on a _____ cycle to starve the soil borne diseases that\nbuild up under a continuous crop.",
       "retrieved": [
-        "4537"
+        "5774"
       ],
       "source": "horticulture.md"
     },
@@ -1910,7 +1965,7 @@
         "score": 1.0,
         "total": 2
       },
-      "id": "C059",
+      "id": "C060",
       "metrics": {
         "hit_rate@5": 1.0,
         "mrr@5": 1.0,
@@ -1920,10 +1975,10 @@
       },
       "question": "This manual defines the minimum ventilation standard for underground workings below _____ depth.\n450 millimetres diameter is required beyond _____ from the main circuit, and duct length beyond that distance is deducted from the calculated flow.",
       "retrieved": [
-        "4541",
-        "4546",
-        "4539",
-        "4543"
+        "5778",
+        "5783",
+        "5776",
+        "5780"
       ],
       "source": "mining.rst"
     },
@@ -1939,7 +1994,7 @@
         "score": 1.0,
         "total": 1
       },
-      "id": "C060",
+      "id": "C061",
       "metrics": {
         "hit_rate@5": 1.0,
         "mrr@5": 1.0,
@@ -1949,7 +2004,7 @@
       },
       "question": "Operations Manual: _____",
       "retrieved": [
-        "4539"
+        "5776"
       ],
       "source": "mining.rst"
     },
@@ -1965,7 +2020,7 @@
         "score": 1.0,
         "total": 1
       },
-      "id": "C061",
+      "id": "C062",
       "metrics": {
         "hit_rate@5": 1.0,
         "mrr@5": 1.0,
@@ -1975,9 +2030,9 @@
       },
       "question": "This manual defines the minimum ventilation standard for underground workings below _____ depth.",
       "retrieved": [
-        "4541",
-        "4539",
-        "4543"
+        "5778",
+        "5776",
+        "5780"
       ],
       "source": "mining.rst"
     },
@@ -1993,7 +2048,7 @@
         "score": 1.0,
         "total": 1
       },
-      "id": "C062",
+      "id": "C063",
       "metrics": {
         "hit_rate@5": 1.0,
         "mrr@5": 1.0,
@@ -2003,40 +2058,14 @@
       },
       "question": "450 millimetres diameter is required beyond _____ from the main circuit, and duct length beyond that distance is deducted from the calculated flow.",
       "retrieved": [
-        "4546",
-        "4541"
+        "5783",
+        "5778"
       ],
       "source": "mining.rst"
     },
     {
       "all_positions_stored": true,
       "best_score": 0.2886,
-      "facts": {
-        "covered": 1,
-        "found": [
-          "$.model: wide-residual-cascade\n$.version: 7\n$.training.epochs: 140\n$.training.batch_size: 512\n$.training.optimizer: adamw\n$.training.learning_rate: 0.001\n$.training.weight_decay: 0.0001\n$.training.early_stopping_patience: 12\n$.data.train_rows: 4820000\n$.data.validation_rows: 320000\n$.data.test_rows: 310000\n$.data.positive_rate: 0.042\n$.features.categorical[0]: merchant_category\n$.features.categorical[1]: country\n$.features.categorical[2]: device_type\n$.features.numerical[0]: amount\n$.features.numerical[1]: hour_of_day\n$.features.numerical[2]: days_since_signup\n$.features.text[0]: description\n$.thresholds.review: 0.35\n$.thresholds.decline: 0.82\n$.monitoring.drift_alert_auc_drop: 0.03\n$.monitoring.retrain_frequency_days: 14"
-        ],
-        "missing": [],
-        "score": 1.0,
-        "total": 1
-      },
-      "id": "C063",
-      "metrics": {
-        "hit_rate@5": 1.0,
-        "mrr@5": 1.0,
-        "ndcg@5": 1.0,
-        "precision@5": 0.2,
-        "recall@5": 1.0
-      },
-      "question": "$.model: _____",
-      "retrieved": [
-        "4549"
-      ],
-      "source": "model.json"
-    },
-    {
-      "all_positions_stored": true,
-      "best_score": 0.408,
       "facts": {
         "covered": 1,
         "found": [
@@ -2054,15 +2083,15 @@
         "precision@5": 0.2,
         "recall@5": 1.0
       },
-      "question": "_____ $.training.batch_size:",
+      "question": "$.model: _____",
       "retrieved": [
-        "4549"
+        "5786"
       ],
       "source": "model.json"
     },
     {
       "all_positions_stored": true,
-      "best_score": 0.4207,
+      "best_score": 0.408,
       "facts": {
         "covered": 1,
         "found": [
@@ -2080,15 +2109,15 @@
         "precision@5": 0.2,
         "recall@5": 1.0
       },
-      "question": "_____ $.training.optimizer:",
+      "question": "_____ $.training.batch_size:",
       "retrieved": [
-        "4549"
+        "5786"
       ],
       "source": "model.json"
     },
     {
       "all_positions_stored": true,
-      "best_score": 0.407,
+      "best_score": 0.4207,
       "facts": {
         "covered": 1,
         "found": [
@@ -2106,15 +2135,15 @@
         "precision@5": 0.2,
         "recall@5": 1.0
       },
-      "question": "$.training.optimizer: _____",
+      "question": "_____ $.training.optimizer:",
       "retrieved": [
-        "4549"
+        "5786"
       ],
       "source": "model.json"
     },
     {
       "all_positions_stored": true,
-      "best_score": 0.4694,
+      "best_score": 0.407,
       "facts": {
         "covered": 1,
         "found": [
@@ -2132,15 +2161,15 @@
         "precision@5": 0.2,
         "recall@5": 1.0
       },
-      "question": "_____ $.training.weight_decay:",
+      "question": "$.training.optimizer: _____",
       "retrieved": [
-        "4549"
+        "5786"
       ],
       "source": "model.json"
     },
     {
       "all_positions_stored": true,
-      "best_score": 0.4355,
+      "best_score": 0.4694,
       "facts": {
         "covered": 1,
         "found": [
@@ -2158,9 +2187,35 @@
         "precision@5": 0.2,
         "recall@5": 1.0
       },
+      "question": "_____ $.training.weight_decay:",
+      "retrieved": [
+        "5786"
+      ],
+      "source": "model.json"
+    },
+    {
+      "all_positions_stored": true,
+      "best_score": 0.4355,
+      "facts": {
+        "covered": 1,
+        "found": [
+          "$.model: wide-residual-cascade\n$.version: 7\n$.training.epochs: 140\n$.training.batch_size: 512\n$.training.optimizer: adamw\n$.training.learning_rate: 0.001\n$.training.weight_decay: 0.0001\n$.training.early_stopping_patience: 12\n$.data.train_rows: 4820000\n$.data.validation_rows: 320000\n$.data.test_rows: 310000\n$.data.positive_rate: 0.042\n$.features.categorical[0]: merchant_category\n$.features.categorical[1]: country\n$.features.categorical[2]: device_type\n$.features.numerical[0]: amount\n$.features.numerical[1]: hour_of_day\n$.features.numerical[2]: days_since_signup\n$.features.text[0]: description\n$.thresholds.review: 0.35\n$.thresholds.decline: 0.82\n$.monitoring.drift_alert_auc_drop: 0.03\n$.monitoring.retrain_frequency_days: 14"
+        ],
+        "missing": [],
+        "score": 1.0,
+        "total": 1
+      },
+      "id": "C069",
+      "metrics": {
+        "hit_rate@5": 1.0,
+        "mrr@5": 1.0,
+        "ndcg@5": 1.0,
+        "precision@5": 0.2,
+        "recall@5": 1.0
+      },
       "question": "_____ $.training.early_stopping_patience:",
       "retrieved": [
-        "4549"
+        "5786"
       ],
       "source": "model.json"
     },
@@ -2178,7 +2233,7 @@
         "score": 0.5,
         "total": 2
       },
-      "id": "C069",
+      "id": "C070",
       "metrics": {
         "hit_rate@5": 1.0,
         "mrr@5": 1.0,
@@ -2188,7 +2243,7 @@
       },
       "question": "Pharmacology Study Notes: _____\nVancomycin must be infused slowly over at least _____ to avoid red man syndrome, which is a histamine mediated reaction rather than true allergy.",
       "retrieved": [
-        "4553"
+        "5790"
       ],
       "source": "pharm-notes.txt"
     },
@@ -2204,7 +2259,7 @@
         "score": 1.0,
         "total": 1
       },
-      "id": "C070",
+      "id": "C071",
       "metrics": {
         "hit_rate@5": 1.0,
         "mrr@5": 1.0,
@@ -2214,8 +2269,8 @@
       },
       "question": "Pharmacology Study Notes: _____",
       "retrieved": [
-        "4550",
-        "4552"
+        "5787",
+        "5789"
       ],
       "source": "pharm-notes.txt"
     },
@@ -2231,7 +2286,7 @@
         "score": 1.0,
         "total": 1
       },
-      "id": "C071",
+      "id": "C072",
       "metrics": {
         "hit_rate@5": 1.0,
         "mrr@5": 1.0,
@@ -2241,7 +2296,7 @@
       },
       "question": "Vancomycin must be infused slowly over at least _____ to avoid red man syndrome, which is a histamine mediated reaction rather than true allergy.",
       "retrieved": [
-        "4553"
+        "5790"
       ],
       "source": "pharm-notes.txt"
     },
@@ -2257,7 +2312,7 @@
         "score": 1.0,
         "total": 1
       },
-      "id": "C072",
+      "id": "C073",
       "metrics": {
         "hit_rate@5": 1.0,
         "mrr@5": 1.0,
@@ -2267,8 +2322,8 @@
       },
       "question": "JOIN zones z ON z.zone_id = _____",
       "retrieved": [
-        "4556",
-        "4557"
+        "5793",
+        "5794"
       ],
       "source": "picks.sql"
     },
@@ -2284,7 +2339,7 @@
         "score": 1.0,
         "total": 1
       },
-      "id": "C073",
+      "id": "C074",
       "metrics": {
         "hit_rate@5": 1.0,
         "mrr@5": 0.5,
@@ -2294,40 +2349,14 @@
       },
       "question": "channel: _____",
       "retrieved": [
-        "4561",
-        "4558"
+        "5798",
+        "5795"
       ],
       "source": "pipeline.py"
     },
     {
       "all_positions_stored": true,
       "best_score": 0.3064,
-      "facts": {
-        "covered": 1,
-        "found": [
-          "Frame\nclass Frame:\n    channel: str\n    value: float\n    timestamp: float"
-        ],
-        "missing": [],
-        "score": 1.0,
-        "total": 1
-      },
-      "id": "C074",
-      "metrics": {
-        "hit_rate@5": 1.0,
-        "mrr@5": 1.0,
-        "ndcg@5": 1.0,
-        "precision@5": 0.2,
-        "recall@5": 1.0
-      },
-      "question": "value: _____",
-      "retrieved": [
-        "4558"
-      ],
-      "source": "pipeline.py"
-    },
-    {
-      "all_positions_stored": true,
-      "best_score": 0.4164,
       "facts": {
         "covered": 1,
         "found": [
@@ -2345,9 +2374,35 @@
         "precision@5": 0.2,
         "recall@5": 1.0
       },
+      "question": "value: _____",
+      "retrieved": [
+        "5795"
+      ],
+      "source": "pipeline.py"
+    },
+    {
+      "all_positions_stored": true,
+      "best_score": 0.4164,
+      "facts": {
+        "covered": 1,
+        "found": [
+          "Frame\nclass Frame:\n    channel: str\n    value: float\n    timestamp: float"
+        ],
+        "missing": [],
+        "score": 1.0,
+        "total": 1
+      },
+      "id": "C076",
+      "metrics": {
+        "hit_rate@5": 1.0,
+        "mrr@5": 1.0,
+        "ndcg@5": 1.0,
+        "precision@5": 0.2,
+        "recall@5": 1.0
+      },
       "question": "timestamp: _____",
       "retrieved": [
-        "4558"
+        "5795"
       ],
       "source": "pipeline.py"
     },
@@ -2363,7 +2418,7 @@
         "score": 1.0,
         "total": 1
       },
-      "id": "C076",
+      "id": "C077",
       "metrics": {
         "hit_rate@5": 1.0,
         "mrr@5": 1.0,
@@ -2373,7 +2428,7 @@
       },
       "question": "def normalise_channel(name: _____",
       "retrieved": [
-        "4561"
+        "5798"
       ],
       "source": "pipeline.py"
     },
@@ -2389,7 +2444,7 @@
         "score": 1.0,
         "total": 1
       },
-      "id": "C077",
+      "id": "C078",
       "metrics": {
         "hit_rate@5": 1.0,
         "mrr@5": 1.0,
@@ -2399,39 +2454,13 @@
       },
       "question": "keep = _____",
       "retrieved": [
-        "4562"
+        "5799"
       ],
       "source": "pipeline.py"
     },
     {
       "all_positions_stored": true,
       "best_score": 0.4658,
-      "facts": {
-        "covered": 1,
-        "found": [
-          "$.package.name: harvest-planner\n$.package.version: 0.9.3\n$.package.edition: 2021\n$.dependencies.serde: 1.0\n$.dependencies.chrono: 0.4\n$.dependencies.polars: 0.20\n$.profile.release.opt-level: 3\n$.profile.release.lto: True\n$.profile.release.codegen-units: 1"
-        ],
-        "missing": [],
-        "score": 1.0,
-        "total": 1
-      },
-      "id": "C078",
-      "metrics": {
-        "hit_rate@5": 1.0,
-        "mrr@5": 1.0,
-        "ndcg@5": 1.0,
-        "precision@5": 0.2,
-        "recall@5": 1.0
-      },
-      "question": "$.package.name: _____",
-      "retrieved": [
-        "4563"
-      ],
-      "source": "pyproject.toml"
-    },
-    {
-      "all_positions_stored": true,
-      "best_score": 0.4765,
       "facts": {
         "covered": 1,
         "found": [
@@ -2449,15 +2478,15 @@
         "precision@5": 0.2,
         "recall@5": 1.0
       },
-      "question": "$.package.version: _____",
+      "question": "$.package.name: _____",
       "retrieved": [
-        "4563"
+        "5800"
       ],
       "source": "pyproject.toml"
     },
     {
       "all_positions_stored": true,
-      "best_score": 0.5021,
+      "best_score": 0.4765,
       "facts": {
         "covered": 1,
         "found": [
@@ -2475,15 +2504,15 @@
         "precision@5": 0.2,
         "recall@5": 1.0
       },
-      "question": "_____ $.dependencies.serde:",
+      "question": "$.package.version: _____",
       "retrieved": [
-        "4563"
+        "5800"
       ],
       "source": "pyproject.toml"
     },
     {
       "all_positions_stored": true,
-      "best_score": 0.4404,
+      "best_score": 0.5021,
       "facts": {
         "covered": 1,
         "found": [
@@ -2501,15 +2530,15 @@
         "precision@5": 0.2,
         "recall@5": 1.0
       },
-      "question": "_____ $.dependencies.chrono:",
+      "question": "_____ $.dependencies.serde:",
       "retrieved": [
-        "4563"
+        "5800"
       ],
       "source": "pyproject.toml"
     },
     {
       "all_positions_stored": true,
-      "best_score": 0.3704,
+      "best_score": 0.4404,
       "facts": {
         "covered": 1,
         "found": [
@@ -2527,15 +2556,15 @@
         "precision@5": 0.2,
         "recall@5": 1.0
       },
-      "question": "_____ $.dependencies.polars:",
+      "question": "_____ $.dependencies.chrono:",
       "retrieved": [
-        "4563"
+        "5800"
       ],
       "source": "pyproject.toml"
     },
     {
       "all_positions_stored": true,
-      "best_score": 0.4197,
+      "best_score": 0.3704,
       "facts": {
         "covered": 1,
         "found": [
@@ -2553,19 +2582,19 @@
         "precision@5": 0.2,
         "recall@5": 1.0
       },
-      "question": "_____ $.profile.release.opt-level:",
+      "question": "_____ $.dependencies.polars:",
       "retrieved": [
-        "4563"
+        "5800"
       ],
       "source": "pyproject.toml"
     },
     {
       "all_positions_stored": true,
-      "best_score": 0.841,
+      "best_score": 0.4197,
       "facts": {
         "covered": 1,
         "found": [
-          "step: freeze\nowner: ana\nduration_min: 90\nreversible: no\nstep: canary\nowner: sam\nduration_min: 30\nreversible: yes\nstep: ramp\nowner: sam\nduration_min: 45\nreversible: yes\nstep: verify\nowner: priya\nduration_min: 20\nreversible: n/a\nstep: rollback\nowner: ana\nduration_min: 30\nreversible: yes"
+          "$.package.name: harvest-planner\n$.package.version: 0.9.3\n$.package.edition: 2021\n$.dependencies.serde: 1.0\n$.dependencies.chrono: 0.4\n$.dependencies.polars: 0.20\n$.profile.release.opt-level: 3\n$.profile.release.lto: True\n$.profile.release.codegen-units: 1"
         ],
         "missing": [],
         "score": 1.0,
@@ -2579,41 +2608,43 @@
         "precision@5": 0.2,
         "recall@5": 1.0
       },
-      "question": "step: freeze\nowner: ana\nduration_min: _____\nreversible: no",
+      "question": "_____ $.profile.release.opt-level:",
       "retrieved": [
-        "4568"
+        "5800"
       ],
-      "source": "report.docx"
+      "source": "pyproject.toml"
     },
     {
       "all_positions_stored": true,
-      "best_score": 0.7733,
+      "best_score": 0.7722,
       "facts": {
         "covered": 1,
         "found": [
+          "The rollback plan must be rehearsed in staging. A rollback is triggered if the error rate exceeds 0.5 percent over any five minute window."
+        ],
+        "missing": [
           "step: freeze\nowner: ana\nduration_min: 90\nreversible: no\nstep: canary\nowner: sam\nduration_min: 30\nreversible: yes\nstep: ramp\nowner: sam\nduration_min: 45\nreversible: yes\nstep: verify\nowner: priya\nduration_min: 20\nreversible: n/a\nstep: rollback\nowner: ana\nduration_min: 30\nreversible: yes"
         ],
-        "missing": [],
-        "score": 1.0,
-        "total": 1
+        "score": 0.5,
+        "total": 2
       },
       "id": "C085",
       "metrics": {
         "hit_rate@5": 1.0,
         "mrr@5": 1.0,
-        "ndcg@5": 1.0,
+        "ndcg@5": 0.6131471927654584,
         "precision@5": 0.2,
-        "recall@5": 1.0
+        "recall@5": 0.5
       },
-      "question": "step: canary\nowner: sam\nduration_min: _____\nreversible: yes",
+      "question": "A rollback is triggered if the error rate exceeds _____ over any five minute window.\nduration_min: _____",
       "retrieved": [
-        "4568"
+        "5803"
       ],
       "source": "report.docx"
     },
     {
       "all_positions_stored": true,
-      "best_score": 0.732,
+      "best_score": 0.841,
       "facts": {
         "covered": 1,
         "found": [
@@ -2631,16 +2662,15 @@
         "precision@5": 0.2,
         "recall@5": 1.0
       },
-      "question": "step: ramp\nowner: sam\nduration_min: _____\nreversible: yes",
+      "question": "step: freeze\nowner: ana\nduration_min: _____\nreversible: no",
       "retrieved": [
-        "4568",
-        "4567"
+        "5805"
       ],
       "source": "report.docx"
     },
     {
       "all_positions_stored": true,
-      "best_score": 0.7049,
+      "best_score": 0.7733,
       "facts": {
         "covered": 1,
         "found": [
@@ -2658,19 +2688,19 @@
         "precision@5": 0.2,
         "recall@5": 1.0
       },
-      "question": "step: verify\nowner: priya\nduration_min: _____\nreversible: n/a",
+      "question": "step: canary\nowner: sam\nduration_min: _____\nreversible: yes",
       "retrieved": [
-        "4568"
+        "5805"
       ],
       "source": "report.docx"
     },
     {
       "all_positions_stored": true,
-      "best_score": 0.7676,
+      "best_score": 0.536,
       "facts": {
         "covered": 1,
         "found": [
-          "step: freeze\nowner: ana\nduration_min: 90\nreversible: no\nstep: canary\nowner: sam\nduration_min: 30\nreversible: yes\nstep: ramp\nowner: sam\nduration_min: 45\nreversible: yes\nstep: verify\nowner: priya\nduration_min: 20\nreversible: n/a\nstep: rollback\nowner: ana\nduration_min: 30\nreversible: yes"
+          "$.service: telemetry-ingest\n$.version: 4\n$.limits.requests_per_minute: 600\n$.limits.burst: 1200\n$.limits.max_payload_bytes: 8388608\n$.limits.max_channels: 4096\n$.retention.hot_days: 7\n$.retention.warm_days: 90\n$.retention.archive_years: 7\n$.regions[0]: eu-west-1\n$.regions[1]: us-east-1\n$.regions[2]: ap-southeast-2\n$.alerts.ingest_lag_seconds: 300\n$.alerts.drop_rate_threshold: 0.01\n$.alerts.pager_rotation[0]: primary\n$.alerts.pager_rotation[1]: secondary\n$.backpressure.strategy: shed_low_priority\n$.backpressure.queue_depth: 5000"
         ],
         "missing": [],
         "score": 1.0,
@@ -2684,21 +2714,19 @@
         "precision@5": 0.2,
         "recall@5": 1.0
       },
-      "question": "step: rollback\nowner: ana\nduration_min: _____\nreversible: yes",
+      "question": "$.limits.requests_per_minute: _____",
       "retrieved": [
-        "4568",
-        "4567",
-        "4566"
+        "5806"
       ],
-      "source": "report.docx"
+      "source": "service.json"
     },
     {
       "all_positions_stored": true,
-      "best_score": 0.8168,
+      "best_score": 0.4518,
       "facts": {
         "covered": 1,
         "found": [
-          "The rollback plan must be rehearsed in staging. A rollback is triggered if the error rate exceeds 0.5 percent over any five minute window."
+          "$.service: telemetry-ingest\n$.version: 4\n$.limits.requests_per_minute: 600\n$.limits.burst: 1200\n$.limits.max_payload_bytes: 8388608\n$.limits.max_channels: 4096\n$.retention.hot_days: 7\n$.retention.warm_days: 90\n$.retention.archive_years: 7\n$.regions[0]: eu-west-1\n$.regions[1]: us-east-1\n$.regions[2]: ap-southeast-2\n$.alerts.ingest_lag_seconds: 300\n$.alerts.drop_rate_threshold: 0.01\n$.alerts.pager_rotation[0]: primary\n$.alerts.pager_rotation[1]: secondary\n$.backpressure.strategy: shed_low_priority\n$.backpressure.queue_depth: 5000"
         ],
         "missing": [],
         "score": 1.0,
@@ -2712,16 +2740,15 @@
         "precision@5": 0.2,
         "recall@5": 1.0
       },
-      "question": "A rollback is triggered if the error rate exceeds _____ over any five minute window.",
+      "question": "_____ $.limits.max_payload_bytes:",
       "retrieved": [
-        "4566",
-        "4567"
+        "5806"
       ],
-      "source": "report.docx"
+      "source": "service.json"
     },
     {
       "all_positions_stored": true,
-      "best_score": 0.536,
+      "best_score": 0.3208,
       "facts": {
         "covered": 1,
         "found": [
@@ -2739,15 +2766,15 @@
         "precision@5": 0.2,
         "recall@5": 1.0
       },
-      "question": "$.limits.requests_per_minute: _____",
+      "question": "_____ $.limits.max_channels:",
       "retrieved": [
-        "4569"
+        "5806"
       ],
       "source": "service.json"
     },
     {
       "all_positions_stored": true,
-      "best_score": 0.4518,
+      "best_score": 0.2807,
       "facts": {
         "covered": 1,
         "found": [
@@ -2765,15 +2792,15 @@
         "precision@5": 0.2,
         "recall@5": 1.0
       },
-      "question": "_____ $.limits.max_payload_bytes:",
+      "question": "_____ $.retention.hot_days:",
       "retrieved": [
-        "4569"
+        "5806"
       ],
       "source": "service.json"
     },
     {
       "all_positions_stored": true,
-      "best_score": 0.3208,
+      "best_score": 0.3013,
       "facts": {
         "covered": 1,
         "found": [
@@ -2791,19 +2818,19 @@
         "precision@5": 0.2,
         "recall@5": 1.0
       },
-      "question": "_____ $.limits.max_channels:",
+      "question": "$.retention.hot_days: _____",
       "retrieved": [
-        "4569"
+        "5806"
       ],
       "source": "service.json"
     },
     {
       "all_positions_stored": true,
-      "best_score": 0.2807,
+      "best_score": 0.8302,
       "facts": {
         "covered": 1,
         "found": [
-          "$.service: telemetry-ingest\n$.version: 4\n$.limits.requests_per_minute: 600\n$.limits.burst: 1200\n$.limits.max_payload_bytes: 8388608\n$.limits.max_channels: 4096\n$.retention.hot_days: 7\n$.retention.warm_days: 90\n$.retention.archive_years: 7\n$.regions[0]: eu-west-1\n$.regions[1]: us-east-1\n$.regions[2]: ap-southeast-2\n$.alerts.ingest_lag_seconds: 300\n$.alerts.drop_rate_threshold: 0.01\n$.alerts.pager_rotation[0]: primary\n$.alerts.pager_rotation[1]: secondary\n$.backpressure.strategy: shed_low_priority\n$.backpressure.queue_depth: 5000"
+          "sensor_id: TH-001\nzone: storefront\nreading: 21.4\nunit: C\ntimestamp: 2024-05-01T08:00:00\nsensor_id: TH-002\nzone: storefront\nreading: 21.6\nunit: C\ntimestamp: 2024-05-01T08:00:00\nsensor_id: TH-003\nzone: warehouse\nreading: 17.9\nunit: C\ntimestamp: 2024-05-01T08:00:00\nsensor_id: TH-004\nzone: warehouse\nreading: 18.1\nunit: C\ntimestamp: 2024-05-01T08:00:00\nsensor_id: TH-005\nzone: coldroom\nreading: 3.2\nunit: C\ntimestamp: 2024-05-01T08:00:00\nsensor_id: TH-006\nzone: coldroom\nreading: 3.4\nunit: C\ntimestamp: 2024-05-01T08:00:00\nsensor_id: TH-007\nzone: coldroom\nreading: -19.5\nunit: C\ntimestamp: 2024-05-01T08:00:00\nsensor_id: TH-008\nzone: delivery_bay\nreading: 14.0\nunit: C\ntimestamp: 2024-05-01T08:00:00\nsensor_id: TH-009\nzone: delivery_bay\nreading: 14.3\nunit: C\ntimestamp: 2024-05-01T08:00:00\nsensor_id: TH-010\nzone: storefront\nreading: 22.1\nunit: C\ntimestamp: 2024-05-01T12:00:00\nsensor_id: TH-011"
         ],
         "missing": [],
         "score": 1.0,
@@ -2812,24 +2839,25 @@
       "id": "C093",
       "metrics": {
         "hit_rate@5": 1.0,
-        "mrr@5": 1.0,
-        "ndcg@5": 1.0,
+        "mrr@5": 0.5,
+        "ndcg@5": 0.6309297535714575,
         "precision@5": 0.2,
         "recall@5": 1.0
       },
-      "question": "_____ $.retention.hot_days:",
+      "question": "sensor_id: TH-001\nzone: storefront\nreading: _____\nunit: C\ntimestamp: 2024-05-01T08:00:00",
       "retrieved": [
-        "4569"
+        "5808",
+        "5807"
       ],
-      "source": "service.json"
+      "source": "temperatures.tsv"
     },
     {
       "all_positions_stored": true,
-      "best_score": 0.3013,
+      "best_score": 0.8414,
       "facts": {
         "covered": 1,
         "found": [
-          "$.service: telemetry-ingest\n$.version: 4\n$.limits.requests_per_minute: 600\n$.limits.burst: 1200\n$.limits.max_payload_bytes: 8388608\n$.limits.max_channels: 4096\n$.retention.hot_days: 7\n$.retention.warm_days: 90\n$.retention.archive_years: 7\n$.regions[0]: eu-west-1\n$.regions[1]: us-east-1\n$.regions[2]: ap-southeast-2\n$.alerts.ingest_lag_seconds: 300\n$.alerts.drop_rate_threshold: 0.01\n$.alerts.pager_rotation[0]: primary\n$.alerts.pager_rotation[1]: secondary\n$.backpressure.strategy: shed_low_priority\n$.backpressure.queue_depth: 5000"
+          "sensor_id: TH-001\nzone: storefront\nreading: 21.4\nunit: C\ntimestamp: 2024-05-01T08:00:00\nsensor_id: TH-002\nzone: storefront\nreading: 21.6\nunit: C\ntimestamp: 2024-05-01T08:00:00\nsensor_id: TH-003\nzone: warehouse\nreading: 17.9\nunit: C\ntimestamp: 2024-05-01T08:00:00\nsensor_id: TH-004\nzone: warehouse\nreading: 18.1\nunit: C\ntimestamp: 2024-05-01T08:00:00\nsensor_id: TH-005\nzone: coldroom\nreading: 3.2\nunit: C\ntimestamp: 2024-05-01T08:00:00\nsensor_id: TH-006\nzone: coldroom\nreading: 3.4\nunit: C\ntimestamp: 2024-05-01T08:00:00\nsensor_id: TH-007\nzone: coldroom\nreading: -19.5\nunit: C\ntimestamp: 2024-05-01T08:00:00\nsensor_id: TH-008\nzone: delivery_bay\nreading: 14.0\nunit: C\ntimestamp: 2024-05-01T08:00:00\nsensor_id: TH-009\nzone: delivery_bay\nreading: 14.3\nunit: C\ntimestamp: 2024-05-01T08:00:00\nsensor_id: TH-010\nzone: storefront\nreading: 22.1\nunit: C\ntimestamp: 2024-05-01T12:00:00\nsensor_id: TH-011"
         ],
         "missing": [],
         "score": 1.0,
@@ -2838,20 +2866,21 @@
       "id": "C094",
       "metrics": {
         "hit_rate@5": 1.0,
-        "mrr@5": 1.0,
-        "ndcg@5": 1.0,
+        "mrr@5": 0.5,
+        "ndcg@5": 0.6309297535714575,
         "precision@5": 0.2,
         "recall@5": 1.0
       },
-      "question": "$.retention.hot_days: _____",
+      "question": "sensor_id: TH-002\nzone: storefront\nreading: _____\nunit: C\ntimestamp: 2024-05-01T08:00:00",
       "retrieved": [
-        "4569"
+        "5808",
+        "5807"
       ],
-      "source": "service.json"
+      "source": "temperatures.tsv"
     },
     {
       "all_positions_stored": true,
-      "best_score": 0.8302,
+      "best_score": 0.8805,
       "facts": {
         "covered": 1,
         "found": [
@@ -2869,16 +2898,16 @@
         "precision@5": 0.2,
         "recall@5": 1.0
       },
-      "question": "sensor_id: TH-001\nzone: storefront\nreading: _____\nunit: C\ntimestamp: 2024-05-01T08:00:00",
+      "question": "sensor_id: TH-003\nzone: warehouse\nreading: _____\nunit: C\ntimestamp: 2024-05-01T08:00:00",
       "retrieved": [
-        "4571",
-        "4570"
+        "5808",
+        "5807"
       ],
       "source": "temperatures.tsv"
     },
     {
       "all_positions_stored": true,
-      "best_score": 0.8414,
+      "best_score": 0.8804,
       "facts": {
         "covered": 1,
         "found": [
@@ -2896,16 +2925,16 @@
         "precision@5": 0.2,
         "recall@5": 1.0
       },
-      "question": "sensor_id: TH-002\nzone: storefront\nreading: _____\nunit: C\ntimestamp: 2024-05-01T08:00:00",
+      "question": "sensor_id: TH-004\nzone: warehouse\nreading: _____\nunit: C\ntimestamp: 2024-05-01T08:00:00",
       "retrieved": [
-        "4571",
-        "4570"
+        "5808",
+        "5807"
       ],
       "source": "temperatures.tsv"
     },
     {
       "all_positions_stored": true,
-      "best_score": 0.8805,
+      "best_score": 0.8966,
       "facts": {
         "covered": 1,
         "found": [
@@ -2923,16 +2952,16 @@
         "precision@5": 0.2,
         "recall@5": 1.0
       },
-      "question": "sensor_id: TH-003\nzone: warehouse\nreading: _____\nunit: C\ntimestamp: 2024-05-01T08:00:00",
+      "question": "sensor_id: TH-005\nzone: coldroom\nreading: _____\nunit: C\ntimestamp: 2024-05-01T08:00:00",
       "retrieved": [
-        "4571",
-        "4570"
+        "5808",
+        "5807"
       ],
       "source": "temperatures.tsv"
     },
     {
       "all_positions_stored": true,
-      "best_score": 0.8804,
+      "best_score": 0.9068,
       "facts": {
         "covered": 1,
         "found": [
@@ -2950,64 +2979,10 @@
         "precision@5": 0.2,
         "recall@5": 1.0
       },
-      "question": "sensor_id: TH-004\nzone: warehouse\nreading: _____\nunit: C\ntimestamp: 2024-05-01T08:00:00",
-      "retrieved": [
-        "4571",
-        "4570"
-      ],
-      "source": "temperatures.tsv"
-    },
-    {
-      "all_positions_stored": true,
-      "best_score": 0.8966,
-      "facts": {
-        "covered": 1,
-        "found": [
-          "sensor_id: TH-001\nzone: storefront\nreading: 21.4\nunit: C\ntimestamp: 2024-05-01T08:00:00\nsensor_id: TH-002\nzone: storefront\nreading: 21.6\nunit: C\ntimestamp: 2024-05-01T08:00:00\nsensor_id: TH-003\nzone: warehouse\nreading: 17.9\nunit: C\ntimestamp: 2024-05-01T08:00:00\nsensor_id: TH-004\nzone: warehouse\nreading: 18.1\nunit: C\ntimestamp: 2024-05-01T08:00:00\nsensor_id: TH-005\nzone: coldroom\nreading: 3.2\nunit: C\ntimestamp: 2024-05-01T08:00:00\nsensor_id: TH-006\nzone: coldroom\nreading: 3.4\nunit: C\ntimestamp: 2024-05-01T08:00:00\nsensor_id: TH-007\nzone: coldroom\nreading: -19.5\nunit: C\ntimestamp: 2024-05-01T08:00:00\nsensor_id: TH-008\nzone: delivery_bay\nreading: 14.0\nunit: C\ntimestamp: 2024-05-01T08:00:00\nsensor_id: TH-009\nzone: delivery_bay\nreading: 14.3\nunit: C\ntimestamp: 2024-05-01T08:00:00\nsensor_id: TH-010\nzone: storefront\nreading: 22.1\nunit: C\ntimestamp: 2024-05-01T12:00:00\nsensor_id: TH-011"
-        ],
-        "missing": [],
-        "score": 1.0,
-        "total": 1
-      },
-      "id": "C099",
-      "metrics": {
-        "hit_rate@5": 1.0,
-        "mrr@5": 0.5,
-        "ndcg@5": 0.6309297535714575,
-        "precision@5": 0.2,
-        "recall@5": 1.0
-      },
-      "question": "sensor_id: TH-005\nzone: coldroom\nreading: _____\nunit: C\ntimestamp: 2024-05-01T08:00:00",
-      "retrieved": [
-        "4571",
-        "4570"
-      ],
-      "source": "temperatures.tsv"
-    },
-    {
-      "all_positions_stored": true,
-      "best_score": 0.9068,
-      "facts": {
-        "covered": 1,
-        "found": [
-          "sensor_id: TH-001\nzone: storefront\nreading: 21.4\nunit: C\ntimestamp: 2024-05-01T08:00:00\nsensor_id: TH-002\nzone: storefront\nreading: 21.6\nunit: C\ntimestamp: 2024-05-01T08:00:00\nsensor_id: TH-003\nzone: warehouse\nreading: 17.9\nunit: C\ntimestamp: 2024-05-01T08:00:00\nsensor_id: TH-004\nzone: warehouse\nreading: 18.1\nunit: C\ntimestamp: 2024-05-01T08:00:00\nsensor_id: TH-005\nzone: coldroom\nreading: 3.2\nunit: C\ntimestamp: 2024-05-01T08:00:00\nsensor_id: TH-006\nzone: coldroom\nreading: 3.4\nunit: C\ntimestamp: 2024-05-01T08:00:00\nsensor_id: TH-007\nzone: coldroom\nreading: -19.5\nunit: C\ntimestamp: 2024-05-01T08:00:00\nsensor_id: TH-008\nzone: delivery_bay\nreading: 14.0\nunit: C\ntimestamp: 2024-05-01T08:00:00\nsensor_id: TH-009\nzone: delivery_bay\nreading: 14.3\nunit: C\ntimestamp: 2024-05-01T08:00:00\nsensor_id: TH-010\nzone: storefront\nreading: 22.1\nunit: C\ntimestamp: 2024-05-01T12:00:00\nsensor_id: TH-011"
-        ],
-        "missing": [],
-        "score": 1.0,
-        "total": 1
-      },
-      "id": "C100",
-      "metrics": {
-        "hit_rate@5": 1.0,
-        "mrr@5": 0.5,
-        "ndcg@5": 0.6309297535714575,
-        "precision@5": 0.2,
-        "recall@5": 1.0
-      },
       "question": "sensor_id: TH-006\nzone: coldroom\nreading: _____\nunit: C\ntimestamp: 2024-05-01T08:00:00",
       "retrieved": [
-        "4571",
-        "4570"
+        "5808",
+        "5807"
       ],
       "source": "temperatures.tsv"
     },
@@ -3023,7 +2998,7 @@
         "score": 1.0,
         "total": 1
       },
-      "id": "C101",
+      "id": "C099",
       "metrics": {
         "hit_rate@5": 1.0,
         "mrr@5": 1.0,
@@ -3033,8 +3008,8 @@
       },
       "question": "index: _____",
       "retrieved": [
-        "4572",
-        "4575"
+        "5809",
+        "5812"
       ],
       "source": "train.py"
     },
@@ -3050,7 +3025,7 @@
         "score": 1.0,
         "total": 1
       },
-      "id": "C102",
+      "id": "C100",
       "metrics": {
         "hit_rate@5": 1.0,
         "mrr@5": 1.0,
@@ -3060,7 +3035,7 @@
       },
       "question": "excluded_rows: _____",
       "retrieved": [
-        "4572"
+        "5809"
       ],
       "source": "train.py"
     },
@@ -3076,7 +3051,7 @@
         "score": 1.0,
         "total": 1
       },
-      "id": "C103",
+      "id": "C101",
       "metrics": {
         "hit_rate@5": 1.0,
         "mrr@5": 1.0,
@@ -3086,8 +3061,8 @@
       },
       "question": "def spatial_folds(geometries, count: _____",
       "retrieved": [
-        "4573",
-        "4575"
+        "5810",
+        "5812"
       ],
       "source": "train.py"
     },
@@ -3103,7 +3078,7 @@
         "score": 1.0,
         "total": 1
       },
-      "id": "C104",
+      "id": "C102",
       "metrics": {
         "hit_rate@5": 1.0,
         "mrr@5": 1.0,
@@ -3113,7 +3088,7 @@
       },
       "question": "middle = _____",
       "retrieved": [
-        "4574"
+        "5811"
       ],
       "source": "train.py"
     },
@@ -3129,7 +3104,7 @@
         "score": 1.0,
         "total": 1
       },
-      "id": "C105",
+      "id": "C103",
       "metrics": {
         "hit_rate@5": 1.0,
         "mrr@5": 1.0,
@@ -3139,13 +3114,65 @@
       },
       "question": "median = _____",
       "retrieved": [
-        "4574"
+        "5811"
       ],
       "source": "train.py"
     },
     {
       "all_positions_stored": true,
       "best_score": 0.3622,
+      "facts": {
+        "covered": 1,
+        "found": [
+          "$.database.host: warehouse.internal\n$.database.port: 5432\n$.database.pool_size: 25\n$.database.connect_timeout: 10\n$.scheduler.interval_seconds: 300\n$.scheduler.max_parallel_jobs: 4\n$.alerts.channel: ops-primary\n$.alerts.escalate_after_minutes: 15"
+        ],
+        "missing": [],
+        "score": 1.0,
+        "total": 1
+      },
+      "id": "C104",
+      "metrics": {
+        "hit_rate@5": 1.0,
+        "mrr@5": 1.0,
+        "ndcg@5": 1.0,
+        "precision@5": 0.2,
+        "recall@5": 1.0
+      },
+      "question": "$.database.host: _____",
+      "retrieved": [
+        "5813"
+      ],
+      "source": "warehouse.ini"
+    },
+    {
+      "all_positions_stored": true,
+      "best_score": 0.3706,
+      "facts": {
+        "covered": 1,
+        "found": [
+          "$.database.host: warehouse.internal\n$.database.port: 5432\n$.database.pool_size: 25\n$.database.connect_timeout: 10\n$.scheduler.interval_seconds: 300\n$.scheduler.max_parallel_jobs: 4\n$.alerts.channel: ops-primary\n$.alerts.escalate_after_minutes: 15"
+        ],
+        "missing": [],
+        "score": 1.0,
+        "total": 1
+      },
+      "id": "C105",
+      "metrics": {
+        "hit_rate@5": 1.0,
+        "mrr@5": 1.0,
+        "ndcg@5": 1.0,
+        "precision@5": 0.2,
+        "recall@5": 1.0
+      },
+      "question": "_____ $.database.pool_size:",
+      "retrieved": [
+        "5813"
+      ],
+      "source": "warehouse.ini"
+    },
+    {
+      "all_positions_stored": true,
+      "best_score": 0.5584,
       "facts": {
         "covered": 1,
         "found": [
@@ -3163,15 +3190,15 @@
         "precision@5": 0.2,
         "recall@5": 1.0
       },
-      "question": "$.database.host: _____",
+      "question": "_____ $.database.connect_timeout:",
       "retrieved": [
-        "4576"
+        "5813"
       ],
       "source": "warehouse.ini"
     },
     {
       "all_positions_stored": true,
-      "best_score": 0.3706,
+      "best_score": 0.3903,
       "facts": {
         "covered": 1,
         "found": [
@@ -3189,15 +3216,15 @@
         "precision@5": 0.2,
         "recall@5": 1.0
       },
-      "question": "_____ $.database.pool_size:",
+      "question": "_____ $.scheduler.interval_seconds:",
       "retrieved": [
-        "4576"
+        "5813"
       ],
       "source": "warehouse.ini"
     },
     {
       "all_positions_stored": true,
-      "best_score": 0.5584,
+      "best_score": 0.5535,
       "facts": {
         "covered": 1,
         "found": [
@@ -3215,15 +3242,15 @@
         "precision@5": 0.2,
         "recall@5": 1.0
       },
-      "question": "_____ $.database.connect_timeout:",
+      "question": "_____ $.scheduler.max_parallel_jobs:",
       "retrieved": [
-        "4576"
+        "5813"
       ],
       "source": "warehouse.ini"
     },
     {
       "all_positions_stored": true,
-      "best_score": 0.3903,
+      "best_score": 0.5539,
       "facts": {
         "covered": 1,
         "found": [
@@ -3241,66 +3268,14 @@
         "precision@5": 0.2,
         "recall@5": 1.0
       },
-      "question": "_____ $.scheduler.interval_seconds:",
-      "retrieved": [
-        "4576"
-      ],
-      "source": "warehouse.ini"
-    },
-    {
-      "all_positions_stored": true,
-      "best_score": 0.5535,
-      "facts": {
-        "covered": 1,
-        "found": [
-          "$.database.host: warehouse.internal\n$.database.port: 5432\n$.database.pool_size: 25\n$.database.connect_timeout: 10\n$.scheduler.interval_seconds: 300\n$.scheduler.max_parallel_jobs: 4\n$.alerts.channel: ops-primary\n$.alerts.escalate_after_minutes: 15"
-        ],
-        "missing": [],
-        "score": 1.0,
-        "total": 1
-      },
-      "id": "C110",
-      "metrics": {
-        "hit_rate@5": 1.0,
-        "mrr@5": 1.0,
-        "ndcg@5": 1.0,
-        "precision@5": 0.2,
-        "recall@5": 1.0
-      },
-      "question": "_____ $.scheduler.max_parallel_jobs:",
-      "retrieved": [
-        "4576"
-      ],
-      "source": "warehouse.ini"
-    },
-    {
-      "all_positions_stored": true,
-      "best_score": 0.5539,
-      "facts": {
-        "covered": 1,
-        "found": [
-          "$.database.host: warehouse.internal\n$.database.port: 5432\n$.database.pool_size: 25\n$.database.connect_timeout: 10\n$.scheduler.interval_seconds: 300\n$.scheduler.max_parallel_jobs: 4\n$.alerts.channel: ops-primary\n$.alerts.escalate_after_minutes: 15"
-        ],
-        "missing": [],
-        "score": 1.0,
-        "total": 1
-      },
-      "id": "C111",
-      "metrics": {
-        "hit_rate@5": 1.0,
-        "mrr@5": 1.0,
-        "ndcg@5": 1.0,
-        "precision@5": 0.2,
-        "recall@5": 1.0
-      },
       "question": "$.scheduler.max_parallel_jobs: _____",
       "retrieved": [
-        "4576"
+        "5813"
       ],
       "source": "warehouse.ini"
     }
   ],
-  "scored": 112,
+  "scored": 110,
   "skipped": 0,
   "trap_leak_rate": 0.0
 }

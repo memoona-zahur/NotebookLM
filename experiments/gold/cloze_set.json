@@ -2,8 +2,8 @@
   "schema": 1,
   "generated_by": "experiments/build_cloze_gold.py",
   "corpus": "experiments/corpus",
-  "warning": "Machine-checked labels, not human-reviewed. Every item satisfies the mechanical checks recorded in experiments.build_cloze_gold, and experiments.eval_gold re-runs them before scoring anything. That makes the labels reproducible and impossible to score stale; it does not make them expert-checked. These items prove a value survives chunking attached to its key and can be retrieved again - not that the system understands the question. A two_block_cloze item needs two separate blocks, so it can be partly right; the rest have one right answer and measure only whether it was found.",
-  "checked": 119,
+  "warning": "Machine-checked labels, not human-reviewed. Every item satisfies the mechanical checks recorded in experiments.build_cloze_gold, and experiments.eval_gold re-runs them before scoring anything. That makes the labels reproducible and impossible to score stale; it does not make them expert-checked. These items prove a value survives chunking attached to its key and can be retrieved again - not that the system understands the question. A multi_block_cloze item needs two or three separate blocks, so it can be partly right; the rest have one right answer and measure only whether it was found.",
+  "checked": 117,
   "failed": 0,
   "items": [
     {
@@ -26,6 +26,7 @@
       "required_facts": [
         "package com.example.shipping;\n\nimport java.math.BigDecimal;\nimport java.time.LocalDate;\nimport java.util.List;\n\npublic class CustomsDeclaration {\n\n private final String declarationNumber;\n private final LocalDate exportDate;\n private final List<LineItem> lineItems;\n\n public CustomsDeclaration(String declarationNumber, LocalDate exportDate, List<LineItem> lineItems) {\n this.declarationNumber = declarationNumber;\n this.exportDate = exportDate;\n this.lineItems = lineItems;\n }\n\n /** Value for duty: invoice value plus freight and insurance, excluding tax. */\n public BigDecimal customsValue(BigDecimal freight, BigDecimal insurance) {\n BigDecimal invoice = lineItems.stream()\n .map(LineItem::declaredValue)\n .reduce(BigDecimal.ZERO, BigDecimal::add);\n return invoice.add(freight).add(insurance);\n }\n\n public boolean requiresLicence(String countryOfDestination) {\n return"
       ],
+      "block_count": 1,
       "verified_by_human": false
     },
     {
@@ -48,6 +49,7 @@
       "required_facts": [
         "package com.example.shipping;\n\nimport java.math.BigDecimal;\nimport java.time.LocalDate;\nimport java.util.List;\n\npublic class CustomsDeclaration {\n\n private final String declarationNumber;\n private final LocalDate exportDate;\n private final List<LineItem> lineItems;\n\n public CustomsDeclaration(String declarationNumber, LocalDate exportDate, List<LineItem> lineItems) {\n this.declarationNumber = declarationNumber;\n this.exportDate = exportDate;\n this.lineItems = lineItems;\n }\n\n /** Value for duty: invoice value plus freight and insurance, excluding tax. */\n public BigDecimal customsValue(BigDecimal freight, BigDecimal insurance) {\n BigDecimal invoice = lineItems.stream()\n .map(LineItem::declaredValue)\n .reduce(BigDecimal.ZERO, BigDecimal::add);\n return invoice.add(freight).add(insurance);\n }\n\n public boolean requiresLicence(String countryOfDestination) {\n return"
       ],
+      "block_count": 1,
       "verified_by_human": false
     },
     {
@@ -70,6 +72,7 @@
       "required_facts": [
         "package com.example.shipping;\n\nimport java.math.BigDecimal;\nimport java.time.LocalDate;\nimport java.util.List;\n\npublic class CustomsDeclaration {\n\n private final String declarationNumber;\n private final LocalDate exportDate;\n private final List<LineItem> lineItems;\n\n public CustomsDeclaration(String declarationNumber, LocalDate exportDate, List<LineItem> lineItems) {\n this.declarationNumber = declarationNumber;\n this.exportDate = exportDate;\n this.lineItems = lineItems;\n }\n\n /** Value for duty: invoice value plus freight and insurance, excluding tax. */\n public BigDecimal customsValue(BigDecimal freight, BigDecimal insurance) {\n BigDecimal invoice = lineItems.stream()\n .map(LineItem::declaredValue)\n .reduce(BigDecimal.ZERO, BigDecimal::add);\n return invoice.add(freight).add(insurance);\n }\n\n public boolean requiresLicence(String countryOfDestination) {\n return"
       ],
+      "block_count": 1,
       "verified_by_human": false
     },
     {
@@ -92,6 +95,7 @@
       "required_facts": [
         "package com.example.shipping;\n\nimport java.math.BigDecimal;\nimport java.time.LocalDate;\nimport java.util.List;\n\npublic class CustomsDeclaration {\n\n private final String declarationNumber;\n private final LocalDate exportDate;\n private final List<LineItem> lineItems;\n\n public CustomsDeclaration(String declarationNumber, LocalDate exportDate, List<LineItem> lineItems) {\n this.declarationNumber = declarationNumber;\n this.exportDate = exportDate;\n this.lineItems = lineItems;\n }\n\n /** Value for duty: invoice value plus freight and insurance, excluding tax. */\n public BigDecimal customsValue(BigDecimal freight, BigDecimal insurance) {\n BigDecimal invoice = lineItems.stream()\n .map(LineItem::declaredValue)\n .reduce(BigDecimal.ZERO, BigDecimal::add);\n return invoice.add(freight).add(insurance);\n }\n\n public boolean requiresLicence(String countryOfDestination) {\n return"
       ],
+      "block_count": 1,
       "verified_by_human": false
     },
     {
@@ -114,6 +118,7 @@
       "required_facts": [
         "treatment: control\nnitrogen_kg_ha: 0\nowner: trial manager\ndays_to_harvest: 104\ntreatment: low N\nnitrogen_kg_ha: 60\nowner: trial manager\ndays_to_harvest: 110\ntreatment: high N\nnitrogen_kg_ha: 140\nowner: field lead\ndays_to_harvest: 118\ntreatment: foliar\nnitrogen_kg_ha: 0\nowner: field lead\ndays_to_harvest: 101"
       ],
+      "block_count": 1,
       "verified_by_human": false
     },
     {
@@ -136,6 +141,7 @@
       "required_facts": [
         "treatment: control\nnitrogen_kg_ha: 0\nowner: trial manager\ndays_to_harvest: 104\ntreatment: low N\nnitrogen_kg_ha: 60\nowner: trial manager\ndays_to_harvest: 110\ntreatment: high N\nnitrogen_kg_ha: 140\nowner: field lead\ndays_to_harvest: 118\ntreatment: foliar\nnitrogen_kg_ha: 0\nowner: field lead\ndays_to_harvest: 101"
       ],
+      "block_count": 1,
       "verified_by_human": false
     },
     {
@@ -158,6 +164,7 @@
       "required_facts": [
         "treatment: control\nnitrogen_kg_ha: 0\nowner: trial manager\ndays_to_harvest: 104\ntreatment: low N\nnitrogen_kg_ha: 60\nowner: trial manager\ndays_to_harvest: 110\ntreatment: high N\nnitrogen_kg_ha: 140\nowner: field lead\ndays_to_harvest: 118\ntreatment: foliar\nnitrogen_kg_ha: 0\nowner: field lead\ndays_to_harvest: 101"
       ],
+      "block_count": 1,
       "verified_by_human": false
     },
     {
@@ -180,6 +187,7 @@
       "required_facts": [
         "treatment: control\nnitrogen_kg_ha: 0\nowner: trial manager\ndays_to_harvest: 104\ntreatment: low N\nnitrogen_kg_ha: 60\nowner: trial manager\ndays_to_harvest: 110\ntreatment: high N\nnitrogen_kg_ha: 140\nowner: field lead\ndays_to_harvest: 118\ntreatment: foliar\nnitrogen_kg_ha: 0\nowner: field lead\ndays_to_harvest: 101"
       ],
+      "block_count": 1,
       "verified_by_human": false
     },
     {
@@ -202,6 +210,7 @@
       "required_facts": [
         "treatment: control\nnitrogen_kg_ha: 0\nowner: trial manager\ndays_to_harvest: 104\ntreatment: low N\nnitrogen_kg_ha: 60\nowner: trial manager\ndays_to_harvest: 110\ntreatment: high N\nnitrogen_kg_ha: 140\nowner: field lead\ndays_to_harvest: 118\ntreatment: foliar\nnitrogen_kg_ha: 0\nowner: field lead\ndays_to_harvest: 101"
       ],
+      "block_count": 1,
       "verified_by_human": false
     },
     {
@@ -224,162 +233,177 @@
       "required_facts": [
         "treatment: control\nnitrogen_kg_ha: 0\nowner: trial manager\ndays_to_harvest: 104\ntreatment: low N\nnitrogen_kg_ha: 60\nowner: trial manager\ndays_to_harvest: 110\ntreatment: high N\nnitrogen_kg_ha: 140\nowner: field lead\ndays_to_harvest: 118\ntreatment: foliar\nnitrogen_kg_ha: 0\nowner: field lead\ndays_to_harvest: 101"
       ],
+      "block_count": 1,
       "verified_by_human": false
     },
     {
       "id": "C010",
-      "question": "ingest depth _____ of 5000, shedding low priority\nshed _____ low-priority frames",
-      "answer": "4820",
+      "question": "INFO  config: _____\ningest depth _____ of 5000, shedding low priority",
+      "answer": "loaded limits from /etc/telemetry/limits.json",
       "answers": [
+        "loaded limits from /etc/telemetry/limits.json",
+        "4820"
+      ],
+      "windows": [
+        "INFO  config: loaded limits from /etc/telemetry/limits.json",
+        "ingest depth 4820 of 5000, shedding low priority"
+      ],
+      "source": "app.log",
+      "answerable": true,
+      "kind": "multi_block_cloze",
+      "label_provenance": "machine-multi_block_cloze",
+      "expected_positions": [
+        1,
+        4
+      ],
+      "required_facts": [
+        "2024-03-01 09:14:03 INFO  config: loaded limits from /etc/telemetry/limits.json",
+        "2024-03-01 09:15:44 WARN  queue: ingest depth 4820 of 5000, shedding low priority"
+      ],
+      "block_count": 2,
+      "verified_by_human": false
+    },
+    {
+      "id": "C011",
+      "question": "INFO  config: _____\nshed _____ low-priority frames",
+      "answer": "loaded limits from /etc/telemetry/limits.json",
+      "answers": [
+        "loaded limits from /etc/telemetry/limits.json",
+        "214"
+      ],
+      "windows": [
+        "INFO  config: loaded limits from /etc/telemetry/limits.json",
+        "shed 214 low-priority frames"
+      ],
+      "source": "app.log",
+      "answerable": true,
+      "kind": "multi_block_cloze",
+      "label_provenance": "machine-multi_block_cloze",
+      "expected_positions": [
+        1,
+        5
+      ],
+      "required_facts": [
+        "2024-03-01 09:14:03 INFO  config: loaded limits from /etc/telemetry/limits.json",
+        "2024-03-01 09:15:45 INFO  queue: shed 214 low-priority frames"
+      ],
+      "block_count": 2,
+      "verified_by_human": false
+    },
+    {
+      "id": "C012",
+      "question": "INFO  config: _____\nflushed _____ records to hot store",
+      "answer": "loaded limits from /etc/telemetry/limits.json",
+      "answers": [
+        "loaded limits from /etc/telemetry/limits.json",
+        "12000"
+      ],
+      "windows": [
+        "INFO  config: loaded limits from /etc/telemetry/limits.json",
+        "flushed 12000 records to hot store"
+      ],
+      "source": "app.log",
+      "answerable": true,
+      "kind": "multi_block_cloze",
+      "label_provenance": "machine-multi_block_cloze",
+      "expected_positions": [
+        1,
+        15
+      ],
+      "required_facts": [
+        "2024-03-01 09:14:03 INFO  config: loaded limits from /etc/telemetry/limits.json",
+        "2024-03-01 09:31:07 INFO  ingest: flushed 12000 records to hot store"
+      ],
+      "block_count": 2,
+      "verified_by_human": false
+    },
+    {
+      "id": "C013",
+      "question": "INFO  config: _____\nretention job scheduled, hot 7 warm _____",
+      "answer": "loaded limits from /etc/telemetry/limits.json",
+      "answers": [
+        "loaded limits from /etc/telemetry/limits.json",
+        "90"
+      ],
+      "windows": [
+        "INFO  config: loaded limits from /etc/telemetry/limits.json",
+        "retention job scheduled, hot 7 warm 90"
+      ],
+      "source": "app.log",
+      "answerable": true,
+      "kind": "multi_block_cloze",
+      "label_provenance": "machine-multi_block_cloze",
+      "expected_positions": [
+        1,
+        16
+      ],
+      "required_facts": [
+        "2024-03-01 09:14:03 INFO  config: loaded limits from /etc/telemetry/limits.json",
+        "2024-03-01 09:31:08 INFO  ingest: retention job scheduled, hot 7 warm 90"
+      ],
+      "block_count": 2,
+      "verified_by_human": false
+    },
+    {
+      "id": "C014",
+      "question": "INFO  config: _____\ningest depth _____ of 5000, shedding low priority\nshed _____ low-priority frames",
+      "answer": "loaded limits from /etc/telemetry/limits.json",
+      "answers": [
+        "loaded limits from /etc/telemetry/limits.json",
         "4820",
         "214"
       ],
       "windows": [
+        "INFO  config: loaded limits from /etc/telemetry/limits.json",
         "ingest depth 4820 of 5000, shedding low priority",
         "shed 214 low-priority frames"
       ],
       "source": "app.log",
       "answerable": true,
-      "kind": "two_block_cloze",
-      "label_provenance": "machine-two_block_cloze",
+      "kind": "multi_block_cloze",
+      "label_provenance": "machine-multi_block_cloze",
       "expected_positions": [
+        1,
         4,
         5
       ],
       "required_facts": [
+        "2024-03-01 09:14:03 INFO  config: loaded limits from /etc/telemetry/limits.json",
         "2024-03-01 09:15:44 WARN  queue: ingest depth 4820 of 5000, shedding low priority",
         "2024-03-01 09:15:45 INFO  queue: shed 214 low-priority frames"
       ],
-      "verified_by_human": false
-    },
-    {
-      "id": "C011",
-      "question": "shed _____ low-priority frames\nflushed _____ records to hot store",
-      "answer": "214",
-      "answers": [
-        "214",
-        "12000"
-      ],
-      "windows": [
-        "shed 214 low-priority frames",
-        "flushed 12000 records to hot store"
-      ],
-      "source": "app.log",
-      "answerable": true,
-      "kind": "two_block_cloze",
-      "label_provenance": "machine-two_block_cloze",
-      "expected_positions": [
-        5,
-        15
-      ],
-      "required_facts": [
-        "2024-03-01 09:15:45 INFO  queue: shed 214 low-priority frames",
-        "2024-03-01 09:31:07 INFO  ingest: flushed 12000 records to hot store"
-      ],
-      "verified_by_human": false
-    },
-    {
-      "id": "C012",
-      "question": "flushed _____ records to hot store\nretention job scheduled, hot 7 warm _____",
-      "answer": "12000",
-      "answers": [
-        "12000",
-        "90"
-      ],
-      "windows": [
-        "flushed 12000 records to hot store",
-        "retention job scheduled, hot 7 warm 90"
-      ],
-      "source": "app.log",
-      "answerable": true,
-      "kind": "two_block_cloze",
-      "label_provenance": "machine-two_block_cloze",
-      "expected_positions": [
-        15,
-        16
-      ],
-      "required_facts": [
-        "2024-03-01 09:31:07 INFO  ingest: flushed 12000 records to hot store",
-        "2024-03-01 09:31:08 INFO  ingest: retention job scheduled, hot 7 warm 90"
-      ],
-      "verified_by_human": false
-    },
-    {
-      "id": "C013",
-      "question": "retention job scheduled, hot 7 warm _____\ndrop rate _____ exceeds threshold 0.01",
-      "answer": "90",
-      "answers": [
-        "90",
-        "0.014"
-      ],
-      "windows": [
-        "retention job scheduled, hot 7 warm 90",
-        "drop rate 0.014 exceeds threshold 0.01"
-      ],
-      "source": "app.log",
-      "answerable": true,
-      "kind": "two_block_cloze",
-      "label_provenance": "machine-two_block_cloze",
-      "expected_positions": [
-        16,
-        17
-      ],
-      "required_facts": [
-        "2024-03-01 09:31:08 INFO  ingest: retention job scheduled, hot 7 warm 90",
-        "2024-03-01 09:38:52 WARN  metrics: drop rate 0.014 exceeds threshold 0.01"
-      ],
-      "verified_by_human": false
-    },
-    {
-      "id": "C014",
-      "question": "drop rate _____ exceeds threshold 0.01\nbackpressure cleared, queue depth _____",
-      "answer": "0.014",
-      "answers": [
-        "0.014",
-        "12"
-      ],
-      "windows": [
-        "drop rate 0.014 exceeds threshold 0.01",
-        "backpressure cleared, queue depth 12"
-      ],
-      "source": "app.log",
-      "answerable": true,
-      "kind": "two_block_cloze",
-      "label_provenance": "machine-two_block_cloze",
-      "expected_positions": [
-        17,
-        19
-      ],
-      "required_facts": [
-        "2024-03-01 09:38:52 WARN  metrics: drop rate 0.014 exceeds threshold 0.01",
-        "2024-03-01 09:44:19 INFO  ingest: backpressure cleared, queue depth 12"
-      ],
+      "block_count": 3,
       "verified_by_human": false
     },
     {
       "id": "C015",
-      "question": "backpressure cleared, queue depth _____\nfinal flush complete, _____ records",
-      "answer": "12",
+      "question": "INFO  config: _____\ningest depth _____ of 5000, shedding low priority\nflushed _____ records to hot store",
+      "answer": "loaded limits from /etc/telemetry/limits.json",
       "answers": [
-        "12",
-        "380"
+        "loaded limits from /etc/telemetry/limits.json",
+        "4820",
+        "12000"
       ],
       "windows": [
-        "backpressure cleared, queue depth 12",
-        "final flush complete, 380 records"
+        "INFO  config: loaded limits from /etc/telemetry/limits.json",
+        "ingest depth 4820 of 5000, shedding low priority",
+        "flushed 12000 records to hot store"
       ],
       "source": "app.log",
       "answerable": true,
-      "kind": "two_block_cloze",
-      "label_provenance": "machine-two_block_cloze",
+      "kind": "multi_block_cloze",
+      "label_provenance": "machine-multi_block_cloze",
       "expected_positions": [
-        19,
-        27
+        1,
+        4,
+        15
       ],
       "required_facts": [
-        "2024-03-01 09:44:19 INFO  ingest: backpressure cleared, queue depth 12",
-        "2024-03-01 10:20:18 INFO  ingest: final flush complete, 380 records"
+        "2024-03-01 09:14:03 INFO  config: loaded limits from /etc/telemetry/limits.json",
+        "2024-03-01 09:15:44 WARN  queue: ingest depth 4820 of 5000, shedding low priority",
+        "2024-03-01 09:31:07 INFO  ingest: flushed 12000 records to hot store"
       ],
+      "block_count": 3,
       "verified_by_human": false
     },
     {
@@ -402,6 +426,7 @@
       "required_facts": [
         "$.service: ledger-api\n$.version: 3.2.0\n$.runtime.replicas: 6\n$.runtime.memory_limit_mb: 2048\n$.runtime.cpu_limit: 1500\n$.runtime.graceful_shutdown_seconds: 45\n$.database.engine: postgres\n$.database.host: ledger-db.internal\n$.database.port: 5432\n$.database.pool_size: 40\n$.database.statement_timeout_ms: 8000\n$.cache.backend: redis\n$.cache.ttl_seconds: 600\n$.cache.max_entries: 250000\n$.rate_limit.requests_per_minute: 3000\n$.rate_limit.burst: 500\n$.observability.log_level: info\n$.observability.trace_sampling_rate: 0.05\n$.features[0]: double_entry_enforcement\n$.features[1]: idempotency_keys\n$.features[2]: webhook_retries"
       ],
+      "block_count": 1,
       "verified_by_human": false
     },
     {
@@ -424,6 +449,7 @@
       "required_facts": [
         "$.service: ledger-api\n$.version: 3.2.0\n$.runtime.replicas: 6\n$.runtime.memory_limit_mb: 2048\n$.runtime.cpu_limit: 1500\n$.runtime.graceful_shutdown_seconds: 45\n$.database.engine: postgres\n$.database.host: ledger-db.internal\n$.database.port: 5432\n$.database.pool_size: 40\n$.database.statement_timeout_ms: 8000\n$.cache.backend: redis\n$.cache.ttl_seconds: 600\n$.cache.max_entries: 250000\n$.rate_limit.requests_per_minute: 3000\n$.rate_limit.burst: 500\n$.observability.log_level: info\n$.observability.trace_sampling_rate: 0.05\n$.features[0]: double_entry_enforcement\n$.features[1]: idempotency_keys\n$.features[2]: webhook_retries"
       ],
+      "block_count": 1,
       "verified_by_human": false
     },
     {
@@ -446,6 +472,7 @@
       "required_facts": [
         "$.service: ledger-api\n$.version: 3.2.0\n$.runtime.replicas: 6\n$.runtime.memory_limit_mb: 2048\n$.runtime.cpu_limit: 1500\n$.runtime.graceful_shutdown_seconds: 45\n$.database.engine: postgres\n$.database.host: ledger-db.internal\n$.database.port: 5432\n$.database.pool_size: 40\n$.database.statement_timeout_ms: 8000\n$.cache.backend: redis\n$.cache.ttl_seconds: 600\n$.cache.max_entries: 250000\n$.rate_limit.requests_per_minute: 3000\n$.rate_limit.burst: 500\n$.observability.log_level: info\n$.observability.trace_sampling_rate: 0.05\n$.features[0]: double_entry_enforcement\n$.features[1]: idempotency_keys\n$.features[2]: webhook_retries"
       ],
+      "block_count": 1,
       "verified_by_human": false
     },
     {
@@ -468,6 +495,7 @@
       "required_facts": [
         "$.service: ledger-api\n$.version: 3.2.0\n$.runtime.replicas: 6\n$.runtime.memory_limit_mb: 2048\n$.runtime.cpu_limit: 1500\n$.runtime.graceful_shutdown_seconds: 45\n$.database.engine: postgres\n$.database.host: ledger-db.internal\n$.database.port: 5432\n$.database.pool_size: 40\n$.database.statement_timeout_ms: 8000\n$.cache.backend: redis\n$.cache.ttl_seconds: 600\n$.cache.max_entries: 250000\n$.rate_limit.requests_per_minute: 3000\n$.rate_limit.burst: 500\n$.observability.log_level: info\n$.observability.trace_sampling_rate: 0.05\n$.features[0]: double_entry_enforcement\n$.features[1]: idempotency_keys\n$.features[2]: webhook_retries"
       ],
+      "block_count": 1,
       "verified_by_human": false
     },
     {
@@ -490,6 +518,7 @@
       "required_facts": [
         "$.service: ledger-api\n$.version: 3.2.0\n$.runtime.replicas: 6\n$.runtime.memory_limit_mb: 2048\n$.runtime.cpu_limit: 1500\n$.runtime.graceful_shutdown_seconds: 45\n$.database.engine: postgres\n$.database.host: ledger-db.internal\n$.database.port: 5432\n$.database.pool_size: 40\n$.database.statement_timeout_ms: 8000\n$.cache.backend: redis\n$.cache.ttl_seconds: 600\n$.cache.max_entries: 250000\n$.rate_limit.requests_per_minute: 3000\n$.rate_limit.burst: 500\n$.observability.log_level: info\n$.observability.trace_sampling_rate: 0.05\n$.features[0]: double_entry_enforcement\n$.features[1]: idempotency_keys\n$.features[2]: webhook_retries"
       ],
+      "block_count": 1,
       "verified_by_human": false
     },
     {
@@ -512,6 +541,7 @@
       "required_facts": [
         "$.service: ledger-api\n$.version: 3.2.0\n$.runtime.replicas: 6\n$.runtime.memory_limit_mb: 2048\n$.runtime.cpu_limit: 1500\n$.runtime.graceful_shutdown_seconds: 45\n$.database.engine: postgres\n$.database.host: ledger-db.internal\n$.database.port: 5432\n$.database.pool_size: 40\n$.database.statement_timeout_ms: 8000\n$.cache.backend: redis\n$.cache.ttl_seconds: 600\n$.cache.max_entries: 250000\n$.rate_limit.requests_per_minute: 3000\n$.rate_limit.burst: 500\n$.observability.log_level: info\n$.observability.trace_sampling_rate: 0.05\n$.features[0]: double_entry_enforcement\n$.features[1]: idempotency_keys\n$.features[2]: webhook_retries"
       ],
+      "block_count": 1,
       "verified_by_human": false
     },
     {
@@ -528,8 +558,8 @@
       ],
       "source": "brew-guide.pdf",
       "answerable": true,
-      "kind": "two_block_cloze",
-      "label_provenance": "machine-two_block_cloze",
+      "kind": "multi_block_cloze",
+      "label_provenance": "machine-multi_block_cloze",
       "expected_positions": [
         0,
         2
@@ -538,10 +568,92 @@
         "Home Brewing Guide: Wort Production\nMashing converts the grain starches into fermentable sugars. The mash tun is\nheld at a single temperature for roughly an hour, and the temperature chosen\ndetermines how much of the fermentable wort will be produced. A single infusion\nmash at sixty-six degrees Celsius favours a balanced body.\nAfter the wort is drained, it is boiled for at least sixty minutes. The boil\nunwortifies the wort and drives off volatile hop character precursors. Whirlpool\nand knockout steps concentrate the hop additions late in the boil.\nFermentation is carried out by Saccharomyces cerevisiae at a controlled\ntemperature. Ale strains prefer warmer fermentation around eighteen to twenty\ndegrees, while lager strains are pitched cooler and held for longer.",
         "Water Chemistry and Grain Bill\nMalt extract and mineral content are adjusted with gypsum and calcium chloride\nto bring the mash liquor into a desirable range. Sulphate in the finished beer\ntightens the mouthfeel and bittering perception, while chloride softens it.\nA balanced grain bill for an all-grain pale ale pairs a two row base malt with\na small proportion of crystal malt for body and a larger share of hops for\nbitterness. The mash temperature must be recalculated whenever the grist\nchanges, because a grist rich in crystal malt will gel and can foul the mash tun.\nFermentability is a ratio, not an absolute. A wort that started at 1.048 and\nfinished at 1.010 is about 79 percent apparent attenuation, which is normal for\nan ale, and 1.002 would suggest the mash or the attenuation curve is off."
       ],
+      "block_count": 2,
       "verified_by_human": false
     },
     {
       "id": "C023",
+      "question": "Home Brewing Guide: _____\nA wort that started at _____ and\nfinished at 1.010 is about 79 percent apparent attenuation, which is normal for\nan ale, and 1.002 would suggest the mash or the attenuation curve is off.",
+      "answer": "Wort Production",
+      "answers": [
+        "Wort Production",
+        "1.048"
+      ],
+      "windows": [
+        "Home Brewing Guide: Wort Production",
+        "A wort that started at 1.048 and\nfinished at 1.010 is about 79 percent apparent attenuation, which is normal for\nan ale, and 1.002 would suggest the mash or the attenuation curve is off."
+      ],
+      "source": "brew-guide.pdf",
+      "answerable": true,
+      "kind": "multi_block_cloze",
+      "label_provenance": "machine-multi_block_cloze",
+      "expected_positions": [
+        0,
+        2
+      ],
+      "required_facts": [
+        "Home Brewing Guide: Wort Production\nMashing converts the grain starches into fermentable sugars. The mash tun is\nheld at a single temperature for roughly an hour, and the temperature chosen\ndetermines how much of the fermentable wort will be produced. A single infusion\nmash at sixty-six degrees Celsius favours a balanced body.\nAfter the wort is drained, it is boiled for at least sixty minutes. The boil\nunwortifies the wort and drives off volatile hop character precursors. Whirlpool\nand knockout steps concentrate the hop additions late in the boil.\nFermentation is carried out by Saccharomyces cerevisiae at a controlled\ntemperature. Ale strains prefer warmer fermentation around eighteen to twenty\ndegrees, while lager strains are pitched cooler and held for longer.",
+        "Water Chemistry and Grain Bill\nMalt extract and mineral content are adjusted with gypsum and calcium chloride\nto bring the mash liquor into a desirable range. Sulphate in the finished beer\ntightens the mouthfeel and bittering perception, while chloride softens it.\nA balanced grain bill for an all-grain pale ale pairs a two row base malt with\na small proportion of crystal malt for body and a larger share of hops for\nbitterness. The mash temperature must be recalculated whenever the grist\nchanges, because a grist rich in crystal malt will gel and can foul the mash tun.\nFermentability is a ratio, not an absolute. A wort that started at 1.048 and\nfinished at 1.010 is about 79 percent apparent attenuation, which is normal for\nan ale, and 1.002 would suggest the mash or the attenuation curve is off."
+      ],
+      "block_count": 2,
+      "verified_by_human": false
+    },
+    {
+      "id": "C024",
+      "question": "Home Brewing Guide: _____\nfinished at 1.010 is about _____ apparent attenuation, which is normal for\nan ale, and 1.002 would suggest the mash or the attenuation curve is off.",
+      "answer": "Wort Production",
+      "answers": [
+        "Wort Production",
+        "79 percent"
+      ],
+      "windows": [
+        "Home Brewing Guide: Wort Production",
+        "finished at 1.010 is about 79 percent apparent attenuation, which is normal for\nan ale, and 1.002 would suggest the mash or the attenuation curve is off."
+      ],
+      "source": "brew-guide.pdf",
+      "answerable": true,
+      "kind": "multi_block_cloze",
+      "label_provenance": "machine-multi_block_cloze",
+      "expected_positions": [
+        0,
+        2
+      ],
+      "required_facts": [
+        "Home Brewing Guide: Wort Production\nMashing converts the grain starches into fermentable sugars. The mash tun is\nheld at a single temperature for roughly an hour, and the temperature chosen\ndetermines how much of the fermentable wort will be produced. A single infusion\nmash at sixty-six degrees Celsius favours a balanced body.\nAfter the wort is drained, it is boiled for at least sixty minutes. The boil\nunwortifies the wort and drives off volatile hop character precursors. Whirlpool\nand knockout steps concentrate the hop additions late in the boil.\nFermentation is carried out by Saccharomyces cerevisiae at a controlled\ntemperature. Ale strains prefer warmer fermentation around eighteen to twenty\ndegrees, while lager strains are pitched cooler and held for longer.",
+        "Water Chemistry and Grain Bill\nMalt extract and mineral content are adjusted with gypsum and calcium chloride\nto bring the mash liquor into a desirable range. Sulphate in the finished beer\ntightens the mouthfeel and bittering perception, while chloride softens it.\nA balanced grain bill for an all-grain pale ale pairs a two row base malt with\na small proportion of crystal malt for body and a larger share of hops for\nbitterness. The mash temperature must be recalculated whenever the grist\nchanges, because a grist rich in crystal malt will gel and can foul the mash tun.\nFermentability is a ratio, not an absolute. A wort that started at 1.048 and\nfinished at 1.010 is about 79 percent apparent attenuation, which is normal for\nan ale, and 1.002 would suggest the mash or the attenuation curve is off."
+      ],
+      "block_count": 2,
+      "verified_by_human": false
+    },
+    {
+      "id": "C025",
+      "question": "Home Brewing Guide: _____\nan ale, and _____ would suggest the mash or the attenuation curve is off.",
+      "answer": "Wort Production",
+      "answers": [
+        "Wort Production",
+        "1.002"
+      ],
+      "windows": [
+        "Home Brewing Guide: Wort Production",
+        "an ale, and 1.002 would suggest the mash or the attenuation curve is off."
+      ],
+      "source": "brew-guide.pdf",
+      "answerable": true,
+      "kind": "multi_block_cloze",
+      "label_provenance": "machine-multi_block_cloze",
+      "expected_positions": [
+        0,
+        2
+      ],
+      "required_facts": [
+        "Home Brewing Guide: Wort Production\nMashing converts the grain starches into fermentable sugars. The mash tun is\nheld at a single temperature for roughly an hour, and the temperature chosen\ndetermines how much of the fermentable wort will be produced. A single infusion\nmash at sixty-six degrees Celsius favours a balanced body.\nAfter the wort is drained, it is boiled for at least sixty minutes. The boil\nunwortifies the wort and drives off volatile hop character precursors. Whirlpool\nand knockout steps concentrate the hop additions late in the boil.\nFermentation is carried out by Saccharomyces cerevisiae at a controlled\ntemperature. Ale strains prefer warmer fermentation around eighteen to twenty\ndegrees, while lager strains are pitched cooler and held for longer.",
+        "Water Chemistry and Grain Bill\nMalt extract and mineral content are adjusted with gypsum and calcium chloride\nto bring the mash liquor into a desirable range. Sulphate in the finished beer\ntightens the mouthfeel and bittering perception, while chloride softens it.\nA balanced grain bill for an all-grain pale ale pairs a two row base malt with\na small proportion of crystal malt for body and a larger share of hops for\nbitterness. The mash temperature must be recalculated whenever the grist\nchanges, because a grist rich in crystal malt will gel and can foul the mash tun.\nFermentability is a ratio, not an absolute. A wort that started at 1.048 and\nfinished at 1.010 is about 79 percent apparent attenuation, which is normal for\nan ale, and 1.002 would suggest the mash or the attenuation curve is off."
+      ],
+      "block_count": 2,
+      "verified_by_human": false
+    },
+    {
+      "id": "C026",
       "question": "Home Brewing Guide: _____",
       "answer": "Wort Production",
       "answers": [
@@ -560,10 +672,11 @@
       "required_facts": [
         "Home Brewing Guide: Wort Production\nMashing converts the grain starches into fermentable sugars. The mash tun is\nheld at a single temperature for roughly an hour, and the temperature chosen\ndetermines how much of the fermentable wort will be produced. A single infusion\nmash at sixty-six degrees Celsius favours a balanced body.\nAfter the wort is drained, it is boiled for at least sixty minutes. The boil\nunwortifies the wort and drives off volatile hop character precursors. Whirlpool\nand knockout steps concentrate the hop additions late in the boil.\nFermentation is carried out by Saccharomyces cerevisiae at a controlled\ntemperature. Ale strains prefer warmer fermentation around eighteen to twenty\ndegrees, while lager strains are pitched cooler and held for longer."
       ],
+      "block_count": 1,
       "verified_by_human": false
     },
     {
-      "id": "C024",
+      "id": "C027",
       "question": "A balanced grain bill for an all-grain pale ale pairs a _____ base malt with\na small proportion of crystal malt for body and a larger share of hops for\nbitterness.",
       "answer": "two row",
       "answers": [
@@ -582,72 +695,7 @@
       "required_facts": [
         "Water Chemistry and Grain Bill\nMalt extract and mineral content are adjusted with gypsum and calcium chloride\nto bring the mash liquor into a desirable range. Sulphate in the finished beer\ntightens the mouthfeel and bittering perception, while chloride softens it.\nA balanced grain bill for an all-grain pale ale pairs a two row base malt with\na small proportion of crystal malt for body and a larger share of hops for\nbitterness. The mash temperature must be recalculated whenever the grist\nchanges, because a grist rich in crystal malt will gel and can foul the mash tun.\nFermentability is a ratio, not an absolute. A wort that started at 1.048 and\nfinished at 1.010 is about 79 percent apparent attenuation, which is normal for\nan ale, and 1.002 would suggest the mash or the attenuation curve is off."
       ],
-      "verified_by_human": false
-    },
-    {
-      "id": "C025",
-      "question": "A wort that started at _____ and\nfinished at 1.010 is about 79 percent apparent attenuation, which is normal for\nan ale, and 1.002 would suggest the mash or the attenuation curve is off.",
-      "answer": "1.048",
-      "answers": [
-        "1.048"
-      ],
-      "windows": [
-        "A wort that started at 1.048 and\nfinished at 1.010 is about 79 percent apparent attenuation, which is normal for\nan ale, and 1.002 would suggest the mash or the attenuation curve is off."
-      ],
-      "source": "brew-guide.pdf",
-      "answerable": true,
-      "kind": "value_cloze",
-      "label_provenance": "machine-value_cloze",
-      "expected_positions": [
-        2
-      ],
-      "required_facts": [
-        "Water Chemistry and Grain Bill\nMalt extract and mineral content are adjusted with gypsum and calcium chloride\nto bring the mash liquor into a desirable range. Sulphate in the finished beer\ntightens the mouthfeel and bittering perception, while chloride softens it.\nA balanced grain bill for an all-grain pale ale pairs a two row base malt with\na small proportion of crystal malt for body and a larger share of hops for\nbitterness. The mash temperature must be recalculated whenever the grist\nchanges, because a grist rich in crystal malt will gel and can foul the mash tun.\nFermentability is a ratio, not an absolute. A wort that started at 1.048 and\nfinished at 1.010 is about 79 percent apparent attenuation, which is normal for\nan ale, and 1.002 would suggest the mash or the attenuation curve is off."
-      ],
-      "verified_by_human": false
-    },
-    {
-      "id": "C026",
-      "question": "finished at 1.010 is about _____ apparent attenuation, which is normal for\nan ale, and 1.002 would suggest the mash or the attenuation curve is off.",
-      "answer": "79 percent",
-      "answers": [
-        "79 percent"
-      ],
-      "windows": [
-        "finished at 1.010 is about 79 percent apparent attenuation, which is normal for\nan ale, and 1.002 would suggest the mash or the attenuation curve is off."
-      ],
-      "source": "brew-guide.pdf",
-      "answerable": true,
-      "kind": "value_cloze",
-      "label_provenance": "machine-value_cloze",
-      "expected_positions": [
-        2
-      ],
-      "required_facts": [
-        "Water Chemistry and Grain Bill\nMalt extract and mineral content are adjusted with gypsum and calcium chloride\nto bring the mash liquor into a desirable range. Sulphate in the finished beer\ntightens the mouthfeel and bittering perception, while chloride softens it.\nA balanced grain bill for an all-grain pale ale pairs a two row base malt with\na small proportion of crystal malt for body and a larger share of hops for\nbitterness. The mash temperature must be recalculated whenever the grist\nchanges, because a grist rich in crystal malt will gel and can foul the mash tun.\nFermentability is a ratio, not an absolute. A wort that started at 1.048 and\nfinished at 1.010 is about 79 percent apparent attenuation, which is normal for\nan ale, and 1.002 would suggest the mash or the attenuation curve is off."
-      ],
-      "verified_by_human": false
-    },
-    {
-      "id": "C027",
-      "question": "an ale, and _____ would suggest the mash or the attenuation curve is off.",
-      "answer": "1.002",
-      "answers": [
-        "1.002"
-      ],
-      "windows": [
-        "an ale, and 1.002 would suggest the mash or the attenuation curve is off."
-      ],
-      "source": "brew-guide.pdf",
-      "answerable": true,
-      "kind": "value_cloze",
-      "label_provenance": "machine-value_cloze",
-      "expected_positions": [
-        2
-      ],
-      "required_facts": [
-        "Water Chemistry and Grain Bill\nMalt extract and mineral content are adjusted with gypsum and calcium chloride\nto bring the mash liquor into a desirable range. Sulphate in the finished beer\ntightens the mouthfeel and bittering perception, while chloride softens it.\nA balanced grain bill for an all-grain pale ale pairs a two row base malt with\na small proportion of crystal malt for body and a larger share of hops for\nbitterness. The mash temperature must be recalculated whenever the grist\nchanges, because a grist rich in crystal malt will gel and can foul the mash tun.\nFermentability is a ratio, not an absolute. A wort that started at 1.048 and\nfinished at 1.010 is about 79 percent apparent attenuation, which is normal for\nan ale, and 1.002 would suggest the mash or the attenuation curve is off."
-      ],
+      "block_count": 1,
       "verified_by_human": false
     },
     {
@@ -670,6 +718,7 @@
       "required_facts": [
         "TIERS\nconst TIERS = [\n  { minSpend: 500, rate: 0.12 },\n  { minSpend: 250, rate: 0.07 },\n  { minSpend: 0, rate: 0 },\n];"
       ],
+      "block_count": 1,
       "verified_by_human": false
     },
     {
@@ -692,6 +741,7 @@
       "required_facts": [
         "discountRate\nexport function discountRate(subtotal) {\n  const tier = TIERS.find((t) => subtotal >= t.minSpend);\n  return tier ? tier.rate : 0;\n}"
       ],
+      "block_count": 1,
       "verified_by_human": false
     },
     {
@@ -714,6 +764,7 @@
       "required_facts": [
         "discountRate\nexport function discountRate(subtotal) {\n  const tier = TIERS.find((t) => subtotal >= t.minSpend);\n  return tier ? tier.rate : 0;\n}"
       ],
+      "block_count": 1,
       "verified_by_human": false
     },
     {
@@ -736,6 +787,7 @@
       "required_facts": [
         "cartTotal\nexport function cartTotal(lines, vatRate) {\n  const subtotal = lines.reduce((sum, line) => sum + line.price * line.qty, 0);\n  const discounted = subtotal * (1 - discountRate(subtotal));\n  return { subtotal: round2(subtotal), total: applyVat(discounted, vatRate) };\n}"
       ],
+      "block_count": 1,
       "verified_by_human": false
     },
     {
@@ -758,6 +810,7 @@
       "required_facts": [
         "item: Espresso Blend\nregion: EMEA\ncategory: Beverage\nunits_sold: 1240\nunit_price: 12.50\nrevenue: 15500.00\nreturn_rate_pct: 2.1\nitem: Espresso Blend\nregion: APAC\ncategory: Beverage\nunits_sold: 1402\nunit_price: 12.50\nrevenue: 17525.00\nreturn_rate_pct: 5.8\nitem: Espresso Blend\nregion: AMER\ncategory: Beverage\nunits_sold: 1610\nunit_price: 12.50\nrevenue: 20125.00\nreturn_rate_pct: 1.9\nitem: Filter Papers\nregion: EMEA\ncategory: Accessory\nunits_sold: 3200\nunit_price: 3.20\nrevenue: 10240.00\nreturn_rate_pct: 0.8\nitem: Filter Papers\nregion: APAC\ncategory: Accessory\nunits_sold: 2870\nunit_price: 3.20\nrevenue: 9184.00\nreturn_rate_pct: 2.4\nitem: Filter Papers\nregion: AMER\ncategory: Accessory\nunits_sold: 3480\nunit_price: 3.20\nrevenue: 11136.00\nreturn_rate_pct: 0.6\nitem: Burr Grinder\nregion: EMEA\ncategory: Equipment\nunits_sold: 64\nunit_price: 289.00\nrevenue: 18496.00\nreturn_rate_pct: 3.9"
       ],
+      "block_count": 1,
       "verified_by_human": false
     },
     {
@@ -780,6 +833,7 @@
       "required_facts": [
         "item: Espresso Blend\nregion: EMEA\ncategory: Beverage\nunits_sold: 1240\nunit_price: 12.50\nrevenue: 15500.00\nreturn_rate_pct: 2.1\nitem: Espresso Blend\nregion: APAC\ncategory: Beverage\nunits_sold: 1402\nunit_price: 12.50\nrevenue: 17525.00\nreturn_rate_pct: 5.8\nitem: Espresso Blend\nregion: AMER\ncategory: Beverage\nunits_sold: 1610\nunit_price: 12.50\nrevenue: 20125.00\nreturn_rate_pct: 1.9\nitem: Filter Papers\nregion: EMEA\ncategory: Accessory\nunits_sold: 3200\nunit_price: 3.20\nrevenue: 10240.00\nreturn_rate_pct: 0.8\nitem: Filter Papers\nregion: APAC\ncategory: Accessory\nunits_sold: 2870\nunit_price: 3.20\nrevenue: 9184.00\nreturn_rate_pct: 2.4\nitem: Filter Papers\nregion: AMER\ncategory: Accessory\nunits_sold: 3480\nunit_price: 3.20\nrevenue: 11136.00\nreturn_rate_pct: 0.6\nitem: Burr Grinder\nregion: EMEA\ncategory: Equipment\nunits_sold: 64\nunit_price: 289.00\nrevenue: 18496.00\nreturn_rate_pct: 3.9"
       ],
+      "block_count": 1,
       "verified_by_human": false
     },
     {
@@ -802,6 +856,7 @@
       "required_facts": [
         "item: Espresso Blend\nregion: EMEA\ncategory: Beverage\nunits_sold: 1240\nunit_price: 12.50\nrevenue: 15500.00\nreturn_rate_pct: 2.1\nitem: Espresso Blend\nregion: APAC\ncategory: Beverage\nunits_sold: 1402\nunit_price: 12.50\nrevenue: 17525.00\nreturn_rate_pct: 5.8\nitem: Espresso Blend\nregion: AMER\ncategory: Beverage\nunits_sold: 1610\nunit_price: 12.50\nrevenue: 20125.00\nreturn_rate_pct: 1.9\nitem: Filter Papers\nregion: EMEA\ncategory: Accessory\nunits_sold: 3200\nunit_price: 3.20\nrevenue: 10240.00\nreturn_rate_pct: 0.8\nitem: Filter Papers\nregion: APAC\ncategory: Accessory\nunits_sold: 2870\nunit_price: 3.20\nrevenue: 9184.00\nreturn_rate_pct: 2.4\nitem: Filter Papers\nregion: AMER\ncategory: Accessory\nunits_sold: 3480\nunit_price: 3.20\nrevenue: 11136.00\nreturn_rate_pct: 0.6\nitem: Burr Grinder\nregion: EMEA\ncategory: Equipment\nunits_sold: 64\nunit_price: 289.00\nrevenue: 18496.00\nreturn_rate_pct: 3.9"
       ],
+      "block_count": 1,
       "verified_by_human": false
     },
     {
@@ -824,6 +879,7 @@
       "required_facts": [
         "item: Espresso Blend\nregion: EMEA\ncategory: Beverage\nunits_sold: 1240\nunit_price: 12.50\nrevenue: 15500.00\nreturn_rate_pct: 2.1\nitem: Espresso Blend\nregion: APAC\ncategory: Beverage\nunits_sold: 1402\nunit_price: 12.50\nrevenue: 17525.00\nreturn_rate_pct: 5.8\nitem: Espresso Blend\nregion: AMER\ncategory: Beverage\nunits_sold: 1610\nunit_price: 12.50\nrevenue: 20125.00\nreturn_rate_pct: 1.9\nitem: Filter Papers\nregion: EMEA\ncategory: Accessory\nunits_sold: 3200\nunit_price: 3.20\nrevenue: 10240.00\nreturn_rate_pct: 0.8\nitem: Filter Papers\nregion: APAC\ncategory: Accessory\nunits_sold: 2870\nunit_price: 3.20\nrevenue: 9184.00\nreturn_rate_pct: 2.4\nitem: Filter Papers\nregion: AMER\ncategory: Accessory\nunits_sold: 3480\nunit_price: 3.20\nrevenue: 11136.00\nreturn_rate_pct: 0.6\nitem: Burr Grinder\nregion: EMEA\ncategory: Equipment\nunits_sold: 64\nunit_price: 289.00\nrevenue: 18496.00\nreturn_rate_pct: 3.9"
       ],
+      "block_count": 1,
       "verified_by_human": false
     },
     {
@@ -846,6 +902,7 @@
       "required_facts": [
         "item: Espresso Blend\nregion: EMEA\ncategory: Beverage\nunits_sold: 1240\nunit_price: 12.50\nrevenue: 15500.00\nreturn_rate_pct: 2.1\nitem: Espresso Blend\nregion: APAC\ncategory: Beverage\nunits_sold: 1402\nunit_price: 12.50\nrevenue: 17525.00\nreturn_rate_pct: 5.8\nitem: Espresso Blend\nregion: AMER\ncategory: Beverage\nunits_sold: 1610\nunit_price: 12.50\nrevenue: 20125.00\nreturn_rate_pct: 1.9\nitem: Filter Papers\nregion: EMEA\ncategory: Accessory\nunits_sold: 3200\nunit_price: 3.20\nrevenue: 10240.00\nreturn_rate_pct: 0.8\nitem: Filter Papers\nregion: APAC\ncategory: Accessory\nunits_sold: 2870\nunit_price: 3.20\nrevenue: 9184.00\nreturn_rate_pct: 2.4\nitem: Filter Papers\nregion: AMER\ncategory: Accessory\nunits_sold: 3480\nunit_price: 3.20\nrevenue: 11136.00\nreturn_rate_pct: 0.6\nitem: Burr Grinder\nregion: EMEA\ncategory: Equipment\nunits_sold: 64\nunit_price: 289.00\nrevenue: 18496.00\nreturn_rate_pct: 3.9"
       ],
+      "block_count": 1,
       "verified_by_human": false
     },
     {
@@ -868,6 +925,7 @@
       "required_facts": [
         "item: Espresso Blend\nregion: EMEA\ncategory: Beverage\nunits_sold: 1240\nunit_price: 12.50\nrevenue: 15500.00\nreturn_rate_pct: 2.1\nitem: Espresso Blend\nregion: APAC\ncategory: Beverage\nunits_sold: 1402\nunit_price: 12.50\nrevenue: 17525.00\nreturn_rate_pct: 5.8\nitem: Espresso Blend\nregion: AMER\ncategory: Beverage\nunits_sold: 1610\nunit_price: 12.50\nrevenue: 20125.00\nreturn_rate_pct: 1.9\nitem: Filter Papers\nregion: EMEA\ncategory: Accessory\nunits_sold: 3200\nunit_price: 3.20\nrevenue: 10240.00\nreturn_rate_pct: 0.8\nitem: Filter Papers\nregion: APAC\ncategory: Accessory\nunits_sold: 2870\nunit_price: 3.20\nrevenue: 9184.00\nreturn_rate_pct: 2.4\nitem: Filter Papers\nregion: AMER\ncategory: Accessory\nunits_sold: 3480\nunit_price: 3.20\nrevenue: 11136.00\nreturn_rate_pct: 0.6\nitem: Burr Grinder\nregion: EMEA\ncategory: Equipment\nunits_sold: 64\nunit_price: 289.00\nrevenue: 18496.00\nreturn_rate_pct: 3.9"
       ],
+      "block_count": 1,
       "verified_by_human": false
     },
     {
@@ -884,8 +942,8 @@
       ],
       "source": "contract.html",
       "answerable": true,
-      "kind": "two_block_cloze",
-      "label_provenance": "machine-two_block_cloze",
+      "kind": "multi_block_cloze",
+      "label_provenance": "machine-multi_block_cloze",
       "expected_positions": [
         2,
         4
@@ -894,6 +952,7 @@
         "This agreement continues for an initial term of thirty six months. Either party\r\nmay terminate for convenience on ninety days written notice. Either party may\r\nterminate immediately for material breach that remains uncured after thirty\r\ndays notice.",
         "Invoices are payable within forty five days of receipt. The Client may\r\nwithhold payment for Deliverables under dispute while the parties negotiate."
       ],
+      "block_count": 2,
       "verified_by_human": false
     },
     {
@@ -916,6 +975,7 @@
       "required_facts": [
         "This agreement continues for an initial term of thirty six months. Either party\r\nmay terminate for convenience on ninety days written notice. Either party may\r\nterminate immediately for material breach that remains uncured after thirty\r\ndays notice."
       ],
+      "block_count": 1,
       "verified_by_human": false
     },
     {
@@ -938,6 +998,7 @@
       "required_facts": [
         "Invoices are payable within forty five days of receipt. The Client may\r\nwithhold payment for Deliverables under dispute while the parties negotiate."
       ],
+      "block_count": 1,
       "verified_by_human": false
     },
     {
@@ -960,6 +1021,7 @@
       "required_facts": [
         "region: EMEA\nquarter: Q1\nproduct: core\nrevenue_usd: 412300\nunits: 1180\nmargin_pct: 22.5\nchurn_pct: 3.1\nregion: EMEA\nquarter: Q2\nproduct: core\nrevenue_usd: 438900\nunits: 1245\nmargin_pct: 23.0\nchurn_pct: 2.8\nregion: EMEA\nquarter: Q3\nproduct: core\nrevenue_usd: 401200\nunits: 1155\nmargin_pct: 21.9\nchurn_pct: 3.4\nregion: EMEA\nquarter: Q4\nproduct: core\nrevenue_usd: 455600\nunits: 1301\nmargin_pct: 24.2\nchurn_pct: 2.5\nregion: APAC\nquarter: Q1\nproduct: core\nrevenue_usd: 388100\nunits: 1402\nmargin_pct: 19.8\nchurn_pct: 5.2\nregion: APAC\nquarter: Q2\nproduct: core\nrevenue_usd: 410700\nunits: 1478\nmargin_pct: 20.4\nchurn_pct: 4.9\nregion: APAC\nquarter: Q3\nproduct: core\nrevenue_usd: 372500\nunits: 1350\nmargin_pct: 18.7\nchurn_pct: 5.8\nregion: APAC\nquarter: Q4\nproduct: core\nrevenue_usd: 429800\nunits: 1533\nmargin_pct: 21.1\nchurn_pct: 4.6\nregion: AMER\nquarter: Q1\nproduct: core\nrevenue_usd: 521700\nunits: 1610"
       ],
+      "block_count": 1,
       "verified_by_human": false
     },
     {
@@ -982,6 +1044,7 @@
       "required_facts": [
         "region: EMEA\nquarter: Q1\nproduct: core\nrevenue_usd: 412300\nunits: 1180\nmargin_pct: 22.5\nchurn_pct: 3.1\nregion: EMEA\nquarter: Q2\nproduct: core\nrevenue_usd: 438900\nunits: 1245\nmargin_pct: 23.0\nchurn_pct: 2.8\nregion: EMEA\nquarter: Q3\nproduct: core\nrevenue_usd: 401200\nunits: 1155\nmargin_pct: 21.9\nchurn_pct: 3.4\nregion: EMEA\nquarter: Q4\nproduct: core\nrevenue_usd: 455600\nunits: 1301\nmargin_pct: 24.2\nchurn_pct: 2.5\nregion: APAC\nquarter: Q1\nproduct: core\nrevenue_usd: 388100\nunits: 1402\nmargin_pct: 19.8\nchurn_pct: 5.2\nregion: APAC\nquarter: Q2\nproduct: core\nrevenue_usd: 410700\nunits: 1478\nmargin_pct: 20.4\nchurn_pct: 4.9\nregion: APAC\nquarter: Q3\nproduct: core\nrevenue_usd: 372500\nunits: 1350\nmargin_pct: 18.7\nchurn_pct: 5.8\nregion: APAC\nquarter: Q4\nproduct: core\nrevenue_usd: 429800\nunits: 1533\nmargin_pct: 21.1\nchurn_pct: 4.6\nregion: AMER\nquarter: Q1\nproduct: core\nrevenue_usd: 521700\nunits: 1610"
       ],
+      "block_count": 1,
       "verified_by_human": false
     },
     {
@@ -1004,6 +1067,7 @@
       "required_facts": [
         "region: EMEA\nquarter: Q1\nproduct: core\nrevenue_usd: 412300\nunits: 1180\nmargin_pct: 22.5\nchurn_pct: 3.1\nregion: EMEA\nquarter: Q2\nproduct: core\nrevenue_usd: 438900\nunits: 1245\nmargin_pct: 23.0\nchurn_pct: 2.8\nregion: EMEA\nquarter: Q3\nproduct: core\nrevenue_usd: 401200\nunits: 1155\nmargin_pct: 21.9\nchurn_pct: 3.4\nregion: EMEA\nquarter: Q4\nproduct: core\nrevenue_usd: 455600\nunits: 1301\nmargin_pct: 24.2\nchurn_pct: 2.5\nregion: APAC\nquarter: Q1\nproduct: core\nrevenue_usd: 388100\nunits: 1402\nmargin_pct: 19.8\nchurn_pct: 5.2\nregion: APAC\nquarter: Q2\nproduct: core\nrevenue_usd: 410700\nunits: 1478\nmargin_pct: 20.4\nchurn_pct: 4.9\nregion: APAC\nquarter: Q3\nproduct: core\nrevenue_usd: 372500\nunits: 1350\nmargin_pct: 18.7\nchurn_pct: 5.8\nregion: APAC\nquarter: Q4\nproduct: core\nrevenue_usd: 429800\nunits: 1533\nmargin_pct: 21.1\nchurn_pct: 4.6\nregion: AMER\nquarter: Q1\nproduct: core\nrevenue_usd: 521700\nunits: 1610"
       ],
+      "block_count": 1,
       "verified_by_human": false
     },
     {
@@ -1026,6 +1090,7 @@
       "required_facts": [
         "region: EMEA\nquarter: Q1\nproduct: core\nrevenue_usd: 412300\nunits: 1180\nmargin_pct: 22.5\nchurn_pct: 3.1\nregion: EMEA\nquarter: Q2\nproduct: core\nrevenue_usd: 438900\nunits: 1245\nmargin_pct: 23.0\nchurn_pct: 2.8\nregion: EMEA\nquarter: Q3\nproduct: core\nrevenue_usd: 401200\nunits: 1155\nmargin_pct: 21.9\nchurn_pct: 3.4\nregion: EMEA\nquarter: Q4\nproduct: core\nrevenue_usd: 455600\nunits: 1301\nmargin_pct: 24.2\nchurn_pct: 2.5\nregion: APAC\nquarter: Q1\nproduct: core\nrevenue_usd: 388100\nunits: 1402\nmargin_pct: 19.8\nchurn_pct: 5.2\nregion: APAC\nquarter: Q2\nproduct: core\nrevenue_usd: 410700\nunits: 1478\nmargin_pct: 20.4\nchurn_pct: 4.9\nregion: APAC\nquarter: Q3\nproduct: core\nrevenue_usd: 372500\nunits: 1350\nmargin_pct: 18.7\nchurn_pct: 5.8\nregion: APAC\nquarter: Q4\nproduct: core\nrevenue_usd: 429800\nunits: 1533\nmargin_pct: 21.1\nchurn_pct: 4.6\nregion: AMER\nquarter: Q1\nproduct: core\nrevenue_usd: 521700\nunits: 1610"
       ],
+      "block_count": 1,
       "verified_by_human": false
     },
     {
@@ -1048,6 +1113,7 @@
       "required_facts": [
         "region: EMEA\nquarter: Q1\nproduct: core\nrevenue_usd: 412300\nunits: 1180\nmargin_pct: 22.5\nchurn_pct: 3.1\nregion: EMEA\nquarter: Q2\nproduct: core\nrevenue_usd: 438900\nunits: 1245\nmargin_pct: 23.0\nchurn_pct: 2.8\nregion: EMEA\nquarter: Q3\nproduct: core\nrevenue_usd: 401200\nunits: 1155\nmargin_pct: 21.9\nchurn_pct: 3.4\nregion: EMEA\nquarter: Q4\nproduct: core\nrevenue_usd: 455600\nunits: 1301\nmargin_pct: 24.2\nchurn_pct: 2.5\nregion: APAC\nquarter: Q1\nproduct: core\nrevenue_usd: 388100\nunits: 1402\nmargin_pct: 19.8\nchurn_pct: 5.2\nregion: APAC\nquarter: Q2\nproduct: core\nrevenue_usd: 410700\nunits: 1478\nmargin_pct: 20.4\nchurn_pct: 4.9\nregion: APAC\nquarter: Q3\nproduct: core\nrevenue_usd: 372500\nunits: 1350\nmargin_pct: 18.7\nchurn_pct: 5.8\nregion: APAC\nquarter: Q4\nproduct: core\nrevenue_usd: 429800\nunits: 1533\nmargin_pct: 21.1\nchurn_pct: 4.6\nregion: AMER\nquarter: Q1\nproduct: core\nrevenue_usd: 521700\nunits: 1610"
       ],
+      "block_count": 1,
       "verified_by_human": false
     },
     {
@@ -1070,6 +1136,7 @@
       "required_facts": [
         "region: EMEA\nquarter: Q1\nproduct: core\nrevenue_usd: 412300\nunits: 1180\nmargin_pct: 22.5\nchurn_pct: 3.1\nregion: EMEA\nquarter: Q2\nproduct: core\nrevenue_usd: 438900\nunits: 1245\nmargin_pct: 23.0\nchurn_pct: 2.8\nregion: EMEA\nquarter: Q3\nproduct: core\nrevenue_usd: 401200\nunits: 1155\nmargin_pct: 21.9\nchurn_pct: 3.4\nregion: EMEA\nquarter: Q4\nproduct: core\nrevenue_usd: 455600\nunits: 1301\nmargin_pct: 24.2\nchurn_pct: 2.5\nregion: APAC\nquarter: Q1\nproduct: core\nrevenue_usd: 388100\nunits: 1402\nmargin_pct: 19.8\nchurn_pct: 5.2\nregion: APAC\nquarter: Q2\nproduct: core\nrevenue_usd: 410700\nunits: 1478\nmargin_pct: 20.4\nchurn_pct: 4.9\nregion: APAC\nquarter: Q3\nproduct: core\nrevenue_usd: 372500\nunits: 1350\nmargin_pct: 18.7\nchurn_pct: 5.8\nregion: APAC\nquarter: Q4\nproduct: core\nrevenue_usd: 429800\nunits: 1533\nmargin_pct: 21.1\nchurn_pct: 4.6\nregion: AMER\nquarter: Q1\nproduct: core\nrevenue_usd: 521700\nunits: 1610"
       ],
+      "block_count": 1,
       "verified_by_human": false
     },
     {
@@ -1086,8 +1153,8 @@
       ],
       "source": "football.md",
       "answerable": true,
-      "kind": "two_block_cloze",
-      "label_provenance": "machine-two_block_cloze",
+      "kind": "multi_block_cloze",
+      "label_provenance": "machine-multi_block_cloze",
       "expected_positions": [
         1,
         2
@@ -1096,10 +1163,38 @@
         "Counter pressing starts within two seconds of losing the ball. The nearest\nplayer delays the restart rather than diving in, and the second man screens the\nmost obvious forward pass. Counter pressing fails when the first defender\npresses without cover, which leaves the pivot free to play long.",
         "When counter pressing is broken the side drops into a back five, conceding\nterritory in exchange for a compact block. The block narrows to nineteen metres\nin behind the ball and thirty five metres in front of it."
       ],
+      "block_count": 2,
       "verified_by_human": false
     },
     {
       "id": "C048",
+      "question": "Counter pressing starts within _____ of losing the ball.\nin behind the ball and _____ in front of it.",
+      "answer": "two seconds",
+      "answers": [
+        "two seconds",
+        "thirty five metres"
+      ],
+      "windows": [
+        "Counter pressing starts within two seconds of losing the ball.",
+        "in behind the ball and thirty five metres in front of it."
+      ],
+      "source": "football.md",
+      "answerable": true,
+      "kind": "multi_block_cloze",
+      "label_provenance": "machine-multi_block_cloze",
+      "expected_positions": [
+        1,
+        2
+      ],
+      "required_facts": [
+        "Counter pressing starts within two seconds of losing the ball. The nearest\nplayer delays the restart rather than diving in, and the second man screens the\nmost obvious forward pass. Counter pressing fails when the first defender\npresses without cover, which leaves the pivot free to play long.",
+        "When counter pressing is broken the side drops into a back five, conceding\nterritory in exchange for a compact block. The block narrows to nineteen metres\nin behind the ball and thirty five metres in front of it."
+      ],
+      "block_count": 2,
+      "verified_by_human": false
+    },
+    {
+      "id": "C049",
       "question": "Counter pressing starts within _____ of losing the ball.",
       "answer": "two seconds",
       "answers": [
@@ -1118,10 +1213,11 @@
       "required_facts": [
         "Counter pressing starts within two seconds of losing the ball. The nearest\nplayer delays the restart rather than diving in, and the second man screens the\nmost obvious forward pass. Counter pressing fails when the first defender\npresses without cover, which leaves the pivot free to play long."
       ],
+      "block_count": 1,
       "verified_by_human": false
     },
     {
-      "id": "C049",
+      "id": "C050",
       "question": "The block narrows to _____ in behind the ball and thirty five metres in front of it.",
       "answer": "nineteen metres",
       "answers": [
@@ -1140,10 +1236,11 @@
       "required_facts": [
         "When counter pressing is broken the side drops into a back five, conceding\nterritory in exchange for a compact block. The block narrows to nineteen metres\nin behind the ball and thirty five metres in front of it."
       ],
+      "block_count": 1,
       "verified_by_human": false
     },
     {
-      "id": "C050",
+      "id": "C051",
       "question": "in behind the ball and _____ in front of it.",
       "answer": "thirty five metres",
       "answers": [
@@ -1162,10 +1259,11 @@
       "required_facts": [
         "When counter pressing is broken the side drops into a back five, conceding\nterritory in exchange for a compact block. The block narrows to nineteen metres\nin behind the ball and thirty five metres in front of it."
       ],
+      "block_count": 1,
       "verified_by_human": false
     },
     {
-      "id": "C051",
+      "id": "C052",
       "question": "Mandatory passivation is required within _____ of end of life.",
       "answer": "five years",
       "answers": [
@@ -1184,158 +1282,181 @@
       "required_facts": [
         "Orbital Debris Mitigation Handbook\nThe growing population of non-functional spacecraft in low Earth orbit presents a\ncumulative hazard to every mission sharing that altitude band. This handbook\ndescribes the disposal practices adopted by flight teams.\nMandatory passivation is required within five years of end of life. Operators\nmust command the satellite to discharge all stored energy, vent residual\npressurants, and inhibit all rotating mechanisms.\nFor satellites operating below 600 km, a dedicated disposal manoeuvre is\nimpractical; operators rely on natural atmospheric drag to remove the vehicle.\nDebris density is highest between 700 and 1000 km, where drag is weakest and\nobjects can persist for centuries."
       ],
+      "block_count": 1,
       "verified_by_human": false
     },
     {
-      "id": "C052",
-      "question": "loaded _____ fields from parcels_v3.parquet\nfield soil_ph missing for 38 of _____",
-      "answer": "14",
+      "id": "C053",
+      "question": "INFO  scheduler: _____\nloaded _____ fields from parcels_v3.parquet",
+      "answer": "harvest plan run starting",
       "answers": [
+        "harvest plan run starting",
+        "14"
+      ],
+      "windows": [
+        "INFO  scheduler: harvest plan run starting",
+        "loaded 14 fields from parcels_v3.parquet"
+      ],
+      "source": "harvest.log",
+      "answerable": true,
+      "kind": "multi_block_cloze",
+      "label_provenance": "machine-multi_block_cloze",
+      "expected_positions": [
+        0,
+        1
+      ],
+      "required_facts": [
+        "2024-11-03 06:00:01 INFO  scheduler: harvest plan run starting",
+        "2024-11-03 06:00:01 INFO  scheduler: loaded 14 fields from parcels_v3.parquet"
+      ],
+      "block_count": 2,
+      "verified_by_human": false
+    },
+    {
+      "id": "C054",
+      "question": "INFO  scheduler: _____\nfield soil_ph missing for 38 of _____",
+      "answer": "harvest plan run starting",
+      "answers": [
+        "harvest plan run starting",
+        "12480 rows"
+      ],
+      "windows": [
+        "INFO  scheduler: harvest plan run starting",
+        "field soil_ph missing for 38 of 12480 rows"
+      ],
+      "source": "harvest.log",
+      "answerable": true,
+      "kind": "multi_block_cloze",
+      "label_provenance": "machine-multi_block_cloze",
+      "expected_positions": [
+        0,
+        2
+      ],
+      "required_facts": [
+        "2024-11-03 06:00:01 INFO  scheduler: harvest plan run starting",
+        "2024-11-03 06:00:04 WARN  io: field soil_ph missing for 38 of 12480 rows"
+      ],
+      "block_count": 2,
+      "verified_by_human": false
+    },
+    {
+      "id": "C055",
+      "question": "INFO  scheduler: _____\nimputed soil_ph with field median _____",
+      "answer": "harvest plan run starting",
+      "answers": [
+        "harvest plan run starting",
+        "6.4"
+      ],
+      "windows": [
+        "INFO  scheduler: harvest plan run starting",
+        "imputed soil_ph with field median 6.4"
+      ],
+      "source": "harvest.log",
+      "answerable": true,
+      "kind": "multi_block_cloze",
+      "label_provenance": "machine-multi_block_cloze",
+      "expected_positions": [
+        0,
+        3
+      ],
+      "required_facts": [
+        "2024-11-03 06:00:01 INFO  scheduler: harvest plan run starting",
+        "2024-11-03 06:00:04 INFO  io: imputed soil_ph with field median 6.4"
+      ],
+      "block_count": 2,
+      "verified_by_human": false
+    },
+    {
+      "id": "C056",
+      "question": "INFO  scheduler: _____\nreprojected _____ to EPSG:4326",
+      "answer": "harvest plan run starting",
+      "answers": [
+        "harvest plan run starting",
+        "12480 geometries"
+      ],
+      "windows": [
+        "INFO  scheduler: harvest plan run starting",
+        "reprojected 12480 geometries to EPSG:4326"
+      ],
+      "source": "harvest.log",
+      "answerable": true,
+      "kind": "multi_block_cloze",
+      "label_provenance": "machine-multi_block_cloze",
+      "expected_positions": [
+        0,
+        4
+      ],
+      "required_facts": [
+        "2024-11-03 06:00:01 INFO  scheduler: harvest plan run starting",
+        "2024-11-03 06:00:09 INFO  gis: reprojected 12480 geometries to EPSG:4326"
+      ],
+      "block_count": 2,
+      "verified_by_human": false
+    },
+    {
+      "id": "C057",
+      "question": "INFO  scheduler: _____\nloaded _____ fields from parcels_v3.parquet\nfield soil_ph missing for 38 of _____",
+      "answer": "harvest plan run starting",
+      "answers": [
+        "harvest plan run starting",
         "14",
         "12480 rows"
       ],
       "windows": [
+        "INFO  scheduler: harvest plan run starting",
         "loaded 14 fields from parcels_v3.parquet",
         "field soil_ph missing for 38 of 12480 rows"
       ],
       "source": "harvest.log",
       "answerable": true,
-      "kind": "two_block_cloze",
-      "label_provenance": "machine-two_block_cloze",
+      "kind": "multi_block_cloze",
+      "label_provenance": "machine-multi_block_cloze",
       "expected_positions": [
+        0,
         1,
         2
       ],
       "required_facts": [
+        "2024-11-03 06:00:01 INFO  scheduler: harvest plan run starting",
         "2024-11-03 06:00:01 INFO  scheduler: loaded 14 fields from parcels_v3.parquet",
         "2024-11-03 06:00:04 WARN  io: field soil_ph missing for 38 of 12480 rows"
       ],
-      "verified_by_human": false
-    },
-    {
-      "id": "C053",
-      "question": "field soil_ph missing for 38 of _____\nimputed soil_ph with field median _____",
-      "answer": "12480 rows",
-      "answers": [
-        "12480 rows",
-        "6.4"
-      ],
-      "windows": [
-        "field soil_ph missing for 38 of 12480 rows",
-        "imputed soil_ph with field median 6.4"
-      ],
-      "source": "harvest.log",
-      "answerable": true,
-      "kind": "two_block_cloze",
-      "label_provenance": "machine-two_block_cloze",
-      "expected_positions": [
-        2,
-        3
-      ],
-      "required_facts": [
-        "2024-11-03 06:00:04 WARN  io: field soil_ph missing for 38 of 12480 rows",
-        "2024-11-03 06:00:04 INFO  io: imputed soil_ph with field median 6.4"
-      ],
-      "verified_by_human": false
-    },
-    {
-      "id": "C054",
-      "question": "imputed soil_ph with field median _____\nreprojected _____ to EPSG:4326",
-      "answer": "6.4",
-      "answers": [
-        "6.4",
-        "12480 geometries"
-      ],
-      "windows": [
-        "imputed soil_ph with field median 6.4",
-        "reprojected 12480 geometries to EPSG:4326"
-      ],
-      "source": "harvest.log",
-      "answerable": true,
-      "kind": "two_block_cloze",
-      "label_provenance": "machine-two_block_cloze",
-      "expected_positions": [
-        3,
-        4
-      ],
-      "required_facts": [
-        "2024-11-03 06:00:04 INFO  io: imputed soil_ph with field median 6.4",
-        "2024-11-03 06:00:09 INFO  gis: reprojected 12480 geometries to EPSG:4326"
-      ],
-      "verified_by_human": false
-    },
-    {
-      "id": "C055",
-      "question": "reprojected _____ to EPSG:4326\ntraining on 11864 rows, _____",
-      "answer": "12480 geometries",
-      "answers": [
-        "12480 geometries",
-        "22 features"
-      ],
-      "windows": [
-        "reprojected 12480 geometries to EPSG:4326",
-        "training on 11864 rows, 22 features"
-      ],
-      "source": "harvest.log",
-      "answerable": true,
-      "kind": "two_block_cloze",
-      "label_provenance": "machine-two_block_cloze",
-      "expected_positions": [
-        4,
-        7
-      ],
-      "required_facts": [
-        "2024-11-03 06:00:09 INFO  gis: reprojected 12480 geometries to EPSG:4326",
-        "2024-11-03 06:00:18 INFO  model: training on 11864 rows, 22 features"
-      ],
-      "verified_by_human": false
-    },
-    {
-      "id": "C056",
-      "question": "loaded _____ fields from parcels_v3.parquet",
-      "answer": "14",
-      "answers": [
-        "14"
-      ],
-      "windows": [
-        "loaded 14 fields from parcels_v3.parquet"
-      ],
-      "source": "harvest.log",
-      "answerable": true,
-      "kind": "value_cloze",
-      "label_provenance": "machine-value_cloze",
-      "expected_positions": [
-        1
-      ],
-      "required_facts": [
-        "2024-11-03 06:00:01 INFO  scheduler: loaded 14 fields from parcels_v3.parquet"
-      ],
-      "verified_by_human": false
-    },
-    {
-      "id": "C057",
-      "question": "field soil_ph missing for 38 of _____",
-      "answer": "12480 rows",
-      "answers": [
-        "12480 rows"
-      ],
-      "windows": [
-        "field soil_ph missing for 38 of 12480 rows"
-      ],
-      "source": "harvest.log",
-      "answerable": true,
-      "kind": "value_cloze",
-      "label_provenance": "machine-value_cloze",
-      "expected_positions": [
-        2
-      ],
-      "required_facts": [
-        "2024-11-03 06:00:04 WARN  io: field soil_ph missing for 38 of 12480 rows"
-      ],
+      "block_count": 3,
       "verified_by_human": false
     },
     {
       "id": "C058",
+      "question": "INFO  scheduler: _____\nloaded _____ fields from parcels_v3.parquet\nimputed soil_ph with field median _____",
+      "answer": "harvest plan run starting",
+      "answers": [
+        "harvest plan run starting",
+        "14",
+        "6.4"
+      ],
+      "windows": [
+        "INFO  scheduler: harvest plan run starting",
+        "loaded 14 fields from parcels_v3.parquet",
+        "imputed soil_ph with field median 6.4"
+      ],
+      "source": "harvest.log",
+      "answerable": true,
+      "kind": "multi_block_cloze",
+      "label_provenance": "machine-multi_block_cloze",
+      "expected_positions": [
+        0,
+        1,
+        3
+      ],
+      "required_facts": [
+        "2024-11-03 06:00:01 INFO  scheduler: harvest plan run starting",
+        "2024-11-03 06:00:01 INFO  scheduler: loaded 14 fields from parcels_v3.parquet",
+        "2024-11-03 06:00:04 INFO  io: imputed soil_ph with field median 6.4"
+      ],
+      "block_count": 3,
+      "verified_by_human": false
+    },
+    {
+      "id": "C059",
       "question": "Rotate brassicas on a _____ cycle to starve the soil borne diseases that\nbuild up under a continuous crop.",
       "answer": "four year",
       "answers": [
@@ -1354,10 +1475,11 @@
       "required_facts": [
         "Plant brassicas in a firm bed to encourage roots that anchor the plant. Space\ncabbages at forty-five centimetres and protect them from cabbage white with\nfine mesh insect proofing from the moment of planting, because a single cabbage\nwhite lays eggs that produce a generation of caterpillars.\n\nRotate brassicas on a four year cycle to starve the soil borne diseases that\nbuild up under a continuous crop."
       ],
+      "block_count": 1,
       "verified_by_human": false
     },
     {
-      "id": "C059",
+      "id": "C060",
       "question": "This manual defines the minimum ventilation standard for underground workings below _____ depth.\n450 millimetres diameter is required beyond _____ from the main circuit, and duct length beyond that distance is deducted from the calculated flow.",
       "answer": "two thousand metres",
       "answers": [
@@ -1370,8 +1492,8 @@
       ],
       "source": "mining.rst",
       "answerable": true,
-      "kind": "two_block_cloze",
-      "label_provenance": "machine-two_block_cloze",
+      "kind": "multi_block_cloze",
+      "label_provenance": "machine-multi_block_cloze",
       "expected_positions": [
         2,
         7
@@ -1380,10 +1502,11 @@
         "This manual defines the minimum ventilation standard for underground workings below two thousand metres depth.",
         "450 millimetres diameter is required beyond 300 metres from the main circuit, and duct length beyond that distance is deducted from the calculated flow."
       ],
+      "block_count": 2,
       "verified_by_human": false
     },
     {
-      "id": "C060",
+      "id": "C061",
       "question": "Operations Manual: _____",
       "answer": "Deep Shaft Ventilation ====================================",
       "answers": [
@@ -1402,10 +1525,11 @@
       "required_facts": [
         "Operations Manual: Deep Shaft Ventilation ===================================="
       ],
+      "block_count": 1,
       "verified_by_human": false
     },
     {
-      "id": "C061",
+      "id": "C062",
       "question": "This manual defines the minimum ventilation standard for underground workings below _____ depth.",
       "answer": "two thousand metres",
       "answers": [
@@ -1424,10 +1548,11 @@
       "required_facts": [
         "This manual defines the minimum ventilation standard for underground workings below two thousand metres depth."
       ],
+      "block_count": 1,
       "verified_by_human": false
     },
     {
-      "id": "C062",
+      "id": "C063",
       "question": "450 millimetres diameter is required beyond _____ from the main circuit, and duct length beyond that distance is deducted from the calculated flow.",
       "answer": "300 metres",
       "answers": [
@@ -1446,10 +1571,11 @@
       "required_facts": [
         "450 millimetres diameter is required beyond 300 metres from the main circuit, and duct length beyond that distance is deducted from the calculated flow."
       ],
+      "block_count": 1,
       "verified_by_human": false
     },
     {
-      "id": "C063",
+      "id": "C064",
       "question": "$.model: _____",
       "answer": "wide-residual-cascade",
       "answers": [
@@ -1468,10 +1594,11 @@
       "required_facts": [
         "$.model: wide-residual-cascade\n$.version: 7\n$.training.epochs: 140\n$.training.batch_size: 512\n$.training.optimizer: adamw\n$.training.learning_rate: 0.001\n$.training.weight_decay: 0.0001\n$.training.early_stopping_patience: 12\n$.data.train_rows: 4820000\n$.data.validation_rows: 320000\n$.data.test_rows: 310000\n$.data.positive_rate: 0.042\n$.features.categorical[0]: merchant_category\n$.features.categorical[1]: country\n$.features.categorical[2]: device_type\n$.features.numerical[0]: amount\n$.features.numerical[1]: hour_of_day\n$.features.numerical[2]: days_since_signup\n$.features.text[0]: description\n$.thresholds.review: 0.35\n$.thresholds.decline: 0.82\n$.monitoring.drift_alert_auc_drop: 0.03\n$.monitoring.retrain_frequency_days: 14"
       ],
+      "block_count": 1,
       "verified_by_human": false
     },
     {
-      "id": "C064",
+      "id": "C065",
       "question": "_____ $.training.batch_size:",
       "answer": "140",
       "answers": [
@@ -1490,10 +1617,11 @@
       "required_facts": [
         "$.model: wide-residual-cascade\n$.version: 7\n$.training.epochs: 140\n$.training.batch_size: 512\n$.training.optimizer: adamw\n$.training.learning_rate: 0.001\n$.training.weight_decay: 0.0001\n$.training.early_stopping_patience: 12\n$.data.train_rows: 4820000\n$.data.validation_rows: 320000\n$.data.test_rows: 310000\n$.data.positive_rate: 0.042\n$.features.categorical[0]: merchant_category\n$.features.categorical[1]: country\n$.features.categorical[2]: device_type\n$.features.numerical[0]: amount\n$.features.numerical[1]: hour_of_day\n$.features.numerical[2]: days_since_signup\n$.features.text[0]: description\n$.thresholds.review: 0.35\n$.thresholds.decline: 0.82\n$.monitoring.drift_alert_auc_drop: 0.03\n$.monitoring.retrain_frequency_days: 14"
       ],
+      "block_count": 1,
       "verified_by_human": false
     },
     {
-      "id": "C065",
+      "id": "C066",
       "question": "_____ $.training.optimizer:",
       "answer": "512",
       "answers": [
@@ -1512,10 +1640,11 @@
       "required_facts": [
         "$.model: wide-residual-cascade\n$.version: 7\n$.training.epochs: 140\n$.training.batch_size: 512\n$.training.optimizer: adamw\n$.training.learning_rate: 0.001\n$.training.weight_decay: 0.0001\n$.training.early_stopping_patience: 12\n$.data.train_rows: 4820000\n$.data.validation_rows: 320000\n$.data.test_rows: 310000\n$.data.positive_rate: 0.042\n$.features.categorical[0]: merchant_category\n$.features.categorical[1]: country\n$.features.categorical[2]: device_type\n$.features.numerical[0]: amount\n$.features.numerical[1]: hour_of_day\n$.features.numerical[2]: days_since_signup\n$.features.text[0]: description\n$.thresholds.review: 0.35\n$.thresholds.decline: 0.82\n$.monitoring.drift_alert_auc_drop: 0.03\n$.monitoring.retrain_frequency_days: 14"
       ],
+      "block_count": 1,
       "verified_by_human": false
     },
     {
-      "id": "C066",
+      "id": "C067",
       "question": "$.training.optimizer: _____",
       "answer": "adamw",
       "answers": [
@@ -1534,10 +1663,11 @@
       "required_facts": [
         "$.model: wide-residual-cascade\n$.version: 7\n$.training.epochs: 140\n$.training.batch_size: 512\n$.training.optimizer: adamw\n$.training.learning_rate: 0.001\n$.training.weight_decay: 0.0001\n$.training.early_stopping_patience: 12\n$.data.train_rows: 4820000\n$.data.validation_rows: 320000\n$.data.test_rows: 310000\n$.data.positive_rate: 0.042\n$.features.categorical[0]: merchant_category\n$.features.categorical[1]: country\n$.features.categorical[2]: device_type\n$.features.numerical[0]: amount\n$.features.numerical[1]: hour_of_day\n$.features.numerical[2]: days_since_signup\n$.features.text[0]: description\n$.thresholds.review: 0.35\n$.thresholds.decline: 0.82\n$.monitoring.drift_alert_auc_drop: 0.03\n$.monitoring.retrain_frequency_days: 14"
       ],
+      "block_count": 1,
       "verified_by_human": false
     },
     {
-      "id": "C067",
+      "id": "C068",
       "question": "_____ $.training.weight_decay:",
       "answer": "0.001",
       "answers": [
@@ -1556,10 +1686,11 @@
       "required_facts": [
         "$.model: wide-residual-cascade\n$.version: 7\n$.training.epochs: 140\n$.training.batch_size: 512\n$.training.optimizer: adamw\n$.training.learning_rate: 0.001\n$.training.weight_decay: 0.0001\n$.training.early_stopping_patience: 12\n$.data.train_rows: 4820000\n$.data.validation_rows: 320000\n$.data.test_rows: 310000\n$.data.positive_rate: 0.042\n$.features.categorical[0]: merchant_category\n$.features.categorical[1]: country\n$.features.categorical[2]: device_type\n$.features.numerical[0]: amount\n$.features.numerical[1]: hour_of_day\n$.features.numerical[2]: days_since_signup\n$.features.text[0]: description\n$.thresholds.review: 0.35\n$.thresholds.decline: 0.82\n$.monitoring.drift_alert_auc_drop: 0.03\n$.monitoring.retrain_frequency_days: 14"
       ],
+      "block_count": 1,
       "verified_by_human": false
     },
     {
-      "id": "C068",
+      "id": "C069",
       "question": "_____ $.training.early_stopping_patience:",
       "answer": "0.0001",
       "answers": [
@@ -1578,10 +1709,11 @@
       "required_facts": [
         "$.model: wide-residual-cascade\n$.version: 7\n$.training.epochs: 140\n$.training.batch_size: 512\n$.training.optimizer: adamw\n$.training.learning_rate: 0.001\n$.training.weight_decay: 0.0001\n$.training.early_stopping_patience: 12\n$.data.train_rows: 4820000\n$.data.validation_rows: 320000\n$.data.test_rows: 310000\n$.data.positive_rate: 0.042\n$.features.categorical[0]: merchant_category\n$.features.categorical[1]: country\n$.features.categorical[2]: device_type\n$.features.numerical[0]: amount\n$.features.numerical[1]: hour_of_day\n$.features.numerical[2]: days_since_signup\n$.features.text[0]: description\n$.thresholds.review: 0.35\n$.thresholds.decline: 0.82\n$.monitoring.drift_alert_auc_drop: 0.03\n$.monitoring.retrain_frequency_days: 14"
       ],
+      "block_count": 1,
       "verified_by_human": false
     },
     {
-      "id": "C069",
+      "id": "C070",
       "question": "Pharmacology Study Notes: _____\nVancomycin must be infused slowly over at least _____ to avoid red man syndrome, which is a histamine mediated reaction rather than true allergy.",
       "answer": "Antimicrobials",
       "answers": [
@@ -1594,8 +1726,8 @@
       ],
       "source": "pharm-notes.txt",
       "answerable": true,
-      "kind": "two_block_cloze",
-      "label_provenance": "machine-two_block_cloze",
+      "kind": "multi_block_cloze",
+      "label_provenance": "machine-multi_block_cloze",
       "expected_positions": [
         0,
         3
@@ -1604,10 +1736,11 @@
         "Pharmacology Study Notes: Antimicrobials",
         "Vancomycin must be infused slowly over at least one hour to avoid red man syndrome, which is a histamine mediated reaction rather than true allergy."
       ],
+      "block_count": 2,
       "verified_by_human": false
     },
     {
-      "id": "C070",
+      "id": "C071",
       "question": "Pharmacology Study Notes: _____",
       "answer": "Antimicrobials",
       "answers": [
@@ -1626,10 +1759,11 @@
       "required_facts": [
         "Pharmacology Study Notes: Antimicrobials"
       ],
+      "block_count": 1,
       "verified_by_human": false
     },
     {
-      "id": "C071",
+      "id": "C072",
       "question": "Vancomycin must be infused slowly over at least _____ to avoid red man syndrome, which is a histamine mediated reaction rather than true allergy.",
       "answer": "one hour",
       "answers": [
@@ -1648,10 +1782,11 @@
       "required_facts": [
         "Vancomycin must be infused slowly over at least one hour to avoid red man syndrome, which is a histamine mediated reaction rather than true allergy."
       ],
+      "block_count": 1,
       "verified_by_human": false
     },
     {
-      "id": "C072",
+      "id": "C073",
       "question": "JOIN zones z ON z.zone_id = _____",
       "answer": "p.zone_id",
       "answers": [
@@ -1670,10 +1805,11 @@
       "required_facts": [
         "-- Warehouse picking performance by zone.\n SUM(CASE WHEN p.completed_at IS NULL THEN 1 ELSE 0 END) AS abandoned\nFROM picks p\nJOIN zones z ON z.zone_id = p.zone_id\nWHERE p.started_at >= CURRENT_DATE - INTERVAL '30 days'\nGROUP BY z.zone_name\nHAVING COUNT(p.pick_id) > 50\nORDER BY avg_seconds DESC;"
       ],
+      "block_count": 1,
       "verified_by_human": false
     },
     {
-      "id": "C073",
+      "id": "C074",
       "question": "channel: _____",
       "answer": "str",
       "answers": [
@@ -1692,10 +1828,11 @@
       "required_facts": [
         "Frame\nclass Frame:\n    channel: str\n    value: float\n    timestamp: float"
       ],
+      "block_count": 1,
       "verified_by_human": false
     },
     {
-      "id": "C074",
+      "id": "C075",
       "question": "value: _____",
       "answer": "float",
       "answers": [
@@ -1714,10 +1851,11 @@
       "required_facts": [
         "Frame\nclass Frame:\n    channel: str\n    value: float\n    timestamp: float"
       ],
+      "block_count": 1,
       "verified_by_human": false
     },
     {
-      "id": "C075",
+      "id": "C076",
       "question": "timestamp: _____",
       "answer": "float",
       "answers": [
@@ -1736,10 +1874,11 @@
       "required_facts": [
         "Frame\nclass Frame:\n    channel: str\n    value: float\n    timestamp: float"
       ],
+      "block_count": 1,
       "verified_by_human": false
     },
     {
-      "id": "C076",
+      "id": "C077",
       "question": "def normalise_channel(name: _____",
       "answer": "str) -> str:",
       "answers": [
@@ -1758,10 +1897,11 @@
       "required_facts": [
         "normalise_channel\ndef normalise_channel(name: str) -> str:\n    \"\"\"Lowercase a channel name and replace separators with underscores.\"\"\"\n    cleaned = name.strip().lower()\n    for separator in (\"-\", \" \", \"/\"):\n        cleaned = cleaned.replace(separator, \"_\")\n    return cleaned"
       ],
+      "block_count": 1,
       "verified_by_human": false
     },
     {
-      "id": "C077",
+      "id": "C078",
       "question": "keep = _____",
       "answer": "int(len(ordered) * keep_ratio)",
       "answers": [
@@ -1780,10 +1920,11 @@
       "required_facts": [
         "shed_low_priority\ndef shed_low_priority(frames: list, keep_ratio: float = 0.8) -> list:\n    \"\"\"Drop the lowest priority frames when a queue nears its depth limit.\"\"\"\n    ordered = sorted(frames, key=lambda f: getattr(f, \"priority\", 0), reverse=True)\n    keep = int(len(ordered) * keep_ratio)\n    return ordered[:keep]"
       ],
+      "block_count": 1,
       "verified_by_human": false
     },
     {
-      "id": "C078",
+      "id": "C079",
       "question": "$.package.name: _____",
       "answer": "harvest-planner",
       "answers": [
@@ -1802,10 +1943,11 @@
       "required_facts": [
         "$.package.name: harvest-planner\n$.package.version: 0.9.3\n$.package.edition: 2021\n$.dependencies.serde: 1.0\n$.dependencies.chrono: 0.4\n$.dependencies.polars: 0.20\n$.profile.release.opt-level: 3\n$.profile.release.lto: True\n$.profile.release.codegen-units: 1"
       ],
+      "block_count": 1,
       "verified_by_human": false
     },
     {
-      "id": "C079",
+      "id": "C080",
       "question": "$.package.version: _____",
       "answer": "0.9.3",
       "answers": [
@@ -1824,10 +1966,11 @@
       "required_facts": [
         "$.package.name: harvest-planner\n$.package.version: 0.9.3\n$.package.edition: 2021\n$.dependencies.serde: 1.0\n$.dependencies.chrono: 0.4\n$.dependencies.polars: 0.20\n$.profile.release.opt-level: 3\n$.profile.release.lto: True\n$.profile.release.codegen-units: 1"
       ],
+      "block_count": 1,
       "verified_by_human": false
     },
     {
-      "id": "C080",
+      "id": "C081",
       "question": "_____ $.dependencies.serde:",
       "answer": "2021",
       "answers": [
@@ -1846,10 +1989,11 @@
       "required_facts": [
         "$.package.name: harvest-planner\n$.package.version: 0.9.3\n$.package.edition: 2021\n$.dependencies.serde: 1.0\n$.dependencies.chrono: 0.4\n$.dependencies.polars: 0.20\n$.profile.release.opt-level: 3\n$.profile.release.lto: True\n$.profile.release.codegen-units: 1"
       ],
+      "block_count": 1,
       "verified_by_human": false
     },
     {
-      "id": "C081",
+      "id": "C082",
       "question": "_____ $.dependencies.chrono:",
       "answer": "1.0",
       "answers": [
@@ -1868,10 +2012,11 @@
       "required_facts": [
         "$.package.name: harvest-planner\n$.package.version: 0.9.3\n$.package.edition: 2021\n$.dependencies.serde: 1.0\n$.dependencies.chrono: 0.4\n$.dependencies.polars: 0.20\n$.profile.release.opt-level: 3\n$.profile.release.lto: True\n$.profile.release.codegen-units: 1"
       ],
+      "block_count": 1,
       "verified_by_human": false
     },
     {
-      "id": "C082",
+      "id": "C083",
       "question": "_____ $.dependencies.polars:",
       "answer": "0.4",
       "answers": [
@@ -1890,10 +2035,11 @@
       "required_facts": [
         "$.package.name: harvest-planner\n$.package.version: 0.9.3\n$.package.edition: 2021\n$.dependencies.serde: 1.0\n$.dependencies.chrono: 0.4\n$.dependencies.polars: 0.20\n$.profile.release.opt-level: 3\n$.profile.release.lto: True\n$.profile.release.codegen-units: 1"
       ],
+      "block_count": 1,
       "verified_by_human": false
     },
     {
-      "id": "C083",
+      "id": "C084",
       "question": "_____ $.profile.release.opt-level:",
       "answer": "0.20",
       "answers": [
@@ -1912,10 +2058,38 @@
       "required_facts": [
         "$.package.name: harvest-planner\n$.package.version: 0.9.3\n$.package.edition: 2021\n$.dependencies.serde: 1.0\n$.dependencies.chrono: 0.4\n$.dependencies.polars: 0.20\n$.profile.release.opt-level: 3\n$.profile.release.lto: True\n$.profile.release.codegen-units: 1"
       ],
+      "block_count": 1,
       "verified_by_human": false
     },
     {
-      "id": "C084",
+      "id": "C085",
+      "question": "A rollback is triggered if the error rate exceeds _____ over any five minute window.\nduration_min: _____",
+      "answer": "0.5 percent",
+      "answers": [
+        "0.5 percent",
+        "90"
+      ],
+      "windows": [
+        "A rollback is triggered if the error rate exceeds 0.5 percent over any five minute window.",
+        "duration_min: 90"
+      ],
+      "source": "report.docx",
+      "answerable": true,
+      "kind": "multi_block_cloze",
+      "label_provenance": "machine-multi_block_cloze",
+      "expected_positions": [
+        2,
+        4
+      ],
+      "required_facts": [
+        "The rollback plan must be rehearsed in staging. A rollback is triggered if the error rate exceeds 0.5 percent over any five minute window.",
+        "step: freeze\nowner: ana\nduration_min: 90\nreversible: no\nstep: canary\nowner: sam\nduration_min: 30\nreversible: yes\nstep: ramp\nowner: sam\nduration_min: 45\nreversible: yes\nstep: verify\nowner: priya\nduration_min: 20\nreversible: n/a\nstep: rollback\nowner: ana\nduration_min: 30\nreversible: yes"
+      ],
+      "block_count": 2,
+      "verified_by_human": false
+    },
+    {
+      "id": "C086",
       "question": "step: freeze\nowner: ana\nduration_min: _____\nreversible: no",
       "answer": "90",
       "answers": [
@@ -1934,10 +2108,11 @@
       "required_facts": [
         "step: freeze\nowner: ana\nduration_min: 90\nreversible: no\nstep: canary\nowner: sam\nduration_min: 30\nreversible: yes\nstep: ramp\nowner: sam\nduration_min: 45\nreversible: yes\nstep: verify\nowner: priya\nduration_min: 20\nreversible: n/a\nstep: rollback\nowner: ana\nduration_min: 30\nreversible: yes"
       ],
+      "block_count": 1,
       "verified_by_human": false
     },
     {
-      "id": "C085",
+      "id": "C087",
       "question": "step: canary\nowner: sam\nduration_min: _____\nreversible: yes",
       "answer": "30",
       "answers": [
@@ -1956,98 +2131,11 @@
       "required_facts": [
         "step: freeze\nowner: ana\nduration_min: 90\nreversible: no\nstep: canary\nowner: sam\nduration_min: 30\nreversible: yes\nstep: ramp\nowner: sam\nduration_min: 45\nreversible: yes\nstep: verify\nowner: priya\nduration_min: 20\nreversible: n/a\nstep: rollback\nowner: ana\nduration_min: 30\nreversible: yes"
       ],
-      "verified_by_human": false
-    },
-    {
-      "id": "C086",
-      "question": "step: ramp\nowner: sam\nduration_min: _____\nreversible: yes",
-      "answer": "45",
-      "answers": [
-        "45"
-      ],
-      "windows": [
-        "duration_min: 45"
-      ],
-      "source": "report.docx",
-      "answerable": true,
-      "kind": "record_cloze",
-      "label_provenance": "machine-record_cloze",
-      "expected_positions": [
-        4
-      ],
-      "required_facts": [
-        "step: freeze\nowner: ana\nduration_min: 90\nreversible: no\nstep: canary\nowner: sam\nduration_min: 30\nreversible: yes\nstep: ramp\nowner: sam\nduration_min: 45\nreversible: yes\nstep: verify\nowner: priya\nduration_min: 20\nreversible: n/a\nstep: rollback\nowner: ana\nduration_min: 30\nreversible: yes"
-      ],
-      "verified_by_human": false
-    },
-    {
-      "id": "C087",
-      "question": "step: verify\nowner: priya\nduration_min: _____\nreversible: n/a",
-      "answer": "20",
-      "answers": [
-        "20"
-      ],
-      "windows": [
-        "duration_min: 20"
-      ],
-      "source": "report.docx",
-      "answerable": true,
-      "kind": "record_cloze",
-      "label_provenance": "machine-record_cloze",
-      "expected_positions": [
-        4
-      ],
-      "required_facts": [
-        "step: freeze\nowner: ana\nduration_min: 90\nreversible: no\nstep: canary\nowner: sam\nduration_min: 30\nreversible: yes\nstep: ramp\nowner: sam\nduration_min: 45\nreversible: yes\nstep: verify\nowner: priya\nduration_min: 20\nreversible: n/a\nstep: rollback\nowner: ana\nduration_min: 30\nreversible: yes"
-      ],
+      "block_count": 1,
       "verified_by_human": false
     },
     {
       "id": "C088",
-      "question": "step: rollback\nowner: ana\nduration_min: _____\nreversible: yes",
-      "answer": "30",
-      "answers": [
-        "30"
-      ],
-      "windows": [
-        "duration_min: 30"
-      ],
-      "source": "report.docx",
-      "answerable": true,
-      "kind": "record_cloze",
-      "label_provenance": "machine-record_cloze",
-      "expected_positions": [
-        4
-      ],
-      "required_facts": [
-        "step: freeze\nowner: ana\nduration_min: 90\nreversible: no\nstep: canary\nowner: sam\nduration_min: 30\nreversible: yes\nstep: ramp\nowner: sam\nduration_min: 45\nreversible: yes\nstep: verify\nowner: priya\nduration_min: 20\nreversible: n/a\nstep: rollback\nowner: ana\nduration_min: 30\nreversible: yes"
-      ],
-      "verified_by_human": false
-    },
-    {
-      "id": "C089",
-      "question": "A rollback is triggered if the error rate exceeds _____ over any five minute window.",
-      "answer": "0.5 percent",
-      "answers": [
-        "0.5 percent"
-      ],
-      "windows": [
-        "A rollback is triggered if the error rate exceeds 0.5 percent over any five minute window."
-      ],
-      "source": "report.docx",
-      "answerable": true,
-      "kind": "value_cloze",
-      "label_provenance": "machine-value_cloze",
-      "expected_positions": [
-        2
-      ],
-      "required_facts": [
-        "The rollback plan must be rehearsed in staging. A rollback is triggered if the error rate exceeds 0.5 percent over any five minute window."
-      ],
-      "verified_by_human": false
-    },
-    {
-      "id": "C090",
       "question": "$.limits.requests_per_minute: _____",
       "answer": "600",
       "answers": [
@@ -2066,10 +2154,11 @@
       "required_facts": [
         "$.service: telemetry-ingest\n$.version: 4\n$.limits.requests_per_minute: 600\n$.limits.burst: 1200\n$.limits.max_payload_bytes: 8388608\n$.limits.max_channels: 4096\n$.retention.hot_days: 7\n$.retention.warm_days: 90\n$.retention.archive_years: 7\n$.regions[0]: eu-west-1\n$.regions[1]: us-east-1\n$.regions[2]: ap-southeast-2\n$.alerts.ingest_lag_seconds: 300\n$.alerts.drop_rate_threshold: 0.01\n$.alerts.pager_rotation[0]: primary\n$.alerts.pager_rotation[1]: secondary\n$.backpressure.strategy: shed_low_priority\n$.backpressure.queue_depth: 5000"
       ],
+      "block_count": 1,
       "verified_by_human": false
     },
     {
-      "id": "C091",
+      "id": "C089",
       "question": "_____ $.limits.max_payload_bytes:",
       "answer": "1200",
       "answers": [
@@ -2088,10 +2177,11 @@
       "required_facts": [
         "$.service: telemetry-ingest\n$.version: 4\n$.limits.requests_per_minute: 600\n$.limits.burst: 1200\n$.limits.max_payload_bytes: 8388608\n$.limits.max_channels: 4096\n$.retention.hot_days: 7\n$.retention.warm_days: 90\n$.retention.archive_years: 7\n$.regions[0]: eu-west-1\n$.regions[1]: us-east-1\n$.regions[2]: ap-southeast-2\n$.alerts.ingest_lag_seconds: 300\n$.alerts.drop_rate_threshold: 0.01\n$.alerts.pager_rotation[0]: primary\n$.alerts.pager_rotation[1]: secondary\n$.backpressure.strategy: shed_low_priority\n$.backpressure.queue_depth: 5000"
       ],
+      "block_count": 1,
       "verified_by_human": false
     },
     {
-      "id": "C092",
+      "id": "C090",
       "question": "_____ $.limits.max_channels:",
       "answer": "8388608",
       "answers": [
@@ -2110,10 +2200,11 @@
       "required_facts": [
         "$.service: telemetry-ingest\n$.version: 4\n$.limits.requests_per_minute: 600\n$.limits.burst: 1200\n$.limits.max_payload_bytes: 8388608\n$.limits.max_channels: 4096\n$.retention.hot_days: 7\n$.retention.warm_days: 90\n$.retention.archive_years: 7\n$.regions[0]: eu-west-1\n$.regions[1]: us-east-1\n$.regions[2]: ap-southeast-2\n$.alerts.ingest_lag_seconds: 300\n$.alerts.drop_rate_threshold: 0.01\n$.alerts.pager_rotation[0]: primary\n$.alerts.pager_rotation[1]: secondary\n$.backpressure.strategy: shed_low_priority\n$.backpressure.queue_depth: 5000"
       ],
+      "block_count": 1,
       "verified_by_human": false
     },
     {
-      "id": "C093",
+      "id": "C091",
       "question": "_____ $.retention.hot_days:",
       "answer": "4096",
       "answers": [
@@ -2132,10 +2223,11 @@
       "required_facts": [
         "$.service: telemetry-ingest\n$.version: 4\n$.limits.requests_per_minute: 600\n$.limits.burst: 1200\n$.limits.max_payload_bytes: 8388608\n$.limits.max_channels: 4096\n$.retention.hot_days: 7\n$.retention.warm_days: 90\n$.retention.archive_years: 7\n$.regions[0]: eu-west-1\n$.regions[1]: us-east-1\n$.regions[2]: ap-southeast-2\n$.alerts.ingest_lag_seconds: 300\n$.alerts.drop_rate_threshold: 0.01\n$.alerts.pager_rotation[0]: primary\n$.alerts.pager_rotation[1]: secondary\n$.backpressure.strategy: shed_low_priority\n$.backpressure.queue_depth: 5000"
       ],
+      "block_count": 1,
       "verified_by_human": false
     },
     {
-      "id": "C094",
+      "id": "C092",
       "question": "$.retention.hot_days: _____",
       "answer": "7",
       "answers": [
@@ -2154,10 +2246,11 @@
       "required_facts": [
         "$.service: telemetry-ingest\n$.version: 4\n$.limits.requests_per_minute: 600\n$.limits.burst: 1200\n$.limits.max_payload_bytes: 8388608\n$.limits.max_channels: 4096\n$.retention.hot_days: 7\n$.retention.warm_days: 90\n$.retention.archive_years: 7\n$.regions[0]: eu-west-1\n$.regions[1]: us-east-1\n$.regions[2]: ap-southeast-2\n$.alerts.ingest_lag_seconds: 300\n$.alerts.drop_rate_threshold: 0.01\n$.alerts.pager_rotation[0]: primary\n$.alerts.pager_rotation[1]: secondary\n$.backpressure.strategy: shed_low_priority\n$.backpressure.queue_depth: 5000"
       ],
+      "block_count": 1,
       "verified_by_human": false
     },
     {
-      "id": "C095",
+      "id": "C093",
       "question": "sensor_id: TH-001\nzone: storefront\nreading: _____\nunit: C\ntimestamp: 2024-05-01T08:00:00",
       "answer": "21.4",
       "answers": [
@@ -2176,10 +2269,11 @@
       "required_facts": [
         "sensor_id: TH-001\nzone: storefront\nreading: 21.4\nunit: C\ntimestamp: 2024-05-01T08:00:00\nsensor_id: TH-002\nzone: storefront\nreading: 21.6\nunit: C\ntimestamp: 2024-05-01T08:00:00\nsensor_id: TH-003\nzone: warehouse\nreading: 17.9\nunit: C\ntimestamp: 2024-05-01T08:00:00\nsensor_id: TH-004\nzone: warehouse\nreading: 18.1\nunit: C\ntimestamp: 2024-05-01T08:00:00\nsensor_id: TH-005\nzone: coldroom\nreading: 3.2\nunit: C\ntimestamp: 2024-05-01T08:00:00\nsensor_id: TH-006\nzone: coldroom\nreading: 3.4\nunit: C\ntimestamp: 2024-05-01T08:00:00\nsensor_id: TH-007\nzone: coldroom\nreading: -19.5\nunit: C\ntimestamp: 2024-05-01T08:00:00\nsensor_id: TH-008\nzone: delivery_bay\nreading: 14.0\nunit: C\ntimestamp: 2024-05-01T08:00:00\nsensor_id: TH-009\nzone: delivery_bay\nreading: 14.3\nunit: C\ntimestamp: 2024-05-01T08:00:00\nsensor_id: TH-010\nzone: storefront\nreading: 22.1\nunit: C\ntimestamp: 2024-05-01T12:00:00\nsensor_id: TH-011"
       ],
+      "block_count": 1,
       "verified_by_human": false
     },
     {
-      "id": "C096",
+      "id": "C094",
       "question": "sensor_id: TH-002\nzone: storefront\nreading: _____\nunit: C\ntimestamp: 2024-05-01T08:00:00",
       "answer": "21.6",
       "answers": [
@@ -2198,10 +2292,11 @@
       "required_facts": [
         "sensor_id: TH-001\nzone: storefront\nreading: 21.4\nunit: C\ntimestamp: 2024-05-01T08:00:00\nsensor_id: TH-002\nzone: storefront\nreading: 21.6\nunit: C\ntimestamp: 2024-05-01T08:00:00\nsensor_id: TH-003\nzone: warehouse\nreading: 17.9\nunit: C\ntimestamp: 2024-05-01T08:00:00\nsensor_id: TH-004\nzone: warehouse\nreading: 18.1\nunit: C\ntimestamp: 2024-05-01T08:00:00\nsensor_id: TH-005\nzone: coldroom\nreading: 3.2\nunit: C\ntimestamp: 2024-05-01T08:00:00\nsensor_id: TH-006\nzone: coldroom\nreading: 3.4\nunit: C\ntimestamp: 2024-05-01T08:00:00\nsensor_id: TH-007\nzone: coldroom\nreading: -19.5\nunit: C\ntimestamp: 2024-05-01T08:00:00\nsensor_id: TH-008\nzone: delivery_bay\nreading: 14.0\nunit: C\ntimestamp: 2024-05-01T08:00:00\nsensor_id: TH-009\nzone: delivery_bay\nreading: 14.3\nunit: C\ntimestamp: 2024-05-01T08:00:00\nsensor_id: TH-010\nzone: storefront\nreading: 22.1\nunit: C\ntimestamp: 2024-05-01T12:00:00\nsensor_id: TH-011"
       ],
+      "block_count": 1,
       "verified_by_human": false
     },
     {
-      "id": "C097",
+      "id": "C095",
       "question": "sensor_id: TH-003\nzone: warehouse\nreading: _____\nunit: C\ntimestamp: 2024-05-01T08:00:00",
       "answer": "17.9",
       "answers": [
@@ -2220,10 +2315,11 @@
       "required_facts": [
         "sensor_id: TH-001\nzone: storefront\nreading: 21.4\nunit: C\ntimestamp: 2024-05-01T08:00:00\nsensor_id: TH-002\nzone: storefront\nreading: 21.6\nunit: C\ntimestamp: 2024-05-01T08:00:00\nsensor_id: TH-003\nzone: warehouse\nreading: 17.9\nunit: C\ntimestamp: 2024-05-01T08:00:00\nsensor_id: TH-004\nzone: warehouse\nreading: 18.1\nunit: C\ntimestamp: 2024-05-01T08:00:00\nsensor_id: TH-005\nzone: coldroom\nreading: 3.2\nunit: C\ntimestamp: 2024-05-01T08:00:00\nsensor_id: TH-006\nzone: coldroom\nreading: 3.4\nunit: C\ntimestamp: 2024-05-01T08:00:00\nsensor_id: TH-007\nzone: coldroom\nreading: -19.5\nunit: C\ntimestamp: 2024-05-01T08:00:00\nsensor_id: TH-008\nzone: delivery_bay\nreading: 14.0\nunit: C\ntimestamp: 2024-05-01T08:00:00\nsensor_id: TH-009\nzone: delivery_bay\nreading: 14.3\nunit: C\ntimestamp: 2024-05-01T08:00:00\nsensor_id: TH-010\nzone: storefront\nreading: 22.1\nunit: C\ntimestamp: 2024-05-01T12:00:00\nsensor_id: TH-011"
       ],
+      "block_count": 1,
       "verified_by_human": false
     },
     {
-      "id": "C098",
+      "id": "C096",
       "question": "sensor_id: TH-004\nzone: warehouse\nreading: _____\nunit: C\ntimestamp: 2024-05-01T08:00:00",
       "answer": "18.1",
       "answers": [
@@ -2242,10 +2338,11 @@
       "required_facts": [
         "sensor_id: TH-001\nzone: storefront\nreading: 21.4\nunit: C\ntimestamp: 2024-05-01T08:00:00\nsensor_id: TH-002\nzone: storefront\nreading: 21.6\nunit: C\ntimestamp: 2024-05-01T08:00:00\nsensor_id: TH-003\nzone: warehouse\nreading: 17.9\nunit: C\ntimestamp: 2024-05-01T08:00:00\nsensor_id: TH-004\nzone: warehouse\nreading: 18.1\nunit: C\ntimestamp: 2024-05-01T08:00:00\nsensor_id: TH-005\nzone: coldroom\nreading: 3.2\nunit: C\ntimestamp: 2024-05-01T08:00:00\nsensor_id: TH-006\nzone: coldroom\nreading: 3.4\nunit: C\ntimestamp: 2024-05-01T08:00:00\nsensor_id: TH-007\nzone: coldroom\nreading: -19.5\nunit: C\ntimestamp: 2024-05-01T08:00:00\nsensor_id: TH-008\nzone: delivery_bay\nreading: 14.0\nunit: C\ntimestamp: 2024-05-01T08:00:00\nsensor_id: TH-009\nzone: delivery_bay\nreading: 14.3\nunit: C\ntimestamp: 2024-05-01T08:00:00\nsensor_id: TH-010\nzone: storefront\nreading: 22.1\nunit: C\ntimestamp: 2024-05-01T12:00:00\nsensor_id: TH-011"
       ],
+      "block_count": 1,
       "verified_by_human": false
     },
     {
-      "id": "C099",
+      "id": "C097",
       "question": "sensor_id: TH-005\nzone: coldroom\nreading: _____\nunit: C\ntimestamp: 2024-05-01T08:00:00",
       "answer": "3.2",
       "answers": [
@@ -2264,10 +2361,11 @@
       "required_facts": [
         "sensor_id: TH-001\nzone: storefront\nreading: 21.4\nunit: C\ntimestamp: 2024-05-01T08:00:00\nsensor_id: TH-002\nzone: storefront\nreading: 21.6\nunit: C\ntimestamp: 2024-05-01T08:00:00\nsensor_id: TH-003\nzone: warehouse\nreading: 17.9\nunit: C\ntimestamp: 2024-05-01T08:00:00\nsensor_id: TH-004\nzone: warehouse\nreading: 18.1\nunit: C\ntimestamp: 2024-05-01T08:00:00\nsensor_id: TH-005\nzone: coldroom\nreading: 3.2\nunit: C\ntimestamp: 2024-05-01T08:00:00\nsensor_id: TH-006\nzone: coldroom\nreading: 3.4\nunit: C\ntimestamp: 2024-05-01T08:00:00\nsensor_id: TH-007\nzone: coldroom\nreading: -19.5\nunit: C\ntimestamp: 2024-05-01T08:00:00\nsensor_id: TH-008\nzone: delivery_bay\nreading: 14.0\nunit: C\ntimestamp: 2024-05-01T08:00:00\nsensor_id: TH-009\nzone: delivery_bay\nreading: 14.3\nunit: C\ntimestamp: 2024-05-01T08:00:00\nsensor_id: TH-010\nzone: storefront\nreading: 22.1\nunit: C\ntimestamp: 2024-05-01T12:00:00\nsensor_id: TH-011"
       ],
+      "block_count": 1,
       "verified_by_human": false
     },
     {
-      "id": "C100",
+      "id": "C098",
       "question": "sensor_id: TH-006\nzone: coldroom\nreading: _____\nunit: C\ntimestamp: 2024-05-01T08:00:00",
       "answer": "3.4",
       "answers": [
@@ -2286,10 +2384,11 @@
       "required_facts": [
         "sensor_id: TH-001\nzone: storefront\nreading: 21.4\nunit: C\ntimestamp: 2024-05-01T08:00:00\nsensor_id: TH-002\nzone: storefront\nreading: 21.6\nunit: C\ntimestamp: 2024-05-01T08:00:00\nsensor_id: TH-003\nzone: warehouse\nreading: 17.9\nunit: C\ntimestamp: 2024-05-01T08:00:00\nsensor_id: TH-004\nzone: warehouse\nreading: 18.1\nunit: C\ntimestamp: 2024-05-01T08:00:00\nsensor_id: TH-005\nzone: coldroom\nreading: 3.2\nunit: C\ntimestamp: 2024-05-01T08:00:00\nsensor_id: TH-006\nzone: coldroom\nreading: 3.4\nunit: C\ntimestamp: 2024-05-01T08:00:00\nsensor_id: TH-007\nzone: coldroom\nreading: -19.5\nunit: C\ntimestamp: 2024-05-01T08:00:00\nsensor_id: TH-008\nzone: delivery_bay\nreading: 14.0\nunit: C\ntimestamp: 2024-05-01T08:00:00\nsensor_id: TH-009\nzone: delivery_bay\nreading: 14.3\nunit: C\ntimestamp: 2024-05-01T08:00:00\nsensor_id: TH-010\nzone: storefront\nreading: 22.1\nunit: C\ntimestamp: 2024-05-01T12:00:00\nsensor_id: TH-011"
       ],
+      "block_count": 1,
       "verified_by_human": false
     },
     {
-      "id": "C101",
+      "id": "C099",
       "question": "index: _____",
       "answer": "int",
       "answers": [
@@ -2308,10 +2407,11 @@
       "required_facts": [
         "FoldResult\nclass FoldResult:\n    index: int\n    rmse: float\n    r2: float\n    excluded_rows: list = field(default_factory=list)"
       ],
+      "block_count": 1,
       "verified_by_human": false
     },
     {
-      "id": "C102",
+      "id": "C100",
       "question": "excluded_rows: _____",
       "answer": "list = field(default_factory=list)",
       "answers": [
@@ -2330,10 +2430,11 @@
       "required_facts": [
         "FoldResult\nclass FoldResult:\n    index: int\n    rmse: float\n    r2: float\n    excluded_rows: list = field(default_factory=list)"
       ],
+      "block_count": 1,
       "verified_by_human": false
     },
     {
-      "id": "C103",
+      "id": "C101",
       "question": "def spatial_folds(geometries, count: _____",
       "answer": "int = SPATIAL_FOLDS):",
       "answers": [
@@ -2352,10 +2453,11 @@
       "required_facts": [
         "spatial_folds\ndef spatial_folds(geometries, count: int = SPATIAL_FOLDS):\n    \"\"\"Split by spatial block so neighbouring plots cannot straddle a split.\"\"\"\n    ordered = sorted(range(len(geometries)), key=lambda i: geometries[i].centroid.x)\n    size = math.ceil(len(ordered) / count)\n    return [ordered[i * size : (i + 1) * size] for i in range(count)]"
       ],
+      "block_count": 1,
       "verified_by_human": false
     },
     {
-      "id": "C104",
+      "id": "C102",
       "question": "middle = _____",
       "answer": "len(observed) // 2",
       "answers": [
@@ -2374,10 +2476,11 @@
       "required_facts": [
         "impute_median\ndef impute_median(values, fallback):\n    \"\"\"Replace missing entries with the median of the observed values.\"\"\"\n    observed = sorted(v for v in values if v is not None)\n    if not observed:\n        return list(fallback)\n    middle = len(observed) // 2\n    median = (\n        observed[middle]\n        if len(observed) % 2\n        else (observed[middle - 1] + observed[middle]) / 2\n    )\n    return [median if v is None else v for v in values]"
       ],
+      "block_count": 1,
       "verified_by_human": false
     },
     {
-      "id": "C105",
+      "id": "C103",
       "question": "median = _____",
       "answer": "(",
       "answers": [
@@ -2396,10 +2499,11 @@
       "required_facts": [
         "impute_median\ndef impute_median(values, fallback):\n    \"\"\"Replace missing entries with the median of the observed values.\"\"\"\n    observed = sorted(v for v in values if v is not None)\n    if not observed:\n        return list(fallback)\n    middle = len(observed) // 2\n    median = (\n        observed[middle]\n        if len(observed) % 2\n        else (observed[middle - 1] + observed[middle]) / 2\n    )\n    return [median if v is None else v for v in values]"
       ],
+      "block_count": 1,
       "verified_by_human": false
     },
     {
-      "id": "C106",
+      "id": "C104",
       "question": "$.database.host: _____",
       "answer": "warehouse.internal",
       "answers": [
@@ -2418,10 +2522,11 @@
       "required_facts": [
         "$.database.host: warehouse.internal\n$.database.port: 5432\n$.database.pool_size: 25\n$.database.connect_timeout: 10\n$.scheduler.interval_seconds: 300\n$.scheduler.max_parallel_jobs: 4\n$.alerts.channel: ops-primary\n$.alerts.escalate_after_minutes: 15"
       ],
+      "block_count": 1,
       "verified_by_human": false
     },
     {
-      "id": "C107",
+      "id": "C105",
       "question": "_____ $.database.pool_size:",
       "answer": "5432",
       "answers": [
@@ -2440,10 +2545,11 @@
       "required_facts": [
         "$.database.host: warehouse.internal\n$.database.port: 5432\n$.database.pool_size: 25\n$.database.connect_timeout: 10\n$.scheduler.interval_seconds: 300\n$.scheduler.max_parallel_jobs: 4\n$.alerts.channel: ops-primary\n$.alerts.escalate_after_minutes: 15"
       ],
+      "block_count": 1,
       "verified_by_human": false
     },
     {
-      "id": "C108",
+      "id": "C106",
       "question": "_____ $.database.connect_timeout:",
       "answer": "25",
       "answers": [
@@ -2462,10 +2568,11 @@
       "required_facts": [
         "$.database.host: warehouse.internal\n$.database.port: 5432\n$.database.pool_size: 25\n$.database.connect_timeout: 10\n$.scheduler.interval_seconds: 300\n$.scheduler.max_parallel_jobs: 4\n$.alerts.channel: ops-primary\n$.alerts.escalate_after_minutes: 15"
       ],
+      "block_count": 1,
       "verified_by_human": false
     },
     {
-      "id": "C109",
+      "id": "C107",
       "question": "_____ $.scheduler.interval_seconds:",
       "answer": "10",
       "answers": [
@@ -2484,10 +2591,11 @@
       "required_facts": [
         "$.database.host: warehouse.internal\n$.database.port: 5432\n$.database.pool_size: 25\n$.database.connect_timeout: 10\n$.scheduler.interval_seconds: 300\n$.scheduler.max_parallel_jobs: 4\n$.alerts.channel: ops-primary\n$.alerts.escalate_after_minutes: 15"
       ],
+      "block_count": 1,
       "verified_by_human": false
     },
     {
-      "id": "C110",
+      "id": "C108",
       "question": "_____ $.scheduler.max_parallel_jobs:",
       "answer": "300",
       "answers": [
@@ -2506,10 +2614,11 @@
       "required_facts": [
         "$.database.host: warehouse.internal\n$.database.port: 5432\n$.database.pool_size: 25\n$.database.connect_timeout: 10\n$.scheduler.interval_seconds: 300\n$.scheduler.max_parallel_jobs: 4\n$.alerts.channel: ops-primary\n$.alerts.escalate_after_minutes: 15"
       ],
+      "block_count": 1,
       "verified_by_human": false
     },
     {
-      "id": "C111",
+      "id": "C109",
       "question": "$.scheduler.max_parallel_jobs: _____",
       "answer": "4",
       "answers": [
@@ -2528,10 +2637,11 @@
       "required_facts": [
         "$.database.host: warehouse.internal\n$.database.port: 5432\n$.database.pool_size: 25\n$.database.connect_timeout: 10\n$.scheduler.interval_seconds: 300\n$.scheduler.max_parallel_jobs: 4\n$.alerts.channel: ops-primary\n$.alerts.escalate_after_minutes: 15"
       ],
+      "block_count": 1,
       "verified_by_human": false
     },
     {
-      "id": "C112",
+      "id": "C110",
       "question": "How do I knit a scarf?",
       "answer": null,
       "source": "any document in the corpus",
@@ -2544,7 +2654,7 @@
       "verified_by_human": false
     },
     {
-      "id": "C113",
+      "id": "C111",
       "question": "How do I make pasta?",
       "answer": null,
       "source": "any document in the corpus",
@@ -2557,7 +2667,7 @@
       "verified_by_human": false
     },
     {
-      "id": "C114",
+      "id": "C112",
       "question": "How do I bake bread?",
       "answer": null,
       "source": "any document in the corpus",
@@ -2570,7 +2680,7 @@
       "verified_by_human": false
     },
     {
-      "id": "C115",
+      "id": "C113",
       "question": "What is the capital of Peru?",
       "answer": null,
       "source": "any document in the corpus",
@@ -2583,7 +2693,7 @@
       "verified_by_human": false
     },
     {
-      "id": "C116",
+      "id": "C114",
       "question": "How do I repot a fern?",
       "answer": null,
       "source": "any document in the corpus",
@@ -2596,7 +2706,7 @@
       "verified_by_human": false
     },
     {
-      "id": "C117",
+      "id": "C115",
       "question": "Who won the 1998 world cup?",
       "answer": null,
       "source": "any document in the corpus",
@@ -2609,7 +2719,7 @@
       "verified_by_human": false
     },
     {
-      "id": "C118",
+      "id": "C116",
       "question": "How do I tune a piano?",
       "answer": null,
       "source": "any document in the corpus",
