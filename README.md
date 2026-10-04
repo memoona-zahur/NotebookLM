@@ -119,7 +119,7 @@ To use a database elsewhere, set `TEST_DATABASE_ADMIN_URL` and
 ```bash
 cd frontend
 npm install
-npm test           # 92 checks, jsdom, no database or API key needed
+npm test           # 122 checks, jsdom, no database or API key needed
 npm run test:watch # re-runs on save
 ```
 
@@ -181,6 +181,7 @@ Everything is set in `.env` (all optional):
 | `DATABASE_URL` | `postgresql://notebooklm:notebooklm@localhost:5432/notebooklm` | Use host `db` under Compose |
 | `DB_POOL_MAX` | `8` | Connection pool size |
 | `UPLOAD_DIR` | `./data/uploads` | Where originals are kept for re-indexing |
+| `MAX_UPLOAD_MB` | `100` | Upload ceiling; larger files get HTTP 413 |
 | `BASE_URL` | derived from the request | Set when the browser cannot infer the API origin |
 | `CHUNK_SIZE` | `900` | Characters per chunk |
 | `CHUNK_OVERLAP` | `150` | |
@@ -219,7 +220,63 @@ session; without one it uses the default session.
 | `GET` | `/api/occurrences` | `{term}` → every place this session's documents use the word |
 
 If the LLM backend is unreachable, `/api/ask` returns `503` with a message telling you
-what to fix instead of a raw 500.
+what to fix instead of a raw 500. An upload over `MAX_UPLOAD_MB` returns `413` and
+the partial file is deleted, so a rejected upload leaves nothing behind.
+
+## Uploads that cannot be read are refused, not indexed
+
+A PDF with no text layer - a phone photo of a receipt, a scan - used to upload
+successfully, appear in Sources, and contribute zero chunks. The assistant then
+answered from the other documents as if that file were not there, which is the
+worst possible outcome: a confident answer with no hint that evidence was
+missing.
+
+Now `POST /api/sources` detects an image-only document and returns `400` with a
+message saying the file has no text layer and needs OCR. A mixed document - a
+typed report with scanned appendices - keeps its readable pages, because
+refusing the whole file would throw away text that is there; the skipped pages
+are recorded in the log.
+
+No OCR is bundled. Installing Tesseract would turn a rejection into a partial
+index, which is better, but a scan of a receipt is still a worse source than the
+`.txt` you get by exporting it, and saying so is more useful than guessing.
+
+## Treating your documents as data, not instructions
+
+Everything in a source goes into the prompt, so a document can address the model
+the way you can. Three layers address that:
+
+1. The system prompt states that passages are untrusted data and that text which
+   looks like a command is something to report on, never to obey.
+2. A line that fakes a conversation turn (`assistant:`, `user:`, `system:`) has
+   its colon rewritten, so it cannot read as a real turn. The text is altered
+   rather than dropped, which keeps the citation matching the stored document.
+3. `detect_injection` names the passages that try to issue instructions, and the
+   numbers come back on `evidence.injection` alongside the citations.
+
+Detection is not the defence. A regex can be worded past, and a determined
+injection will reach a model that reads it. Layer 1 is what actually holds;
+layer 3 exists so a suspicious source is visible rather than silent. The model
+is asked to say in one clause when a document contains instructions aimed at it,
+so a surprising answer can be traced back to the file that asked for it.
+
+## How answers are rendered
+
+Answer text is rendered as a small Markdown subset: bullet and numbered lists,
+headings (shifted down two levels so an answer cannot outrank the question
+above it), blockquotes, emphasis, inline code, fenced code blocks, and links.
+`[1]` citation markers still become chips that scroll to their passage.
+
+Nothing goes through `dangerouslySetInnerHTML`, and there is no Markdown
+dependency. Every source document is untrusted and can end up quoted inside an
+answer, so HTML in model output has to be inert - `frontend/src/markdown.jsx`
+builds elements directly, which makes that structural rather than a rule someone
+has to remember. Raw HTML, images and tables are unsupported and render as the
+literal text the model wrote. Link URLs are restricted to `http`/`https`; a
+`javascript:` or `data:` URL keeps its label but is not followed.
+
+The prompt asks for plain text and bullets only. Asking a model for Markdown and
+then stripping what it produced is how an answer ends up full of literal `**`.
 
 ## Finding a word in the documents
 
@@ -420,14 +477,27 @@ survives being cut into chunks and re-found, so there is a second harness:
 
 Each item blanks a value out of a real corpus document and asks for it back, so
 the gold answers are the documents' own text rather than anything invented.
-The set holds **117 items across 24 of the 27 corpus documents**: 32 field, 24
-record, 32 value, 22 multi-block, and 7 traps that must be refused. The
-multi-block items need two or three separate passages, which is what makes them
-able to fail - an earlier set of single-passage items could not tell a working
-ranker from a lucky one.
+The set holds **124 items across all 27 corpus documents**: 33 field, 24
+record, 8 definition, 31 value, 21 multi-block, and 7 traps that must be refused.
+The multi-block items need two or three separate passages, which is what makes
+them able to fail - an earlier set of single-passage items could not tell a
+working ranker from a lucky one.
 
-Current result: recall@5 **0.953**, fact coverage **0.919**, MRR **0.959**,
-nDCG **0.931**, traps leaked **0**. Precision@5 is **0.227**, which is the
+The definition items exist because three prose documents were missing entirely.
+`catalysis.txt`, `glaciology.pdf` and `music.txt` have no field names and few
+quotable numbers, so every value-shaped cloze returned nothing and the set
+claimed to cover the corpus while skipping three of its files. A definition is
+the one shape prose does have: `Till is the unsorted, unstratified sediment
+deposited directly from the ice.` The cue carries the meaning, so the subject is
+recoverable and the same four mechanical checks apply. They are weaker labels
+than a value cloze - they prove the defining sentence came back, not that the
+term was understood - and they are capped hard: no multi-word gerund phrases
+("binding too weakly" is answered by anything), nothing longer than four words,
+and the cue has to open the sentence's first clause so a subordinate clause is
+never mistaken for a name.
+
+Current result: recall@5 **0.956**, fact coverage **0.923**, MRR **0.962**,
+nDCG **0.935**, traps leaked **0**. Precision@5 is **0.226**, which is the
 point of the traps: the alternative to retrieving a sixth passage that happens
 to contain the word is retrieving five that do not.
 
@@ -492,14 +562,21 @@ Three corpus documents are still uncovered: `catalysis.txt`, `glaciology.pdf`,
 
 ## Tests
 
-63 checks covering upload, per-format parsing (including YAML/TOML/INI and hard-wrapped
-text), chunking, hybrid retrieval, numeric damping, citations, the 503 LLM-down path, Groq
-routing, BOM handling, the built frontend resolving every asset it references, migrations
-(schema at head, idempotency, column-for-column agreement with the app, and the `role`
-check and `ON DELETE CASCADE` surviving), sessions (CRUD, source scoping, retrieval
-isolation, transcript persistence, cascading deletes, and surviving a restart), and the
-grounding guarantees above (relevance floor, citation validation, history hardening,
-cross-source diversity). The LLM is stubbed, so no API key is needed to run them.
+69 checks covering upload, per-format parsing (including YAML/TOML/INI and hard-wrapped
+text), unreadable-upload rejection (an image-only PDF refused with an actionable
+message and no stored source, a mixed PDF keeping its text pages, an oversized
+upload refused at 413 with the partial file removed), chunking, hybrid retrieval,
+numeric damping, citations, the 503 LLM-down path, Groq routing, BOM handling, the
+built frontend resolving every asset it references, migrations (schema at head,
+idempotency, column-for-column agreement with the app, and the `role` check and
+`ON DELETE CASCADE` surviving), sessions (CRUD, source scoping, retrieval isolation,
+transcript persistence, cascading deletes, and surviving a restart), and the
+grounding guarantees above (relevance floor, citation validation, history
+hardening, cross-source diversity). Prompt-injection handling has its own three
+checks: that a document issuing instructions is flagged rather than obeyed, that a
+passage cannot fake a prompt role, and that the system prompt still carries the
+rule - the last one because an instruction nothing asserts can silently be edited
+away. The LLM is stubbed, so no API key is needed to run them.
 
 A failed check no longer stops the run: every check is reported and the process exits
 non-zero if any failed.
@@ -523,11 +600,17 @@ non-zero if any failed.
   (0.000-0.125), so it cannot serve as an absolute relevance threshold. It may still help
   rank passages, which needs the eval harness to confirm. Reproduce with
   `.venv/bin/python experiments/rerank_eval.py`.
-- Uploads are read fully into memory with no size limit, and indexing a large PDF blocks
-  the event loop.
+- Uploads are streamed to disk in 1 MiB chunks and capped at `MAX_UPLOAD_MB` (100 MB
+  by default), but indexing still runs on the event loop, so a large PDF blocks the
+  server for as long as it takes.
+- No OCR. An image-only PDF is refused with an actionable message rather than indexed
+  as nothing, and a mixed PDF keeps only its text pages.
 - Sessions persist in Postgres, but there is no auth: anyone who can reach the app owns
   every session in it. Single-user by assumption, not by enforcement.
-- Answer bodies are rendered as text with citation markers as links, so `**bold**` and
-  `- bullets` from the model still show literally. No Markdown, no streaming.
+- Answers render a Markdown subset, so raw HTML, images and tables from the model show
+  literally. There is no streaming either - the answer appears at once.
+- Prompt-injection detection is a regex over retrieved passages. It makes a suspicious
+  source visible and names it, but it cannot block a determined injection; the prompt
+  rule is the actual defence.
 - A citation scrolls to the passage inside the app but cannot deep-link to the page of the
   original file.
