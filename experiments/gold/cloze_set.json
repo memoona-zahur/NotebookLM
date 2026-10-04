@@ -2,8 +2,8 @@
   "schema": 1,
   "generated_by": "experiments/build_cloze_gold.py",
   "corpus": "experiments/corpus",
-  "warning": "Machine-checked labels, not human-reviewed. Every item satisfies the mechanical checks recorded in experiments.build_cloze_gold, and experiments.eval_gold re-runs them before scoring anything. That makes the labels reproducible and impossible to score stale; it does not make them expert-checked. These items prove a value survives chunking attached to its key and can be retrieved again - not that the system understands the question. A multi_block_cloze item needs two or three separate blocks, so it can be partly right; the rest have one right answer and measure only whether it was found.",
-  "checked": 117,
+  "warning": "Machine-checked labels, not human-reviewed. Every item satisfies the mechanical checks recorded in experiments.build_cloze_gold, and experiments.eval_gold re-runs them before scoring anything. That makes the labels reproducible and impossible to score stale; it does not make them expert-checked. These items prove a value survives chunking attached to its key and can be retrieved again - not that the system understands the question. A multi_block_cloze item needs two or three separate blocks, so it can be partly right; the rest have one right answer and measure only whether it was found. A definition_cloze item asks for the subject of a sentence that defines it, which is the only decidable question prose yields; it measures whether the defining sentence came back, not whether the term was understood.",
+  "checked": 124,
   "failed": 0,
   "items": [
     {
@@ -192,6 +192,29 @@
     },
     {
       "id": "C008",
+      "question": "The _____ is the trial manager, who signs off the randomisation seed before drilling so the layout can be reproduced exactly.",
+      "answer": "protocol owner",
+      "answers": [
+        "protocol owner"
+      ],
+      "windows": [
+        "The protocol owner is the trial manager, who signs off the randomisation seed before drilling so the layout can be reproduced exactly."
+      ],
+      "source": "agronomy.docx",
+      "answerable": true,
+      "kind": "definition_cloze",
+      "label_provenance": "machine-definition_cloze",
+      "expected_positions": [
+        1
+      ],
+      "required_facts": [
+        "The protocol owner is the trial manager, who signs off the randomisation seed before drilling so the layout can be reproduced exactly."
+      ],
+      "block_count": 1,
+      "verified_by_human": false
+    },
+    {
+      "id": "C009",
       "question": "days_to_harvest: _____",
       "answer": "104",
       "answers": [
@@ -199,29 +222,6 @@
       ],
       "windows": [
         "days_to_harvest: 104"
-      ],
-      "source": "agronomy.docx",
-      "answerable": true,
-      "kind": "value_cloze",
-      "label_provenance": "machine-value_cloze",
-      "expected_positions": [
-        3
-      ],
-      "required_facts": [
-        "treatment: control\nnitrogen_kg_ha: 0\nowner: trial manager\ndays_to_harvest: 104\ntreatment: low N\nnitrogen_kg_ha: 60\nowner: trial manager\ndays_to_harvest: 110\ntreatment: high N\nnitrogen_kg_ha: 140\nowner: field lead\ndays_to_harvest: 118\ntreatment: foliar\nnitrogen_kg_ha: 0\nowner: field lead\ndays_to_harvest: 101"
-      ],
-      "block_count": 1,
-      "verified_by_human": false
-    },
-    {
-      "id": "C009",
-      "question": "nitrogen_kg_ha: _____",
-      "answer": "60",
-      "answers": [
-        "60"
-      ],
-      "windows": [
-        "nitrogen_kg_ha: 60"
       ],
       "source": "agronomy.docx",
       "answerable": true,
@@ -792,6 +792,52 @@
     },
     {
       "id": "C032",
+      "question": "_____ states that a catalyst is best when it binds the reactant and the product neither too strongly nor too weakly.",
+      "answer": "Sabatier's principle",
+      "answers": [
+        "Sabatier's principle"
+      ],
+      "windows": [
+        "Sabatier's principle states that a catalyst is best when it binds the reactant and the product neither too strongly nor too weakly."
+      ],
+      "source": "catalysis.txt",
+      "answerable": true,
+      "kind": "definition_cloze",
+      "label_provenance": "machine-definition_cloze",
+      "expected_positions": [
+        2
+      ],
+      "required_facts": [
+        "Sabatier's principle states that a catalyst is best when it binds the reactant and the product neither too strongly nor too weakly. Binding too weakly leaves the activation barrier intact; binding too strongly poisons the site and stops the cycle."
+      ],
+      "block_count": 1,
+      "verified_by_human": false
+    },
+    {
+      "id": "C033",
+      "question": "_____ is driven by the migration of small particles that merge into larger ones, reducing surface area irreversibly.",
+      "answer": "Sintering",
+      "answers": [
+        "Sintering"
+      ],
+      "windows": [
+        "Sintering is driven by the migration of small particles that merge into larger ones, reducing surface area irreversibly."
+      ],
+      "source": "catalysis.txt",
+      "answerable": true,
+      "kind": "definition_cloze",
+      "label_provenance": "machine-definition_cloze",
+      "expected_positions": [
+        4
+      ],
+      "required_facts": [
+        "Deactivation of a catalyst occurs by coking, sintering, poisoning by sulfur or lead, or by hydrothermal degradation. Sintering is driven by the migration of small particles that merge into larger ones, reducing surface area irreversibly."
+      ],
+      "block_count": 1,
+      "verified_by_human": false
+    },
+    {
+      "id": "C034",
       "question": "item: Espresso Blend\nregion: EMEA\ncategory: Beverage\nunits_sold: 1240\nunit_price: 12.50\nrevenue: 15500.00\nreturn_rate_pct: _____",
       "answer": "2.1",
       "answers": [
@@ -814,7 +860,7 @@
       "verified_by_human": false
     },
     {
-      "id": "C033",
+      "id": "C035",
       "question": "item: Espresso Blend\nregion: APAC\ncategory: Beverage\nunits_sold: 1402\nunit_price: 12.50\nrevenue: 17525.00\nreturn_rate_pct: _____",
       "answer": "5.8",
       "answers": [
@@ -837,7 +883,7 @@
       "verified_by_human": false
     },
     {
-      "id": "C034",
+      "id": "C036",
       "question": "item: Espresso Blend\nregion: AMER\ncategory: Beverage\nunits_sold: 1610\nunit_price: 12.50\nrevenue: 20125.00\nreturn_rate_pct: _____",
       "answer": "1.9",
       "answers": [
@@ -860,7 +906,7 @@
       "verified_by_human": false
     },
     {
-      "id": "C035",
+      "id": "C037",
       "question": "item: Filter Papers\nregion: EMEA\ncategory: Accessory\nunits_sold: 3200\nunit_price: 3.20\nrevenue: 10240.00\nreturn_rate_pct: _____",
       "answer": "0.8",
       "answers": [
@@ -883,7 +929,7 @@
       "verified_by_human": false
     },
     {
-      "id": "C036",
+      "id": "C038",
       "question": "item: Filter Papers\nregion: APAC\ncategory: Accessory\nunits_sold: 2870\nunit_price: 3.20\nrevenue: 9184.00\nreturn_rate_pct: _____",
       "answer": "2.4",
       "answers": [
@@ -906,7 +952,7 @@
       "verified_by_human": false
     },
     {
-      "id": "C037",
+      "id": "C039",
       "question": "item: Filter Papers\nregion: AMER\ncategory: Accessory\nunits_sold: 3480\nunit_price: 3.20\nrevenue: 11136.00\nreturn_rate_pct: _____",
       "answer": "0.6",
       "answers": [
@@ -929,7 +975,7 @@
       "verified_by_human": false
     },
     {
-      "id": "C038",
+      "id": "C040",
       "question": "may terminate for convenience on _____ written notice.\nInvoices are payable within _____ of receipt.",
       "answer": "ninety days",
       "answers": [
@@ -956,7 +1002,7 @@
       "verified_by_human": false
     },
     {
-      "id": "C039",
+      "id": "C041",
       "question": "may terminate for convenience on _____ written notice.",
       "answer": "ninety days",
       "answers": [
@@ -979,7 +1025,7 @@
       "verified_by_human": false
     },
     {
-      "id": "C040",
+      "id": "C042",
       "question": "Invoices are payable within _____ of receipt.",
       "answer": "forty five days",
       "answers": [
@@ -1002,7 +1048,7 @@
       "verified_by_human": false
     },
     {
-      "id": "C041",
+      "id": "C043",
       "question": "region: EMEA\nquarter: Q1\nproduct: core\nrevenue_usd: 412300\nunits: 1180\nmargin_pct: 22.5\nchurn_pct: _____",
       "answer": "3.1",
       "answers": [
@@ -1025,7 +1071,7 @@
       "verified_by_human": false
     },
     {
-      "id": "C042",
+      "id": "C044",
       "question": "region: EMEA\nquarter: Q2\nproduct: core\nrevenue_usd: 438900\nunits: 1245\nmargin_pct: 23.0\nchurn_pct: _____",
       "answer": "2.8",
       "answers": [
@@ -1048,7 +1094,7 @@
       "verified_by_human": false
     },
     {
-      "id": "C043",
+      "id": "C045",
       "question": "region: EMEA\nquarter: Q3\nproduct: core\nrevenue_usd: 401200\nunits: 1155\nmargin_pct: 21.9\nchurn_pct: _____",
       "answer": "3.4",
       "answers": [
@@ -1071,7 +1117,7 @@
       "verified_by_human": false
     },
     {
-      "id": "C044",
+      "id": "C046",
       "question": "region: EMEA\nquarter: Q4\nproduct: core\nrevenue_usd: 455600\nunits: 1301\nmargin_pct: 24.2\nchurn_pct: _____",
       "answer": "2.5",
       "answers": [
@@ -1094,7 +1140,7 @@
       "verified_by_human": false
     },
     {
-      "id": "C045",
+      "id": "C047",
       "question": "region: APAC\nquarter: Q1\nproduct: core\nrevenue_usd: 388100\nunits: 1402\nmargin_pct: 19.8\nchurn_pct: _____",
       "answer": "5.2",
       "answers": [
@@ -1117,7 +1163,7 @@
       "verified_by_human": false
     },
     {
-      "id": "C046",
+      "id": "C048",
       "question": "region: APAC\nquarter: Q2\nproduct: core\nrevenue_usd: 410700\nunits: 1478\nmargin_pct: 20.4\nchurn_pct: _____",
       "answer": "4.9",
       "answers": [
@@ -1140,7 +1186,7 @@
       "verified_by_human": false
     },
     {
-      "id": "C047",
+      "id": "C049",
       "question": "Counter pressing starts within _____ of losing the ball.\nThe block narrows to _____ in behind the ball and thirty five metres in front of it.",
       "answer": "two seconds",
       "answers": [
@@ -1167,7 +1213,7 @@
       "verified_by_human": false
     },
     {
-      "id": "C048",
+      "id": "C050",
       "question": "Counter pressing starts within _____ of losing the ball.\nin behind the ball and _____ in front of it.",
       "answer": "two seconds",
       "answers": [
@@ -1194,7 +1240,7 @@
       "verified_by_human": false
     },
     {
-      "id": "C049",
+      "id": "C051",
       "question": "Counter pressing starts within _____ of losing the ball.",
       "answer": "two seconds",
       "answers": [
@@ -1217,7 +1263,7 @@
       "verified_by_human": false
     },
     {
-      "id": "C050",
+      "id": "C052",
       "question": "The block narrows to _____ in behind the ball and thirty five metres in front of it.",
       "answer": "nineteen metres",
       "answers": [
@@ -1240,7 +1286,7 @@
       "verified_by_human": false
     },
     {
-      "id": "C051",
+      "id": "C053",
       "question": "in behind the ball and _____ in front of it.",
       "answer": "thirty five metres",
       "answers": [
@@ -1263,7 +1309,53 @@
       "verified_by_human": false
     },
     {
-      "id": "C052",
+      "id": "C054",
+      "question": "_____ is the unsorted, unstratified sediment deposited directly from the ice.",
+      "answer": "Till",
+      "answers": [
+        "Till"
+      ],
+      "windows": [
+        "Till is the unsorted, unstratified sediment deposited directly from the ice."
+      ],
+      "source": "glaciology.pdf",
+      "answerable": true,
+      "kind": "definition_cloze",
+      "label_provenance": "machine-definition_cloze",
+      "expected_positions": [
+        1
+      ],
+      "required_facts": [
+        "Moraine Deposition and Landforms\nMaterial transported at the glacier surface is supraglacial debris, while debris\ncarried at or within the base is englacial. When a glacier retreats, it leaves\nlateral moraines marking former ice margins and a terminal moraine at the snout.\nTill is the unsorted, unstratified sediment deposited directly from the ice.\nIts matrix-supported, poorly sorted texture is diagnostic of direct deposition,\nin contrast to outwash, which is rounded, sorted and bedded because meltwater\nreworked it.\nDrumlins are streamlined hills of till whose long axis records the direction of\nice flow. They are common in areas of former continental ice sheets and are\nuseful for reconstructing palaeo-ice flow even where the ice itself is long gone."
+      ],
+      "block_count": 1,
+      "verified_by_human": false
+    },
+    {
+      "id": "C055",
+      "question": "_____ are the standard non-propulsive method.",
+      "answer": "Three-wheeled reaction wheel assemblies",
+      "answers": [
+        "Three-wheeled reaction wheel assemblies"
+      ],
+      "windows": [
+        "Three-wheeled reaction wheel assemblies are the standard non-propulsive method."
+      ],
+      "source": "handbook.pdf",
+      "answerable": true,
+      "kind": "definition_cloze",
+      "label_provenance": "machine-definition_cloze",
+      "expected_positions": [
+        1
+      ],
+      "required_facts": [
+        "Attitude Control Subsystem Overview\nThe attitude control subsystem is responsible for maintaining the commanded\norientation of the spacecraft and for rejecting disturbances from environmental\ntorques.\nThree-wheeled reaction wheel assemblies are the standard non-propulsive method.\nEach wheel stores angular momentum and exchanges it with the body, producing\ntorque without consuming propellant. Wheels saturate when a manoeuvre demands\nmore momentum than the stored capacity.\nWhen wheel momentum is exhausted, thrusters must be fired. A desaturation\nmanoeuvre trades propellant for wheel capacity and is budgeted against the\nend-of-life propellant margin.\nReaction wheels are highly sensitive to bearing friction. Friction builds with\nspin rate and temperature, and a degraded wheel can introduce coupling between\ncontrol axes that must be compensated in the control law."
+      ],
+      "block_count": 1,
+      "verified_by_human": false
+    },
+    {
+      "id": "C056",
       "question": "Mandatory passivation is required within _____ of end of life.",
       "answer": "five years",
       "answers": [
@@ -1286,7 +1378,7 @@
       "verified_by_human": false
     },
     {
-      "id": "C053",
+      "id": "C057",
       "question": "INFO  scheduler: _____\nloaded _____ fields from parcels_v3.parquet",
       "answer": "harvest plan run starting",
       "answers": [
@@ -1313,7 +1405,7 @@
       "verified_by_human": false
     },
     {
-      "id": "C054",
+      "id": "C058",
       "question": "INFO  scheduler: _____\nfield soil_ph missing for 38 of _____",
       "answer": "harvest plan run starting",
       "answers": [
@@ -1340,7 +1432,7 @@
       "verified_by_human": false
     },
     {
-      "id": "C055",
+      "id": "C059",
       "question": "INFO  scheduler: _____\nimputed soil_ph with field median _____",
       "answer": "harvest plan run starting",
       "answers": [
@@ -1367,7 +1459,7 @@
       "verified_by_human": false
     },
     {
-      "id": "C056",
+      "id": "C060",
       "question": "INFO  scheduler: _____\nreprojected _____ to EPSG:4326",
       "answer": "harvest plan run starting",
       "answers": [
@@ -1394,7 +1486,7 @@
       "verified_by_human": false
     },
     {
-      "id": "C057",
+      "id": "C061",
       "question": "INFO  scheduler: _____\nloaded _____ fields from parcels_v3.parquet\nfield soil_ph missing for 38 of _____",
       "answer": "harvest plan run starting",
       "answers": [
@@ -1425,7 +1517,7 @@
       "verified_by_human": false
     },
     {
-      "id": "C058",
+      "id": "C062",
       "question": "INFO  scheduler: _____\nloaded _____ fields from parcels_v3.parquet\nimputed soil_ph with field median _____",
       "answer": "harvest plan run starting",
       "answers": [
@@ -1456,7 +1548,7 @@
       "verified_by_human": false
     },
     {
-      "id": "C059",
+      "id": "C063",
       "question": "Rotate brassicas on a _____ cycle to starve the soil borne diseases that\nbuild up under a continuous crop.",
       "answer": "four year",
       "answers": [
@@ -1479,7 +1571,7 @@
       "verified_by_human": false
     },
     {
-      "id": "C060",
+      "id": "C064",
       "question": "This manual defines the minimum ventilation standard for underground workings below _____ depth.\n450 millimetres diameter is required beyond _____ from the main circuit, and duct length beyond that distance is deducted from the calculated flow.",
       "answer": "two thousand metres",
       "answers": [
@@ -1506,7 +1598,30 @@
       "verified_by_human": false
     },
     {
-      "id": "C061",
+      "id": "C065",
+      "question": "_____ is the immediate withdrawal level with no power restoration.",
+      "answer": "Two per cent",
+      "answers": [
+        "Two per cent"
+      ],
+      "windows": [
+        "Two per cent is the immediate withdrawal level with no power restoration."
+      ],
+      "source": "mining.rst",
+      "answerable": true,
+      "kind": "definition_cloze",
+      "label_provenance": "machine-definition_cloze",
+      "expected_positions": [
+        9
+      ],
+      "required_facts": [
+        "Methane is monitored continuously at every working face. The statutory action level is 1.0 per cent, at which point electrical power is removed and all personnel withdraw. Two per cent is the immediate withdrawal level with no power restoration."
+      ],
+      "block_count": 1,
+      "verified_by_human": false
+    },
+    {
+      "id": "C066",
       "question": "Operations Manual: _____",
       "answer": "Deep Shaft Ventilation ====================================",
       "answers": [
@@ -1529,7 +1644,7 @@
       "verified_by_human": false
     },
     {
-      "id": "C062",
+      "id": "C067",
       "question": "This manual defines the minimum ventilation standard for underground workings below _____ depth.",
       "answer": "two thousand metres",
       "answers": [
@@ -1552,7 +1667,7 @@
       "verified_by_human": false
     },
     {
-      "id": "C063",
+      "id": "C068",
       "question": "450 millimetres diameter is required beyond _____ from the main circuit, and duct length beyond that distance is deducted from the calculated flow.",
       "answer": "300 metres",
       "answers": [
@@ -1575,7 +1690,7 @@
       "verified_by_human": false
     },
     {
-      "id": "C064",
+      "id": "C069",
       "question": "$.model: _____",
       "answer": "wide-residual-cascade",
       "answers": [
@@ -1598,7 +1713,7 @@
       "verified_by_human": false
     },
     {
-      "id": "C065",
+      "id": "C070",
       "question": "_____ $.training.batch_size:",
       "answer": "140",
       "answers": [
@@ -1621,7 +1736,7 @@
       "verified_by_human": false
     },
     {
-      "id": "C066",
+      "id": "C071",
       "question": "_____ $.training.optimizer:",
       "answer": "512",
       "answers": [
@@ -1644,7 +1759,7 @@
       "verified_by_human": false
     },
     {
-      "id": "C067",
+      "id": "C072",
       "question": "$.training.optimizer: _____",
       "answer": "adamw",
       "answers": [
@@ -1667,7 +1782,7 @@
       "verified_by_human": false
     },
     {
-      "id": "C068",
+      "id": "C073",
       "question": "_____ $.training.weight_decay:",
       "answer": "0.001",
       "answers": [
@@ -1690,7 +1805,7 @@
       "verified_by_human": false
     },
     {
-      "id": "C069",
+      "id": "C074",
       "question": "_____ $.training.early_stopping_patience:",
       "answer": "0.0001",
       "answers": [
@@ -1713,7 +1828,53 @@
       "verified_by_human": false
     },
     {
-      "id": "C070",
+      "id": "C075",
+      "question": "A _____ was written as a bass note with a six and a four above it, and functioned as a dominant embellishment rather than a stable chord, delaying the cadence that follows it.",
+      "answer": "cadential six four",
+      "answers": [
+        "cadential six four"
+      ],
+      "windows": [
+        "A cadential six four was written as a bass note with a six and a four above it, and functioned as a dominant embellishment rather than a stable chord, delaying the cadence that follows it."
+      ],
+      "source": "music.txt",
+      "answerable": true,
+      "kind": "definition_cloze",
+      "label_provenance": "machine-definition_cloze",
+      "expected_positions": [
+        2
+      ],
+      "required_facts": [
+        "A cadential six four was written as a bass note with a six and a four above it, and functioned as a dominant embellishment rather than a stable chord, delaying the cadence that follows it."
+      ],
+      "block_count": 1,
+      "verified_by_human": false
+    },
+    {
+      "id": "C076",
+      "question": "_____ implies a flexible disposition of tempo and ornamentation, so a modern performance should treat the figures as a floor for the harpsichordist rather than a ceiling on what is permitted.",
+      "answer": "Basso continuo practice",
+      "answers": [
+        "Basso continuo practice"
+      ],
+      "windows": [
+        "Basso continuo practice implies a flexible disposition of tempo and ornamentation, so a modern performance should treat the figures as a floor for the harpsichordist rather than a ceiling on what is permitted."
+      ],
+      "source": "music.txt",
+      "answerable": true,
+      "kind": "definition_cloze",
+      "label_provenance": "machine-definition_cloze",
+      "expected_positions": [
+        4
+      ],
+      "required_facts": [
+        "Basso continuo practice implies a flexible disposition of tempo and ornamentation, so a modern performance should treat the figures as a floor for the harpsichordist rather than a ceiling on what is permitted."
+      ],
+      "block_count": 1,
+      "verified_by_human": false
+    },
+    {
+      "id": "C077",
       "question": "Pharmacology Study Notes: _____\nVancomycin must be infused slowly over at least _____ to avoid red man syndrome, which is a histamine mediated reaction rather than true allergy.",
       "answer": "Antimicrobials",
       "answers": [
@@ -1740,7 +1901,7 @@
       "verified_by_human": false
     },
     {
-      "id": "C071",
+      "id": "C078",
       "question": "Pharmacology Study Notes: _____",
       "answer": "Antimicrobials",
       "answers": [
@@ -1763,7 +1924,7 @@
       "verified_by_human": false
     },
     {
-      "id": "C072",
+      "id": "C079",
       "question": "Vancomycin must be infused slowly over at least _____ to avoid red man syndrome, which is a histamine mediated reaction rather than true allergy.",
       "answer": "one hour",
       "answers": [
@@ -1786,7 +1947,7 @@
       "verified_by_human": false
     },
     {
-      "id": "C073",
+      "id": "C080",
       "question": "JOIN zones z ON z.zone_id = _____",
       "answer": "p.zone_id",
       "answers": [
@@ -1809,7 +1970,7 @@
       "verified_by_human": false
     },
     {
-      "id": "C074",
+      "id": "C081",
       "question": "channel: _____",
       "answer": "str",
       "answers": [
@@ -1832,7 +1993,7 @@
       "verified_by_human": false
     },
     {
-      "id": "C075",
+      "id": "C082",
       "question": "value: _____",
       "answer": "float",
       "answers": [
@@ -1855,7 +2016,7 @@
       "verified_by_human": false
     },
     {
-      "id": "C076",
+      "id": "C083",
       "question": "timestamp: _____",
       "answer": "float",
       "answers": [
@@ -1878,7 +2039,7 @@
       "verified_by_human": false
     },
     {
-      "id": "C077",
+      "id": "C084",
       "question": "def normalise_channel(name: _____",
       "answer": "str) -> str:",
       "answers": [
@@ -1901,7 +2062,7 @@
       "verified_by_human": false
     },
     {
-      "id": "C078",
+      "id": "C085",
       "question": "keep = _____",
       "answer": "int(len(ordered) * keep_ratio)",
       "answers": [
@@ -1924,7 +2085,7 @@
       "verified_by_human": false
     },
     {
-      "id": "C079",
+      "id": "C086",
       "question": "$.package.name: _____",
       "answer": "harvest-planner",
       "answers": [
@@ -1947,7 +2108,7 @@
       "verified_by_human": false
     },
     {
-      "id": "C080",
+      "id": "C087",
       "question": "$.package.version: _____",
       "answer": "0.9.3",
       "answers": [
@@ -1970,7 +2131,7 @@
       "verified_by_human": false
     },
     {
-      "id": "C081",
+      "id": "C088",
       "question": "_____ $.dependencies.serde:",
       "answer": "2021",
       "answers": [
@@ -1993,7 +2154,7 @@
       "verified_by_human": false
     },
     {
-      "id": "C082",
+      "id": "C089",
       "question": "_____ $.dependencies.chrono:",
       "answer": "1.0",
       "answers": [
@@ -2016,7 +2177,7 @@
       "verified_by_human": false
     },
     {
-      "id": "C083",
+      "id": "C090",
       "question": "_____ $.dependencies.polars:",
       "answer": "0.4",
       "answers": [
@@ -2039,7 +2200,7 @@
       "verified_by_human": false
     },
     {
-      "id": "C084",
+      "id": "C091",
       "question": "_____ $.profile.release.opt-level:",
       "answer": "0.20",
       "answers": [
@@ -2062,7 +2223,7 @@
       "verified_by_human": false
     },
     {
-      "id": "C085",
+      "id": "C092",
       "question": "A rollback is triggered if the error rate exceeds _____ over any five minute window.\nduration_min: _____",
       "answer": "0.5 percent",
       "answers": [
@@ -2089,7 +2250,7 @@
       "verified_by_human": false
     },
     {
-      "id": "C086",
+      "id": "C093",
       "question": "step: freeze\nowner: ana\nduration_min: _____\nreversible: no",
       "answer": "90",
       "answers": [
@@ -2112,7 +2273,7 @@
       "verified_by_human": false
     },
     {
-      "id": "C087",
+      "id": "C094",
       "question": "step: canary\nowner: sam\nduration_min: _____\nreversible: yes",
       "answer": "30",
       "answers": [
@@ -2135,7 +2296,7 @@
       "verified_by_human": false
     },
     {
-      "id": "C088",
+      "id": "C095",
       "question": "$.limits.requests_per_minute: _____",
       "answer": "600",
       "answers": [
@@ -2158,7 +2319,7 @@
       "verified_by_human": false
     },
     {
-      "id": "C089",
+      "id": "C096",
       "question": "_____ $.limits.max_payload_bytes:",
       "answer": "1200",
       "answers": [
@@ -2181,7 +2342,7 @@
       "verified_by_human": false
     },
     {
-      "id": "C090",
+      "id": "C097",
       "question": "_____ $.limits.max_channels:",
       "answer": "8388608",
       "answers": [
@@ -2204,7 +2365,7 @@
       "verified_by_human": false
     },
     {
-      "id": "C091",
+      "id": "C098",
       "question": "_____ $.retention.hot_days:",
       "answer": "4096",
       "answers": [
@@ -2227,7 +2388,7 @@
       "verified_by_human": false
     },
     {
-      "id": "C092",
+      "id": "C099",
       "question": "$.retention.hot_days: _____",
       "answer": "7",
       "answers": [
@@ -2250,7 +2411,7 @@
       "verified_by_human": false
     },
     {
-      "id": "C093",
+      "id": "C100",
       "question": "sensor_id: TH-001\nzone: storefront\nreading: _____\nunit: C\ntimestamp: 2024-05-01T08:00:00",
       "answer": "21.4",
       "answers": [
@@ -2273,7 +2434,7 @@
       "verified_by_human": false
     },
     {
-      "id": "C094",
+      "id": "C101",
       "question": "sensor_id: TH-002\nzone: storefront\nreading: _____\nunit: C\ntimestamp: 2024-05-01T08:00:00",
       "answer": "21.6",
       "answers": [
@@ -2296,7 +2457,7 @@
       "verified_by_human": false
     },
     {
-      "id": "C095",
+      "id": "C102",
       "question": "sensor_id: TH-003\nzone: warehouse\nreading: _____\nunit: C\ntimestamp: 2024-05-01T08:00:00",
       "answer": "17.9",
       "answers": [
@@ -2319,7 +2480,7 @@
       "verified_by_human": false
     },
     {
-      "id": "C096",
+      "id": "C103",
       "question": "sensor_id: TH-004\nzone: warehouse\nreading: _____\nunit: C\ntimestamp: 2024-05-01T08:00:00",
       "answer": "18.1",
       "answers": [
@@ -2342,7 +2503,7 @@
       "verified_by_human": false
     },
     {
-      "id": "C097",
+      "id": "C104",
       "question": "sensor_id: TH-005\nzone: coldroom\nreading: _____\nunit: C\ntimestamp: 2024-05-01T08:00:00",
       "answer": "3.2",
       "answers": [
@@ -2365,7 +2526,7 @@
       "verified_by_human": false
     },
     {
-      "id": "C098",
+      "id": "C105",
       "question": "sensor_id: TH-006\nzone: coldroom\nreading: _____\nunit: C\ntimestamp: 2024-05-01T08:00:00",
       "answer": "3.4",
       "answers": [
@@ -2388,7 +2549,7 @@
       "verified_by_human": false
     },
     {
-      "id": "C099",
+      "id": "C106",
       "question": "index: _____",
       "answer": "int",
       "answers": [
@@ -2411,7 +2572,7 @@
       "verified_by_human": false
     },
     {
-      "id": "C100",
+      "id": "C107",
       "question": "excluded_rows: _____",
       "answer": "list = field(default_factory=list)",
       "answers": [
@@ -2434,7 +2595,7 @@
       "verified_by_human": false
     },
     {
-      "id": "C101",
+      "id": "C108",
       "question": "def spatial_folds(geometries, count: _____",
       "answer": "int = SPATIAL_FOLDS):",
       "answers": [
@@ -2457,7 +2618,7 @@
       "verified_by_human": false
     },
     {
-      "id": "C102",
+      "id": "C109",
       "question": "middle = _____",
       "answer": "len(observed) // 2",
       "answers": [
@@ -2480,7 +2641,7 @@
       "verified_by_human": false
     },
     {
-      "id": "C103",
+      "id": "C110",
       "question": "median = _____",
       "answer": "(",
       "answers": [
@@ -2503,7 +2664,7 @@
       "verified_by_human": false
     },
     {
-      "id": "C104",
+      "id": "C111",
       "question": "$.database.host: _____",
       "answer": "warehouse.internal",
       "answers": [
@@ -2526,7 +2687,7 @@
       "verified_by_human": false
     },
     {
-      "id": "C105",
+      "id": "C112",
       "question": "_____ $.database.pool_size:",
       "answer": "5432",
       "answers": [
@@ -2549,7 +2710,7 @@
       "verified_by_human": false
     },
     {
-      "id": "C106",
+      "id": "C113",
       "question": "_____ $.database.connect_timeout:",
       "answer": "25",
       "answers": [
@@ -2572,7 +2733,7 @@
       "verified_by_human": false
     },
     {
-      "id": "C107",
+      "id": "C114",
       "question": "_____ $.scheduler.interval_seconds:",
       "answer": "10",
       "answers": [
@@ -2595,7 +2756,7 @@
       "verified_by_human": false
     },
     {
-      "id": "C108",
+      "id": "C115",
       "question": "_____ $.scheduler.max_parallel_jobs:",
       "answer": "300",
       "answers": [
@@ -2618,7 +2779,7 @@
       "verified_by_human": false
     },
     {
-      "id": "C109",
+      "id": "C116",
       "question": "$.scheduler.max_parallel_jobs: _____",
       "answer": "4",
       "answers": [
@@ -2641,7 +2802,7 @@
       "verified_by_human": false
     },
     {
-      "id": "C110",
+      "id": "C117",
       "question": "How do I knit a scarf?",
       "answer": null,
       "source": "any document in the corpus",
@@ -2654,7 +2815,7 @@
       "verified_by_human": false
     },
     {
-      "id": "C111",
+      "id": "C118",
       "question": "How do I make pasta?",
       "answer": null,
       "source": "any document in the corpus",
@@ -2667,7 +2828,7 @@
       "verified_by_human": false
     },
     {
-      "id": "C112",
+      "id": "C119",
       "question": "How do I bake bread?",
       "answer": null,
       "source": "any document in the corpus",
@@ -2680,7 +2841,7 @@
       "verified_by_human": false
     },
     {
-      "id": "C113",
+      "id": "C120",
       "question": "What is the capital of Peru?",
       "answer": null,
       "source": "any document in the corpus",
@@ -2693,7 +2854,7 @@
       "verified_by_human": false
     },
     {
-      "id": "C114",
+      "id": "C121",
       "question": "How do I repot a fern?",
       "answer": null,
       "source": "any document in the corpus",
@@ -2706,7 +2867,7 @@
       "verified_by_human": false
     },
     {
-      "id": "C115",
+      "id": "C122",
       "question": "Who won the 1998 world cup?",
       "answer": null,
       "source": "any document in the corpus",
@@ -2719,7 +2880,7 @@
       "verified_by_human": false
     },
     {
-      "id": "C116",
+      "id": "C123",
       "question": "How do I tune a piano?",
       "answer": null,
       "source": "any document in the corpus",

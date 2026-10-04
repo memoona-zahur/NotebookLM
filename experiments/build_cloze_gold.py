@@ -438,6 +438,129 @@ def _key_of(line: str) -> str | None:
     return matches[-1].group("key").casefold() if matches else None
 
 
+# A sentence that names a concept and then says what it is. The cue is what makes
+# the label decidable: 'X is the unsorted sediment deposited directly from ice'
+# has one answer for X, where a sentence with no cue does not.
+DEFINITION_CUE = re.compile(
+    r"\b(?:"
+    r"defined as|(?:is|are|was|were) called|known as|refers to|means that|"
+    r"states that|(?:is|are) the|is a set of|implies|"
+    r"(?:is|are|was|were) (?:driven|caused|written|used|applied) (?:by|as|to|when)|"
+    r"(?:is|are) (?:now )?(?:used|found|common|known)|occurs when|"
+    r"functioned as|is distinguished from|carries|records|leaves"
+    r")\b",
+    re.I,
+)
+# A subject that opens a subordinate clause is not a definition. 'When a glacier
+# retreats' answers nothing - the question would be a condition, not a name.
+# Requiring the cue to sit in the sentence's first clause kills that case before
+# any word-counting: the comma after 'retreats' puts 'leaves' in clause two.
+SUBORDINATOR = re.compile(
+    r"^(?:when|while|if|because|although|though|after|before|as|since|unless|"
+    r"whereas|where|that|and|but|so|once|until)\b",
+    re.I,
+)
+ARTICLE = re.compile(r"^(?:a|an|the)\s+", re.I)
+SUBJECT_WORD = re.compile(r"^[A-Za-z][\w'-]*(?:\s+[A-Za-z][\w'-]*){0,3}$")
+SENTENCE = re.compile(r"(?<=[.!?])\s+")
+# The whole clause has to survive the blank, or the question carries no meaning
+# left to retrieve on. These are prose floors, not config-line ones.
+MIN_DEFINITION_CHARS = 60
+# 'A cadential six four was written as a bass note with a six and a four above
+# it' is a clause, not a name. Four words is a term; more is a sentence the
+# model would have to reproduce to fill the blank.
+MAX_SUBJECT_WORDS = 4
+
+
+def _definition_items(
+    name: str, blocks: list[parsers.Block], per_document: int, df: dict[str, int]
+) -> list[dict]:
+    """Blank the subject of a definitional sentence.
+
+    Prose documents have no field names and few quotable numbers, so every other
+    kind here returns nothing for them and they drop out of the set. A
+    definition is what a paragraph does have: 'Till is the unsorted,
+    unstratified sediment deposited directly from the ice.' The cue carries the
+    meaning, so the subject is recoverable and the label stays mechanically
+    checkable by the same four rules as a value cloze.
+
+    The guard that matters is requiring the subject to be rare across the corpus
+    and to appear once in its own sentence. Blanking a common word produces
+    '_____ is the unsorted sediment' answered 'till' from anywhere in the
+    document, and blanking a word the sentence repeats produces a question that
+    gives away its own answer.
+    """
+    built: list[dict] = []
+    seen: set[str] = set()
+    for block in blocks:
+        if len(built) >= per_document:
+            break
+        for sentence in SENTENCE.split(block.text):
+            if len(built) >= per_document:
+                break
+            sentence = " ".join(sentence.split())
+            if len(sentence) < MIN_DEFINITION_CHARS:
+                continue
+            cue = DEFINITION_CUE.search(sentence)
+            if cue is None:
+                continue
+            # The cue must open the sentence's first clause. A cue in clause two
+            # means the text before it is a condition, not a name.
+            if any(ch in sentence[: cue.start()] for ch in ",;:"):
+                continue
+            subject = sentence[: cue.start()].strip()
+            subject = SUBORDINATOR.sub("", subject).strip()
+            subject = ARTICLE.sub("", subject).strip()
+            if not SUBJECT_WORD.match(subject):
+                continue
+            if len(subject.split()) > MAX_SUBJECT_WORDS:
+                continue
+            # A gerund phrase is an action, not a name. 'Binding too weakly
+            # leaves the activation barrier intact' is answered by anything that
+            # leaves it intact, so the label would score noise. A single gerund
+            # is a process noun and stays: 'Sintering' is a name the document
+            # defines, and it is a good answer.
+            if len(subject.split()) > 1 and subject.split()[0].lower().endswith("ing"):
+                continue
+            # A one-word subject has to be a proper noun to be worth asking for.
+            # 'Ice deforms by dislocation creep' answers 'ice', which nothing in
+            # the question narrows down.
+            terms = [term for term in content_terms(subject) if term]
+            if not terms:
+                continue
+            if not (df.get(terms[0], 0) <= RARE_TERMS or subject[0].isupper()):
+                continue
+            # The blank has to be unambiguous inside its own sentence.
+            if sentence.count(subject) != 1:
+                continue
+            question = sentence.replace(subject, "_____", 1)
+            if normalize(subject) in normalize(question):
+                continue
+            if len({*content_terms(question)}) < MIN_QUESTION_TERMS:
+                continue
+            key = normalize(question)
+            if key in seen:
+                continue
+            seen.add(key)
+            evidence = _evidence(blocks, sentence)
+            if evidence is None:
+                continue
+            fact, positions = evidence
+            built.append(
+                {
+                    "source": name,
+                    "kind": "definition_cloze",
+                    "question": question,
+                    "answer": subject,
+                    "answers": [subject],
+                    "windows": [sentence],
+                    "required_facts": [fact],
+                    "expected_positions": positions,
+                }
+            )
+    return built
+
+
 def _distinctive(key: str, df: dict[str, int], ceiling: int) -> bool:
     """Does this key name something specific, or is it a word like 'version'?
 
@@ -610,6 +733,15 @@ def _items_for_document(
     # Tabular documents next: a record names itself and gives a decisive
     # question, where a bare field name repeated down a file does not.
     built += _record_items(name, blocks, per_document - len(built))
+    if len(built) >= per_document:
+        return built
+    # Prose last. A paragraph states no field and quotes no number, so both
+    # cloze kinds above find nothing in it and the document is skipped entirely
+    # - which is how catalysis.txt, glaciology.pdf and music.txt were absent from
+    # a set claiming to cover every document in the corpus. Definitions are the
+    # one prose shape that yields a decidable label: the cue names the concept,
+    # so blanking the subject asks a question with one answer.
+    built += _definition_items(name, blocks, per_document - len(built), df)
     if len(built) >= per_document:
         return built
 
@@ -838,7 +970,10 @@ def build(per_document: int = PER_DOCUMENT, traps: int = 10) -> dict:
             "attached to its key and can be retrieved again - not that the system "
             "understands the question. A multi_block_cloze item needs two or three "
             "separate blocks, so it can be partly right; the rest have one right "
-            "answer and measure only whether it was found."
+            "answer and measure only whether it was found. A definition_cloze item "
+            "asks for the subject of a sentence that defines it, which is the only "
+            "decidable question prose yields; it measures whether the defining "
+            "sentence came back, not whether the term was understood."
         ),
         "checked": len(items) - len(broken),
         "failed": len(broken),
