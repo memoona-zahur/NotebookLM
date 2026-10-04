@@ -41,27 +41,24 @@ export function Highlighted({ text, matches = [], className }) {
 /**
  * Name a word, see everywhere this session's documents use it.
  *
- * Deliberately a box in the sources drawer rather than a chat instruction: a
- * conversation cannot be relied on to parse "highlight the word X" apart from a
- * real question about highlights, and a highlight that depends on the model
- * misfiring is worse than one that does not.
+ * The box is the reliable route. `autoSearch` lets the chat composer drive the
+ * same search — it fills the box and runs it — so a typed command is a shortcut
+ * rather than a second implementation that could drift from this one.
  */
-export function Occurrences({ onFind, onClose }) {
+export function Occurrences({ onFind, onClose, autoSearch = null }) {
   const [term, setTerm] = useState("");
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
   const [busy, setBusy] = useState(false);
   const input = useRef(null);
   const request = useRef(0);
+  const handled = useRef(null);
 
   useEffect(() => {
     input.current?.focus();
   }, []);
 
-  async function find(event) {
-    event.preventDefault();
-    const wanted = term.trim();
-    if (!wanted) return;
+  async function runSearch(wanted) {
     // Responses can arrive out of order when a slow request follows a fast one;
     // only the newest is allowed to write to the screen.
     const ticket = ++request.current;
@@ -78,6 +75,22 @@ export function Occurrences({ onFind, onClose }) {
     } finally {
       if (ticket === request.current) setBusy(false);
     }
+  }
+
+  // Keyed on the command's id rather than its word, so asking for the same word
+  // twice runs the search twice instead of looking like a repeat of the first.
+  useEffect(() => {
+    if (!autoSearch || autoSearch.id === handled.current) return;
+    handled.current = autoSearch.id;
+    setTerm(autoSearch.term);
+    runSearch(autoSearch.term);
+  }, [autoSearch]);
+
+  function find(event) {
+    event.preventDefault();
+    const wanted = term.trim();
+    if (!wanted) return;
+    runSearch(wanted);
   }
 
   function clear() {

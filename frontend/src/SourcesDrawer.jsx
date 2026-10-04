@@ -19,6 +19,7 @@ export function SourcesDrawer({
   onDeleteSource,
   onClearSources,
   onFindOccurrences,
+  autoSearch = null,
 }) {
   const fileInput = useRef(null);
   const closeButton = useRef(null);
@@ -129,15 +130,16 @@ export function SourcesDrawer({
               <button
                 className="occ-toggle"
                 type="button"
-                aria-expanded={finding}
+                aria-expanded={finding || Boolean(autoSearch)}
                 onClick={() => setFinding((open) => !open)}
               >
-                {finding ? "Close highlight" : "Highlight a word"}
+                {finding || autoSearch ? "Close highlight" : "Highlight a word"}
               </button>
-              {finding ? (
+              {finding || autoSearch ? (
                 <Occurrences
                   onFind={onFindOccurrences}
                   onClose={() => setFinding(false)}
+                  autoSearch={autoSearch}
                 />
               ) : null}
             </div>

@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { api, setApiBase } from "./api.js";
+import { highlightTerm as parseHighlightTerm } from "./highlightIntent.js";
 import { Rail } from "./Rail.jsx";
 import { SourcesDrawer } from "./SourcesDrawer.jsx";
 import { Thread } from "./Thread.jsx";
@@ -20,6 +21,11 @@ export default function App() {
   const pending = pendingFor === activeId;
   const [uploading, setUploading] = useState(false);
   const [sourcesOpen, setSourcesOpen] = useState(false);
+  // The word a chat command asked to see, which pre-fills and runs the same
+  // search box the Sources drawer offers by hand. Carries an id as well as the
+  // word so asking for the same word twice searches twice.
+  const [highlight, setHighlight] = useState(null);
+  const commands = useRef(0);
   const [toasts, setToasts] = useState([]);
 
   // Guards against a slow response for a session the user has already left
@@ -165,6 +171,19 @@ export default function App() {
     const id = sessionRef.current;
     if (!id) return;
 
+    // A highlight command is a lookup, not a question, so it must not reach the
+    // model: it would answer in prose about a word instead of showing where the
+    // word is. Everything it needs is already in the drawer, so this just opens
+    // it with the word filled in.
+    const wanted = parseHighlightTerm(question);
+    if (wanted) {
+      setTurns((all) => [...all, { role: "user", text: question }]);
+      commands.current += 1;
+      setHighlight({ term: wanted, id: commands.current });
+      setSourcesOpen(true);
+      return;
+    }
+
     // Show the question immediately; the server keeps the real transcript, so
     // this local copy is purely optimistic and gets replaced on the next load.
     setTurns((all) => [...all, { role: "user", text: question }]);
@@ -235,11 +254,17 @@ export default function App() {
         <SourcesDrawer
           status={status}
           uploading={uploading}
-          onClose={() => setSourcesOpen(false)}
+          onClose={() => {
+            setSourcesOpen(false);
+            // Disarm the command, or reopening the drawer would re-run the last
+            // search without being asked.
+            setHighlight(null);
+          }}
           onUpload={upload}
           onDeleteSource={deleteSource}
           onClearSources={clearSources}
           onFindOccurrences={findOccurrences}
+          autoSearch={highlight}
         />
       ) : null}
 

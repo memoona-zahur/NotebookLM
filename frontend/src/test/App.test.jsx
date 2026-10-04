@@ -18,6 +18,24 @@ async function ask(user, question) {
   await user.click(screen.getByRole("button", { name: /send/i }));
 }
 
+const HITS = {
+  term: "velocity",
+  count: 1,
+  truncated: false,
+  occurrences: [
+    {
+      source: "kepler.pdf",
+      kind: "pdf",
+      position: 0,
+      page: 1,
+      heading: "",
+      text: "Escape velocity is 11.2 km/s.",
+      matches: [[7, 15]],
+      count: 1,
+    },
+  ],
+};
+
 const ANSWER = {
   answer: "Escape velocity at the surface is 11.2 km/s [1].",
   evidence: {
@@ -321,5 +339,116 @@ describe("chat-first layout", () => {
 
     await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
     expect(screen.getByRole("textbox")).toBeEnabled();
+  });
+});
+
+describe("highlight commands from the chat", () => {
+  it("opens the drawer with the word marked instead of asking the model", async () => {
+    on("GET", "/api/occurrences", () => HITS);
+    on("POST", "/api/ask", () => ANSWER);
+
+    const user = await boot();
+    await ask(user, "highlight velocity");
+
+    // The whole point: no model call, because this is a lookup.
+    expect(requests().filter((r) => r.path === "/api/ask")).toHaveLength(0);
+
+    const drawer = await screen.findByRole("dialog");
+    expect(within(drawer).getByDisplayValue("velocity")).toBeInTheDocument();
+    // Twice on purpose: once named in the summary, once marked in the passage.
+    await waitFor(() => expect(within(drawer).getAllByText("velocity").length).toBeGreaterThan(0));
+    expect(within(drawer).getByText("kepler.pdf")).toBeInTheDocument();
+  });
+
+  it("shows the command in the thread, so the transcript still matches", async () => {
+    on("GET", "/api/occurrences", () => HITS);
+
+    const user = await boot();
+    await ask(user, "highlight velocity");
+
+    expect(await screen.findByText("highlight velocity")).toBeInTheDocument();
+  });
+
+  it("looks up the word rather than asking about where-is", async () => {
+    on("GET", "/api/occurrences", () => HITS);
+    on("POST", "/api/ask", () => ANSWER);
+
+    const user = await boot();
+    await ask(user, "where does velocity appear");
+
+    expect(requests().filter((r) => r.path === "/api/ask")).toHaveLength(0);
+    expect(await screen.findByRole("dialog")).toBeInTheDocument();
+  });
+
+  it("still answers a real question about a word", async () => {
+    on("POST", "/api/ask", () => ANSWER);
+
+    const user = await boot();
+    await ask(user, "where is the capital of France");
+
+    await waitFor(() => expect(requests().filter((r) => r.path === "/api/ask")).toHaveLength(1));
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
+  it("still answers a question that merely contains the word highlight", async () => {
+    on("POST", "/api/ask", () => ANSWER);
+
+    const user = await boot();
+    await ask(user, "highlight the difference between the two papers");
+
+    await waitFor(() => expect(requests().filter((r) => r.path === "/api/ask")).toHaveLength(1));
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
+  // The same word twice is two requests, not one repeat being swallowed by the
+  // guard that stops a re-render re-running a command.
+  it("searches again when the same word is asked for twice", async () => {
+    on("GET", "/api/occurrences", () => HITS);
+
+    const user = await boot();
+    await ask(user, "highlight velocity");
+    await screen.findByRole("dialog");
+    await user.keyboard("{Escape}");
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+
+    await ask(user, "highlight velocity");
+    await screen.findByRole("dialog");
+
+    await waitFor(() =>
+      expect(requests().filter((r) => r.path === "/api/occurrences")).toHaveLength(2),
+    );
+  });
+
+  // Otherwise reopening the drawer silently re-runs the previous search, which
+  // reads as the app having remembered a question nobody asked again.
+  it("does not re-run the last search when the drawer is reopened by hand", async () => {
+    on("GET", "/api/occurrences", () => HITS);
+
+    const user = await boot();
+    await ask(user, "highlight velocity");
+    await screen.findByRole("dialog");
+    await user.keyboard("{Escape}");
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+
+    await user.click(screen.getByRole("button", { name: /sources/i }));
+    await screen.findByRole("dialog");
+
+    // Still just the one search from the command.
+    expect(requests().filter((r) => r.path === "/api/occurrences")).toHaveLength(1);
+  });
+
+  it("reports nothing found rather than claiming the word is absent", async () => {
+    on("GET", "/api/occurrences", () => ({
+      term: "velocity",
+      count: 0,
+      truncated: false,
+      occurrences: [],
+    }));
+
+    const user = await boot();
+    await ask(user, "highlight velocity");
+
+    const drawer = await screen.findByRole("dialog");
+    expect(await within(drawer).findByText(/not in any of these documents/i)).toBeInTheDocument();
   });
 });
