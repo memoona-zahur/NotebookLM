@@ -4,7 +4,7 @@
     "chunk_size": 900
   },
   "documents": 24,
-  "gold_file": "C:\\Users\\DELL\\OneDrive\\Documents\\Notebooklm\\experiments\\gold\\cloze_set.json",
+  "gold_file": "experiments/gold/cloze_set.json",
   "human_verified": false,
   "items": 110,
   "k": 5,

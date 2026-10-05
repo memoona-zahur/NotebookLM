@@ -40,8 +40,22 @@ from app.store import VectorStore  # noqa: E402
 from experiments import corpus, eval_gold, metrics  # noqa: E402
 
 HERE = Path(__file__).resolve().parent
+REPO = HERE.parent
 CLOZE_PATH = HERE / "gold" / "cloze_set.json"
 RESULTS_PATH = HERE / "results" / "chunker_bakeoff.json"
+
+
+def _portable_path(path: Path) -> str:
+    """`path` relative to the repository root, in posix form.
+
+    Results files are committed, so an absolute path from whichever machine ran
+    the experiment ends up published with the author's home directory in it.
+    """
+    resolved = Path(path).resolve()
+    try:
+        return resolved.relative_to(REPO).as_posix()
+    except ValueError:
+        return resolved.as_posix()
 
 # Overlap is derived from size rather than listed separately: a table of
 # (size, overlap) pairs invites the two to drift apart, and the question worth
@@ -202,7 +216,9 @@ def run(
     return {
         "k": k,
         "mode": mode,
-        "gold_file": str(gold_path),
+        # Relative to the repository, not absolute: this file is committed, and an
+        # absolute path publishes the author's home directory and username.
+        "gold_file": _portable_path(gold_path),
         "label_basis": "machine-checked",
         "human_verified": False,
         "items": len(scorable),

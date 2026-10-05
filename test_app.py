@@ -1885,6 +1885,26 @@ def test_machine_checked_labels_are_gated_not_trusted(client: TestClient = None)
     print("  machine labels: re-checked at scoring time, stale ones refused")
 
 
+def test_bakeoff_records_a_relative_gold_path(client: TestClient = None) -> None:
+    """Results files are committed, so an absolute path publishes the machine.
+
+    The first committed bakeoff carried
+    `C:\\Users\\DELL\\OneDrive\\Documents\\...\\cloze_set.json`, which is a
+    username and a directory layout of whoever ran it.
+    """
+    from experiments import chunker_bakeoff as bakeoff
+
+    assert bakeoff._portable_path(bakeoff.CLOZE_PATH) == "experiments/gold/cloze_set.json"
+    # A path from outside the repository cannot be made relative, and faking one
+    # would be worse than an honest absolute path.
+    assert bakeoff._portable_path(Path("/tmp/elsewhere/gold.json")) == "/tmp/elsewhere/gold.json"
+
+    committed = bakeoff.RESULTS_PATH.read_text(encoding="utf-8")
+    assert "C:\\Users" not in committed, "the results file leaks an absolute home path"
+    assert "OneDrive" not in committed, "the results file leaks an absolute home path"
+    print("  bakeoff: results record a repository-relative gold path")
+
+
 def test_bakeoff_resolves_gold_by_text_not_position(client: TestClient = None) -> None:
     import json as _json
     import tempfile
@@ -2231,6 +2251,7 @@ ORDER = [
     ("labels can actually fail", test_labels_can_actually_fail),
     ("machine labels are gated not trusted", test_machine_checked_labels_are_gated_not_trusted),
     ("bakeoff resolves gold by text", test_bakeoff_resolves_gold_by_text_not_position),
+    ("bakeoff records a relative gold path", test_bakeoff_records_a_relative_gold_path),
     ("source deletion", test_source_deletion),
 ]
 
