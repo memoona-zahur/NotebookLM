@@ -1,4 +1,6 @@
 import contextlib
+import json
+import tempfile
 import sys
 from pathlib import Path
 
@@ -561,6 +563,129 @@ def test_status_and_indexing(client: TestClient) -> None:
     stats = client.get("/api/status").json()
     assert stats["chunks"] > 0
     print("  indexed:", stats["chunks"], "chunks from", len(stats["sources"]), "sources")
+
+
+def test_tracing_is_off_by_default_and_sends_no_text(client: TestClient) -> None:
+    """The default must be inert, and /api/status must say so.
+
+    The app's promise is that embeddings stay local and only retrieved chunks go
+    to the model. A tracer that uploaded chunks by default would widen that
+    promise to cover a company the user never agreed to, so "off" and "off
+    without document text" are two separate things and both are asserted.
+    """
+    from app import tracing
+
+    for key in ("LANGSMITH_TRACING", "LANGSMITH_TRACING_INCLUDE_TEXT", "LANGSMITH_TRACING_LOCAL"):
+        os.environ.pop(key, None)
+    state = tracing.status()
+    assert state["enabled"] is False, state
+    assert state["document_text_included"] is False, state
+    assert state["mode"] == "off", state
+
+    reported = client.get("/api/status").json()["tracing"]
+    assert reported["mode"] == "off", reported
+    assert reported["document_text_included"] is False, reported
+
+    # And a span opened with tracing off must not write anywhere or raise.
+    with tracing.ask_span("a question", "s1") as span:
+        span.record(verdict="answered")
+    print("  tracing off by default: OK")
+
+
+def test_tracing_never_sends_document_text_unless_told(client: TestClient, tmp_path=None) -> None:
+    """Text is a second switch, not part of turning tracing on.
+
+    "I want traces" and "my documents may leave this machine" are different
+    decisions, and the person making the second is often not the one who made
+    the first.
+    """
+    from app import tracing
+
+    try:
+        os.environ["LANGSMITH_TRACING"] = "1"
+        os.environ.pop("LANGSMITH_TRACING_INCLUDE_TEXT", None)
+        assert tracing.status()["document_text_included"] is False
+        secret = "CONFIDENTIAL BODY TEXT"
+        with tracing.generation_span("q", [{"text": secret}]) as span:
+            pass
+        blob = json.dumps(span.inputs)
+        assert "CONFIDENTIAL" not in blob, span.inputs
+        # Lengths are still traced: enough to see the wrong context was sent
+        # without sending the context.
+        assert span.inputs["passage_lengths"] == [len(secret)], span.inputs
+
+        os.environ["LANGSMITH_TRACING_INCLUDE_TEXT"] = "1"
+        assert tracing.status()["document_text_included"] is True
+        with tracing.generation_span("q", [{"text": secret}]) as span:
+            pass
+        assert "CONFIDENTIAL" in span.inputs["passages"][0], span.inputs
+    finally:
+        for key in ("LANGSMITH_TRACING", "LANGSMITH_TRACING_INCLUDE_TEXT"):
+            os.environ.pop(key, None)
+    print("  tracing withholds document text unless asked: OK")
+
+
+def test_local_tracing_writes_spans_without_a_network_call(client: TestClient) -> None:
+    """Offline tracing, because testing a RAG system should not require uploading it.
+
+    The local file is a complete trace destination, not a degraded one: same
+    span tree, same fields, no outbound connection.
+    """
+    from app import tracing
+
+    target = Path(tempfile.gettempdir()) / "notebooklm-trace-test.jsonl"
+    target.unlink(missing_ok=True)
+    try:
+        os.environ["LANGSMITH_TRACING"] = "1"
+        os.environ["LANGSMITH_TRACING_LOCAL"] = str(target)
+        state = tracing.status()
+        assert state["mode"] == "local file", state
+        assert tracing._client_or_none() is None, "local mode must not open a client"
+
+        with tracing.ask_span("what is the fee?", "s1") as span:
+            with tracing.retrieval_span("what is the fee?") as retrieval:
+                retrieval.record(best_score=0.51, relevant=True)
+            span.record(verdict="answered", cited=[1])
+
+        assert target.exists(), "no trace file written"
+        rows = [json.loads(line) for line in target.read_text().splitlines() if line]
+        names = {r["name"] for r in rows}
+        assert names == {"ask", "retrieval"}, names
+        retrieval_row = next(r for r in rows if r["name"] == "retrieval")
+        assert retrieval_row["outputs"]["best_score"] == 0.51, retrieval_row
+        assert retrieval_row["metadata"]["duration_ms"] >= 0, retrieval_row
+    finally:
+        for key in ("LANGSMITH_TRACING", "LANGSMITH_TRACING_LOCAL"):
+            os.environ.pop(key, None)
+        target.unlink(missing_ok=True)
+    print("  local tracing writes spans offline: OK")
+
+
+def test_a_failing_step_still_traces(client: TestClient) -> None:
+    """An exception is the reason you are reading the trace, so the span must close.
+
+    A tracer that only records success tells you nothing at exactly the moment
+    you need it.
+    """
+    from app import tracing
+
+    target = Path(tempfile.gettempdir()) / "notebooklm-trace-error.jsonl"
+    target.unlink(missing_ok=True)
+    try:
+        os.environ["LANGSMITH_TRACING"] = "1"
+        os.environ["LANGSMITH_TRACING_LOCAL"] = str(target)
+        with pytest.raises(RuntimeError, match="provider exploded"):
+            with tracing.generation_span("q", [{"text": "x"}]):
+                raise RuntimeError("provider exploded")
+
+        rows = [json.loads(line) for line in target.read_text().splitlines() if line]
+        row = next(r for r in rows if r["name"] == "generation")
+        assert "provider exploded" in (row["error"] or ""), row
+    finally:
+        for key in ("LANGSMITH_TRACING", "LANGSMITH_TRACING_LOCAL"):
+            os.environ.pop(key, None)
+        target.unlink(missing_ok=True)
+    print("  a failed step still closes its span: OK")
 
 
 def test_retrieval_quality(client: TestClient) -> None:
@@ -2372,6 +2497,10 @@ ORDER = [
     ("uniform numeric corpus undamped", test_uniform_numeric_corpus_is_not_damped),
     ("type-aware parsing", test_type_aware_parsing),
     ("word sections chunked", test_word_sections_respect_the_chunk_ceiling),
+    ("tracing off by default", test_tracing_is_off_by_default_and_sends_no_text),
+    ("tracing withholds text", test_tracing_never_sends_document_text_unless_told),
+    ("tracing local file", test_local_tracing_writes_spans_without_a_network_call),
+    ("tracing survives failure", test_a_failing_step_still_traces),
     ("metric definitions", test_retrieval_metric_definitions),
     ("generation metric definitions", test_generation_metric_definitions),
     ("generation metrics need no model", test_generation_metric_does_not_grade_its_own_model),

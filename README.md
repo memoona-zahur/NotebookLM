@@ -213,6 +213,63 @@ Everything is set in `.env` (all optional):
 | `MIN_SCORE` | `0.25` | Relevance floor - see below |
 | `MAX_PER_SOURCE` | `3` | Max chunks from one source, so answers can span sources |
 | `HISTORY_TURNS` | `6` | Prior turns read for follow-ups (`0` disables) |
+| `LANGSMITH_TRACING` | off | Send traces to LangSmith - see below |
+| `LANGSMITH_TRACING_INCLUDE_TEXT` | off | Let document text leave the machine. Separate switch, deliberately |
+| `LANGSMITH_TRACING_LOCAL` | – | Write the same traces to a local JSONL file, no network call |
+
+## Tracing, and what it costs you in privacy
+
+Once the app is running, a bad answer is a fact you have to reconstruct, and the
+pieces are scattered: retrieval scores in `store.py`, the citation audit in
+`llm.py`, tokens and latency in `usage.py`. Tracing puts a whole run in one place
+and lets you group by a field, which is how "why was Tuesday slow" stops being an
+archaeology exercise.
+
+The reason it is two switches and not one is privacy, and it is worth being blunt
+about it: **tracing a RAG system sends your retrieved passages to a third party.**
+Those passages are your documents. The app's core promise is that embeddings never
+leave the machine and only retrieved chunks go to the model, and a tracer that
+uploaded chunks by default would quietly widen that promise to cover a company you
+never agreed to.
+
+So `LANGSMITH_TRACING=1` sends the question, the retrieval scores, the citation
+audit and the cost — enough to tell a retriever failure from a generation failure —
+and **no document text**. `LANGSMITH_TRACING_INCLUDE_TEXT=1` is a second, separate
+decision, because "I want traces" and "my documents may leave this machine" are
+different questions and the person answering the second is often not the person who
+turned tracing on.
+
+`LANGSMITH_TRACING_LOCAL=traces.jsonl` writes the identical span tree to a file
+with **no network call at all**. That is the mode to use when the corpus is
+confidential, and testing a RAG system's observability should not require uploading
+the documents it is about.
+
+Retrieval and generation are traced as separate spans on purpose. A bad answer
+caused by bad retrieval is indistinguishable from a bad answer caused by a good
+retriever and a bad model, and you cannot tell them apart unless the steps are
+separable. A refusal produces a retrieval span and no generation span, so
+"how often does the relevance floor hold" is answerable from the trace.
+
+A real trace, refused question included, with text withheld:
+
+```
+retrieval   retriever     19.5ms  best_score 0.6825  relevant true   returned 1
+generation  llm        1092.8ms  cited [1]  ungrounded false  prompt_tokens 461
+ask         chain       1125.5ms  verdict answered  cost {...}
+retrieval   retriever     19.6ms  best_score 0.0     relevant false  returned 0
+ask         chain         26.8ms  verdict no_match    cost {...}
+```
+
+Two guarantees that are asserted by tests rather than promised in prose:
+
+- **A failing step still closes its span.** An exception is the reason you are
+  reading the trace, so a tracer that only records success is useless.
+- **Tracing can never break a request.** Every failure in the tracer is swallowed;
+  observability that can take down the app is worse than no observability.
+
+`/api/status` reports the current tracing state, including whether document text is
+included, so "is anything leaving this machine?" is a question the app answers
+rather than one you answer by reading `.env`.
 
 ## Sessions
 

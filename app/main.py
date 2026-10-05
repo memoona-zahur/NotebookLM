@@ -8,7 +8,7 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
-from . import config, db, usage
+from . import config, db, tracing, usage
 from .llm import detect_injection, last_usage
 from .parsers import SUPPORTED, UnreadableDocument
 from .store import SearchResult, store
@@ -196,6 +196,9 @@ def status(request: Request, session_id: str | None = None) -> dict:
         "max_per_source": config.MAX_PER_SOURCE,
         "hybrid": config.HYBRID_ENABLED,
         "numeric_damping": config.NUMERIC_DAMPING,
+        # Reported so "is anything leaving this machine?" is a question the app
+        # answers rather than one the user has to answer by reading .env.
+        "tracing": tracing.status(),
         "supported_types": sorted(ALLOWED),
         "session": {"id": str(session.id), "name": session.name},
         "api_base": _base_url(request),
@@ -324,56 +327,85 @@ def ask(request: Request, payload: AskRequest, session_id: str | None = None) ->
     # that supplies its own turns could otherwise inject context the server did
     # not record.
     history = db.recent_messages(str(session.id), config.HISTORY_TURNS)
-    # Timed on its own: retrieval is local CPU work and generation is a network
-    # call, so a single total would hide which of the two a slow answer was.
-    started = time.perf_counter()
-    search = store.search_detailed(question, session_id=str(session.id))
-    retrieval_ms = (time.perf_counter() - started) * 1000
+    # Retrieval and generation are traced as separate spans, and that separation
+    # is the reason to trace at all: a bad answer caused by bad retrieval is
+    # indistinguishable from a bad answer caused by a bad model unless the two
+    # steps are separable. Off by default, and no document text unless asked.
+    with tracing.ask_span(question, str(session.id)) as span:
+        # Timed on its own: retrieval is local CPU work and generation is a
+        # network call, so a single total would hide which one was slow.
+        started = time.perf_counter()
+        with tracing.retrieval_span(question) as retrieval:
+            search = store.search_detailed(question, session_id=str(session.id))
+            retrieval_ms = (time.perf_counter() - started) * 1000
+            retrieval.record(
+                best_score=search.best_score,
+                min_score=search.min_score,
+                relevant=search.relevant,
+                considered=search.considered,
+                returned=len(search.hits),
+                injection=detect_injection(search.hits),
+            )
 
-    # Relevance floor. Passing passages the model would have to guess from is how
-    # a grounded assistant turns into a confident liar, so stop here instead.
-    if not search.relevant:
+        # Relevance floor. Passing passages the model would have to guess from is
+        # how a grounded assistant turns into a confident liar, so stop here.
+        if not search.relevant:
+            db.add_message(str(session.id), "user", question)
+            db.add_message(str(session.id), "assistant", NO_MATCH)
+            db.touch_session(str(session.id))
+            refusal = usage.not_called(
+                config.resolved_model(),
+                retrieval_ms,
+                "no_match",
+                len(search.hits),
+            )
+            span.record(verdict="no_match", cost=refusal.as_dict())
+            return {
+                "answer": NO_MATCH,
+                "citations": [],
+                "evidence": _evidence(
+                    search, Grounded(NO_MATCH, [], [], 0), "no_match", refusal
+                ),
+            }
+
+        with tracing.generation_span(question, search.hits) as generation:
+            try:
+                audit = run_answer(question, search.hits, history)
+            except LLMUnavailable as exc:
+                raise HTTPException(503, str(exc)) from exc
+            reported = last_usage()
+            generation.record(
+                cited=audit.cited,
+                invalid=audit.invalid,
+                ungrounded=audit.ungrounded,
+                passages=audit.passages,
+                **reported.as_dict(),
+            )
+
         db.add_message(str(session.id), "user", question)
-        db.add_message(str(session.id), "assistant", NO_MATCH)
+        db.add_message(str(session.id), "assistant", audit.text)
         db.touch_session(str(session.id))
-        refusal = usage.not_called(
-            config.resolved_model(),
-            retrieval_ms,
-            "no_match",
-            len(search.hits),
+
+        cost = usage.Request(
+            model=reported.model or config.resolved_model(),
+            usage=reported,
+            retrieval_ms=retrieval_ms,
+            generation_ms=reported.latency_ms,
+            passages_sent=audit.passages,
+            context_chars=sum(len(str(h.get("text") or "")) for h in search.hits),
+            verdict="answered",
+        )
+        span.record(
+            verdict="answered",
+            cited=audit.cited,
+            ungrounded=audit.ungrounded,
+            cost=cost.as_dict(),
         )
         return {
-            "answer": NO_MATCH,
-            "citations": [],
-            "evidence": _evidence(
-                search, Grounded(NO_MATCH, [], [], 0), "no_match", refusal
-            ),
+            "answer": audit.text,
+            "citations": search.hits,
+            "evidence": _evidence(search, audit, "answered", cost),
         }
-
-    try:
-        audit = run_answer(question, search.hits, history)
-    except LLMUnavailable as exc:
-        raise HTTPException(503, str(exc)) from exc
-
-    db.add_message(str(session.id), "user", question)
-    db.add_message(str(session.id), "assistant", audit.text)
-    db.touch_session(str(session.id))
-
-    reported = last_usage()
-    cost = usage.Request(
-        model=reported.model or config.resolved_model(),
-        usage=reported,
-        retrieval_ms=retrieval_ms,
-        generation_ms=reported.latency_ms,
-        passages_sent=audit.passages,
-        context_chars=sum(len(str(h.get("text") or "")) for h in search.hits),
-        verdict="answered",
-    )
-    return {
-        "answer": audit.text,
-        "citations": search.hits,
-        "evidence": _evidence(search, audit, "answered", cost),
-    }
 
 
 @app.post("/api/summarize")
