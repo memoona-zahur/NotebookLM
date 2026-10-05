@@ -16,6 +16,8 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Iterator
 
+from psycopg.types.json import Json
+
 from . import config
 
 _pool = None
@@ -206,27 +208,64 @@ def ensure_default_session() -> SessionRow:
 # ---------------------------------------------------------------------------
 
 
-def add_message(session_id: str, role: str, content: str) -> None:
+def add_message(
+    session_id: str,
+    role: str,
+    content: str,
+    citations: list | None = None,
+    evidence: dict | None = None,
+) -> None:
+    """Append a turn, keeping the evidence an answer was based on.
+
+    `citations` and `evidence` are what make `[1]` in `content` mean something on
+    a later read. They are optional rather than required so the same function
+    records a user turn, and so a caller that genuinely has nothing to attach is
+    not forced to invent two empty objects.
+    """
     with connection() as conn:
         conn.execute(
-            "INSERT INTO messages (session_id, role, content) VALUES (%s, %s, %s)",
-            (session_id, role, content),
+            "INSERT INTO messages (session_id, role, content, citations, evidence) "
+            "VALUES (%s, %s, %s, %s, %s)",
+            (
+                session_id,
+                role,
+                content,
+                Json(citations) if citations is not None else None,
+                Json(evidence) if evidence is not None else None,
+            ),
         )
 
 
 def recent_messages(session_id: str, limit: int) -> list[dict]:
-    """Oldest-first window of the most recent `limit` turns."""
+    """Oldest-first window of the most recent `limit` turns.
+
+    An assistant turn carries its citations and evidence back out, so a
+    reopened session renders the same provenance the original response did.
+    Absent columns - a transcript written before this migration - come back as
+    no keys at all rather than as `null`, because the client already treats a
+    missing key and a null one the same way, and omitting is less surprising to
+    read in an API response.
+    """
     if limit <= 0:
         return []
     with connection() as conn:
         rows = conn.execute(
-            "SELECT role, content FROM ("
-            "  SELECT role, content, id FROM messages WHERE session_id = %s"
+            "SELECT role, content, citations, evidence FROM ("
+            "  SELECT role, content, citations, evidence, id FROM messages "
+            "  WHERE session_id = %s"
             "  ORDER BY id DESC LIMIT %s"
             ") recent ORDER BY id",
             (session_id, limit),
         ).fetchall()
-    return [{"role": role, "content": content} for role, content in rows]
+    turns = []
+    for role, content, citations, evidence in rows:
+        turn = {"role": role, "content": content}
+        if citations:
+            turn["citations"] = citations
+        if evidence:
+            turn["evidence"] = evidence
+        turns.append(turn)
+    return turns
 
 
 def clear_messages(session_id: str) -> None:

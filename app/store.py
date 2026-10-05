@@ -39,6 +39,34 @@ def _ilike(term: str) -> str:
     return f"%{escaped}%"
 
 
+def _discard(storage_path) -> None:
+    """Delete a stored file, but only if the store is the thing that owns it.
+
+    `add` records whatever path it was handed, and that is correct: the route
+    generates a UUID name inside `UPLOAD_DIR` precisely so the store can own and
+    later delete it. It also means anything else that indexes files through the
+    store - the evaluation harnesses point it straight at `experiments/corpus/` -
+    would have its originals deleted by an ordinary session delete.
+
+    That already happened once: running the gold evaluation and then deleting
+    its session removed 24 committed corpus documents, and `git status` showed
+    them as deletions with nothing in the code to explain why. So the rule is
+    enforced here instead of left to every caller's good intentions: the store
+    only ever deletes inside its own upload directory. A path outside it is left
+    on disk, because leaking one file is a smaller failure than losing a
+    committed corpus to a DELETE endpoint.
+    """
+    if not storage_path:
+        return
+    path = Path(storage_path)
+    try:
+        inside = path.resolve().is_relative_to(config.UPLOAD_DIR.resolve())
+    except OSError:
+        return
+    if inside:
+        path.unlink(missing_ok=True)
+
+
 @dataclass
 class Source:
     id: str
@@ -182,8 +210,7 @@ class VectorStore:
             return False
         # The database row is gone; drop the uploaded file with it so the
         # volume does not quietly fill up.
-        if row[1]:
-            Path(row[1]).unlink(missing_ok=True)
+        _discard(row[1])
         return True
 
     def clear(self, session_id: str) -> None:
@@ -195,8 +222,7 @@ class VectorStore:
             ).fetchall()
         self._invalidate(session_id)
         for (path,) in paths:
-            if path:
-                Path(path).unlink(missing_ok=True)
+            _discard(path)
 
     def _invalidate(self, session_id: str) -> None:
         self._lexical.pop(session_id, None)

@@ -1,5 +1,6 @@
 import contextlib
 import json
+import re
 import tempfile
 import sys
 from pathlib import Path
@@ -251,7 +252,17 @@ def test_migrated_schema_matches_what_the_app_uses(client: TestClient) -> None:
                     "numeric_count", "storage_path", "created_at"},
         "chunks": {"id", "source_id", "position", "page", "heading", "text",
                    "numeric_heavy", "embedding"},
-        "messages": {"id", "session_id", "role", "content", "created_at"},
+        "messages": {
+            "id",
+            "session_id",
+            "role",
+            "content",
+            "created_at",
+            # Added by 0002. Without them an answer's citations exist only in the
+            # HTTP response and are gone the moment the tab is closed.
+            "citations",
+            "evidence",
+        },
     }
     with db.connection() as conn:
         for table, columns in expected.items():
@@ -263,6 +274,44 @@ def test_migrated_schema_matches_what_the_app_uses(client: TestClient) -> None:
             found = {row[0] for row in rows}
             assert found == columns, f"{table}: missing {columns - found}, extra {found - columns}"
     print("  every table matches the columns the app uses: OK")
+
+
+def test_deleting_a_session_cannot_delete_a_file_the_store_does_not_own() -> None:
+    """Regression, and the reason this is not theoretical.
+
+    `store.add` records whatever path it is handed, which is what lets a session
+    delete reclaim upload space. The evaluation harnesses index
+    `experiments/corpus/` through the same call, so deleting an eval session used
+    to unlink the committed corpus. It did: running the gold evaluation and then
+    removing its session left 24 documents missing, reported only as `git status`
+    deletions with no code pointing at the cause.
+
+    Asserted directly against the store rather than through the API, because the
+    store is where the ownership rule now lives.
+    """
+    from app import config as _config
+    from app.store import _discard
+
+    outside = Path(tempfile.gettempdir()) / "notebooklm-not-owned.txt"
+    outside.write_text("belongs to somebody else")
+    try:
+        _discard(str(outside))
+        assert outside.exists(), "a path outside UPLOAD_DIR must be left alone"
+    finally:
+        outside.unlink(missing_ok=True)
+
+    inside = _config.UPLOAD_DIR / "owned-by-the-store.txt"
+    inside.parent.mkdir(parents=True, exist_ok=True)
+    inside.write_text("ours")
+    _discard(str(inside))
+    assert not inside.exists(), "a file inside UPLOAD_DIR must be reclaimed"
+
+    # And the empty/missing cases, which arrive from rows inserted before an
+    # upload was retained.
+    _discard(None)
+    _discard("")
+    _discard(str(inside))
+    print("  file ownership is enforced before anything is deleted: OK")
 
 
 def test_cascade_and_constraints_survive_migration(client: TestClient) -> None:
@@ -394,6 +443,62 @@ def test_chat_history_persists_and_is_isolated(client: TestClient) -> None:
 
     assert client.get(f"/api/sessions/{two}").json()["history"] == [], "history leaked"
     print("  turns persist in the session and stay isolated: OK")
+
+
+def test_a_reopened_session_still_has_its_citations(client: TestClient) -> None:
+    """Regression: citations existed only in the HTTP response.
+
+    `messages` stored `role` and `content`. The `[n]` markers live in the text,
+    so they survived a reload and the citation cards did not - a reopened session
+    showed the provenance of an answer as unclickable markers pointing at
+    nothing. The app's whole claim is that an answer can be traced to a passage,
+    so this had to be fixed rather than documented.
+    """
+    sid = client.post("/api/sessions", json={"name": "reload"}).json()["id"]
+    upload(client, "cite.pdf", make_pdf(), session_id=sid)
+
+    with stubbed("[1] Escape velocity is 11.2 km/s."):
+        live = client.post(
+            "/api/ask", params={"session_id": sid}, json={"question": RELEVANT_Q}
+        ).json()
+    assert live["citations"], "the live response should carry its passages"
+    assert live["evidence"]["verdict"] == "answered"
+
+    # Read the session back the way the UI does on open.
+    replayed = client.get(f"/api/sessions/{sid}").json()["history"][-1]
+
+    assert replayed["content"] == live["answer"]
+    assert replayed["citations"], "a reopened answer lost its citations"
+    assert replayed["citations"] == live["citations"]
+    assert replayed["evidence"]["cited"] == live["evidence"]["cited"]
+    assert replayed["evidence"]["confidence"] == live["evidence"]["confidence"]
+
+    # The marker in the text has to have something to point at, or the chip is
+    # rendered but dead.
+    assert re.search(r"\[\d+\]", replayed["content"]), replayed["content"]
+    print("  a reopened session replays citations and evidence: OK")
+
+
+def test_a_reopened_refusal_still_explains_itself(client: TestClient) -> None:
+    """A refusal has no citations, but it does have a reason worth keeping."""
+    sid = client.post("/api/sessions", json={"name": "reload-refusal"}).json()["id"]
+    upload(client, "r.pdf", make_pdf(), session_id=sid)
+
+    # Off-topic wording against the escape-velocity document, so the relevance
+    # floor refuses rather than the model answering.
+    live = client.post(
+        "/api/ask",
+        params={"session_id": sid},
+        json={"question": "how do I bake sourdough bread at home"},
+    ).json()
+    assert live["evidence"]["verdict"] == "no_match", live["evidence"]
+
+    replayed = client.get(f"/api/sessions/{sid}").json()["history"][-1]
+    assert replayed["evidence"]["verdict"] == "no_match"
+    assert replayed["evidence"]["best_score"] == live["evidence"]["best_score"]
+    assert replayed["evidence"]["min_score"] == live["evidence"]["min_score"]
+    assert replayed["evidence"]["cost"]["called"] is False
+    print("  a reopened refusal still shows why it refused: OK")
 
 
 def test_deleting_a_session_removes_its_data(client: TestClient) -> None:
@@ -2465,6 +2570,8 @@ ORDER = [
     ("retrieval quality", test_retrieval_quality),
     ("ask returns answer + audit", test_ask_returns_answer_and_audit),
     ("ask reports cost", test_ask_reports_the_cost_of_the_question),
+    ("reopened answer keeps citations", test_a_reopened_session_still_has_its_citations),
+    ("reopened refusal keeps its reason", test_a_reopened_refusal_still_explains_itself),
     ("reported tokens beat estimates", test_provider_reported_tokens_are_used_not_guessed),
     ("static files and empty question", test_static_and_empty_question),
     ("frontend bundle served", test_frontend_bundle_is_served),

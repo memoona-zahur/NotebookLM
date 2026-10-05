@@ -169,6 +169,49 @@ describe("first paint", () => {
     expect(screen.getAllByText("You")).toHaveLength(1);
   });
 
+  it("keeps a reopened answer's citations clickable", async () => {
+    // Regression: the server stored only `content`, so the [1] marker came back
+    // from the database while the passage it referred to did not. The chip
+    // rendered and did nothing. Evidence is persisted now, and this asserts the
+    // client actually uses it on a replayed turn.
+    seed("alpha", [
+      { role: "user", content: "how many CCDs?" },
+      {
+        role: "assistant",
+        content: "42 CCDs [1].",
+        citations: [{ source: "kepler.pdf", page: 3, score: 0.42, text: "42 CCDs." }],
+        evidence: { verdict: "answered", confidence: "high", cited: [1] },
+      },
+    ]);
+    const user = await boot();
+
+    // The passage card is rendered, not just the marker.
+    expect(screen.getByText("kepler.pdf")).toBeInTheDocument();
+
+    const marker = document.querySelector("a.ref");
+    expect(marker, "the [1] marker should render as a link").toBeTruthy();
+
+    await user.click(marker);
+    // Clicking marks the marker active and opens the card it points at.
+    expect(marker).toHaveClass("active");
+    expect(document.getElementById("cite-1")).toHaveClass("open");
+  });
+
+  it("does not link a marker in a turn that has no citation cards", async () => {
+    // A transcript written before evidence was stored: markers present, nothing
+    // to point at. Rendering them as links would give dead anchors.
+    seed("alpha", [
+      { role: "user", content: "how many CCDs?" },
+      { role: "assistant", content: "42 CCDs [1]." },
+    ]);
+    await boot();
+    expect(document.querySelector("a.ref")).toBeNull();
+    // The text is still shown.
+    expect(
+      screen.getByText((_, el) => el?.className === "answer" && /42 CCDs/.test(el.textContent)),
+    ).toBeInTheDocument();
+  });
+
   it("renders a persisted turn that has no body rather than crashing", async () => {
     seed("alpha", [{ role: "assistant", content: "" }]);
     await boot();

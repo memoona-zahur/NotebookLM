@@ -17,14 +17,15 @@ function Thinking() {
 /**
  * One turn in the thread.
  *
- * The server stores `content`; an answer made in this browser session has `text`
- * plus its `citations` and `evidence`. Reading a session the user has left and
- * reloaded therefore has to work with `content` alone — no citations to show,
- * which is why the passage list is optional rather than assumed.
+ * A live answer carries `text` plus `citations` and `evidence`. A reopened one
+ * carries `content`, plus the same two fields — the server persists them, so a
+ * citation chip still works after a reload. `content` is deliberately not
+ * renamed to `text` at the fetch boundary: the field name the API persists is
+ * the one that wins, and renaming it in the client is how the two drifted apart
+ * in the first place.
  *
- * `content` is deliberately not renamed to `text` at the fetch boundary: the
- * field is persisted, so the name the API speaks is the one that wins, and
- * renaming it in the client is how the two drifted apart in the first place.
+ * The fallbacks are for turns written before the evidence was stored. They keep
+ * an old transcript readable rather than rendering a bare string.
  */
 function Turn({ turn }) {
   const text = turn.text ?? turn.content ?? "";
