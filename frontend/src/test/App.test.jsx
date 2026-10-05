@@ -115,7 +115,55 @@ describe("first paint", () => {
     expect(JSON.parse(sent.body).question).toBe("What are the key points about returns policy?");
   });
 
-  it("does not suggest a numbers question for a corpus with no figures", async () => {
+  // Regression: the suggestion list used to end with "What questions should I be
+  // asking about this?", and clicking it sent that text to the model. Retrieval
+  // found no passage about how to use the app, the floor refused, and the user
+  // got "I could not find anything relevant in the indexed sources" in reply to
+  // a question the app had written itself.
+  it("reveals more questions without asking the model anything", async () => {
+    on("GET", "/api/status", () => ({
+      provider: "groq",
+      model: "openai/gpt-oss-120b",
+      embed_model: "sentence-transformers/all-MiniLM-L6-v2",
+      min_score: 0.25,
+      sources: [
+        { id: "s1", name: "returns-policy.pdf", kind: "pdf", pages: 1, chunks: 2, numeric: 0 },
+      ],
+      chunks: 2,
+    }));
+    const user = await boot();
+
+    // Nothing is offered as a question about the app itself.
+    expect(
+      screen.queryByRole("button", { name: /what questions should i be asking/i })
+    ).not.toBeInTheDocument();
+
+    const reveal = screen.getByRole("button", { name: /show me other questions/i });
+    expect(requests().some((c) => c.method === "POST")).toBe(false);
+
+    await user.click(reveal);
+
+    // Questions appear, and still nothing was sent: the control reveals, it
+    // does not ask.
+    expect(
+      await screen.findByRole("button", { name: /any contradictions or disagreements/i })
+    ).toBeInTheDocument();
+    expect(requests().some((c) => c.method === "POST")).toBe(false);
+
+    // And a revealed question behaves like any other suggestion when clicked.
+    on("POST", "/api/ask", () => ANSWER);
+    await user.click(
+      screen.getByRole("button", { name: /any contradictions or disagreements/i })
+    );
+    const sent = await waitFor(() => {
+      const call = requests().find((c) => c.method === "POST" && c.path.includes("/api/ask"));
+      expect(call).toBeTruthy();
+      return call;
+    });
+    expect(JSON.parse(sent.body).question).toMatch(/contradictions/i);
+  });
+
+  it("does not offer a numbers question for a corpus with no figures", async () => {
     on("GET", "/api/status", () => ({
       provider: "groq",
       model: "openai/gpt-oss-120b",

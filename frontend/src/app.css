@@ -1046,6 +1046,23 @@ mark.hit {
 
 /* The grounding promise, stated once at the foot of the empty state rather than
    as the empty state itself. */
+/* The one suggestion control that asks nothing. Styled as plain text rather than
+   a pill so it does not look like a question about the notebook. */
+.explore {
+  align-self: center;
+  margin-bottom: 22px;
+  padding: 4px 2px;
+  border: 0;
+  background: none;
+  color: var(--accent-text);
+  font: inherit;
+  font-size: 13.5px;
+  cursor: pointer;
+}
+.explore:hover {
+  text-decoration: underline;
+}
+
 .empty-foot {
   max-width: 34rem;
   margin: 0;

@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { subjectFromName, suggestionsFor } from "../suggestions.js";
+import {
+  EXPLORE,
+  subjectFromName,
+  suggestionsFor,
+  suggestionsWithExplore,
+} from "../suggestions.js";
 
 describe("subjectFromName", () => {
   it("strips the extension and separators so it reads inside a sentence", () => {
@@ -93,5 +98,86 @@ describe("suggestionsFor", () => {
       expect(q).not.toMatch(/\s\s/);
       expect(q).not.toMatch(/\s[?.]$/);
     }
+  });
+});
+describe("machine-generated filenames", () => {
+  // Regression: uploads are stored under a UUID (store.py writes
+  // "<uuid>.<ext>"), so the app offered "What are the key points about
+  // 2a7062e3acce425790117aba9bdc1167?" and then refused to answer it. Retrieval
+  // finds nothing for a UUID, so the suggestion was a question the app had
+  // invented and could not answer.
+  it("never builds a question out of a generated filename", () => {
+    const generated = [
+      "2a7062e3acce425790117aba9bdc1167.pdf",
+      "00f622add57a4e839c2911439981d242.pdf",
+      "deadbeefcafe.pdf",
+      "a1b2c3d4e5f6.pdf",
+      "0123456789abcdef0123456789abcdef.pdf",
+      "DEADBEEF0123.pdf",
+    ];
+    for (const name of generated) {
+      expect(subjectFromName(name), name).toBe("");
+      const out = suggestionsFor([{ name, kind: "pdf", numeric: 0 }]).join(" ");
+      expect(out, name).not.toMatch(/[0-9a-f]{8}/i);
+      // It must still suggest something, just not the UUID.
+      expect(out.length, name).toBeGreaterThan(0);
+    }
+  });
+
+  it("still uses real filenames that happen to contain digits", () => {
+    // The generated-name check must not eat legitimate subjects.
+    for (const name of [
+      "q3-returns-policy_v2.pdf",
+      "2024-financial-summary.csv",
+      "iso-27001-controls.pdf",
+    ]) {
+      const subject = subjectFromName(name);
+      expect(subject, name).not.toBe("");
+      expect(subject, name).toMatch(/[aeiouy]/i);
+    }
+  });
+});
+
+describe("questions the app can actually answer", () => {
+  // Regression: the list ended with "What questions should I be asking about
+  // this?", which is a question about the app rather than the corpus. Clicking
+  // it sent that text to the model, which found no passage about how to use the
+  // app and refused - so the app answered its own suggestion with "I could not
+  // find anything relevant in the indexed sources".
+  it("offers no question about the app itself", () => {
+    const sets = [
+      [{ name: "brew-guide.pdf", kind: "pdf", numeric: 0 }],
+      [{ name: "notes.txt", kind: "txt", numeric: 0 }],
+      [
+        { name: "a.pdf", kind: "pdf", numeric: 0 },
+        { name: "b.md", kind: "md", numeric: 0 },
+      ],
+      [{ name: "sales.csv", kind: "csv", numeric: 0 }],
+      [],
+    ];
+    for (const sources of sets) {
+      for (const q of suggestionsFor(sources)) {
+        expect(q, JSON.stringify(sources)).not.toMatch(
+          /what questions (should|can|could) i/i
+        );
+        expect(q, JSON.stringify(sources)).not.toMatch(/how do i (use|ask)/i);
+      }
+    }
+  });
+
+  it("keeps the explore control out of the question list", () => {
+    const sources = [{ name: "notes.txt", kind: "txt", numeric: 0 }];
+    const withControl = suggestionsWithExplore(sources);
+    expect(withControl).toContain(EXPLORE);
+
+    const questions = withControl.filter((x) => x !== EXPLORE);
+    expect(questions).toEqual(suggestionsFor(sources));
+    for (const q of questions) {
+      expect(typeof q).toBe("string");
+      expect(q).not.toBe(EXPLORE);
+    }
+
+    // Nothing to reveal for an empty notebook, and no stray control.
+    expect(suggestionsWithExplore([])).toEqual([]);
   });
 });

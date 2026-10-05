@@ -217,7 +217,7 @@ would change if the workload were different.
 ### 6.1 Parsing
 
 **Decision.** Parse per format; OCR scanned PDFs inline; refuse a document that
-yields no text.
+yields no text. Refuse rather than partially index.
 
 **Why.** A silently empty index is worse than a refusal, because the first
 question against it returns "not in your sources" for the wrong reason. Refusal
@@ -226,6 +226,27 @@ carries the reason, including the OCR-language hint when OCR is the cause.
 **Trade-off.** Inline indexing blocks the event loop, and OCR costs about a
 second per page, capped at 50 pages. A production version moves this to a queue.
 Stated in [section 11](#11-honest-limitations).
+
+**Where the article's ingestion checklist is met, and where it is not.** The
+article lists five ingestion concerns. Being explicit about which are handled
+prevents overclaiming:
+
+| Article's concern | Status here |
+|---|---|
+| Extraction from multiple sources | 21 formats, per-format parsers (`app/parsers.py`) |
+| Content normalisation | Unicode and whitespace cleanup; table reshaped to `Label: Value` |
+| Metadata enrichment | Name, kind, page, numeric-density, chunk index — but no NER or topic tagging |
+| Incremental updates | **Not implemented.** Re-uploading re-indexes the file; there is no CDC or hash-based skip |
+| Deduplication | **Not implemented.** The same file uploaded twice is indexed twice |
+| Ingestion observability | Parse failures and refusals carry reasons; there is no ingestion metrics dashboard |
+
+The two gaps are the same gap the article warns about: *without observability,
+retrieval degradation goes undetected.* A document that silently fails to parse
+looks exactly like a document that was never added. That is why a parse failure
+is loud — it refuses with a reason — but a *successful* parse that extracted the
+wrong thing is not detectable today. Fixing that means asserting on extracted
+content at ingest time, which is the same "validate the input, don't trust it"
+pattern used on answers.
 
 ### 6.2 Chunking
 
@@ -253,6 +274,16 @@ index: recall is not the bottleneck.
 text. The relevance floor is calibrated to its scores (~0.30-0.45 relevant vs
 ~0.05-0.15 irrelevant), so **changing the embedding model means re-measuring
 `MIN_SCORE`**. That dependency is worth stating before anyone swaps it.
+
+**On vector database choice.** The article frames this as build / buy / extend,
+with the real decision being the ANN index. This project extends Postgres with
+pgvector, and the honest answer is that **the index choice has not been forced
+yet**: at this corpus size, exact search is used, which is correct for a
+single-user notebook where recall — not latency — is the constraint. Exact search
+is O(N) and becomes infeasible at millions of vectors; HNSW would be the next
+step, and IVF-PQ only beyond what fits in memory. Stating this as a decision that
+has not yet been made is more accurate than claiming a scale the corpus does not
+require.
 
 ### 6.4 Retrieval
 
@@ -304,6 +335,56 @@ They are precautions, not validated wins, and the README says so. Mention them
 if someone asks what is over-engineered - being able to say "this one is a
 precaution, and here is the measurement showing it is not carrying its weight" is
 a better answer than quietly leaving dead configuration in place.
+
+### 6.6b Query rewriting: not implemented, deliberately
+
+The article lists five rewriting techniques — clarification, context injection,
+expansion, keyword normalisation, noise reduction — and warns about over-expansion
+and semantic drift.
+
+This project rewrites queries in exactly one case, and by rule rather than by
+model: a chat message can carry two instructions, and `highlight <word>` is
+stripped before retrieval (`app/highlightIntent.py`, mirrored in
+`highlightIntent.js`). Without it, "what is the late penalty? highlight 30 days"
+searches for the *words* "highlight 30 days" as well as the question, which
+dilutes the dense query and adds noise to BM25.
+
+**Why no model-based rewriting.** It costs an extra inference call on every
+question, it can be talked out of its own instruction, and it introduces
+semantic drift — the failure mode where the rewrite changes what was asked. The
+article's own advice applies: measure first, then introduce, then re-measure. The
+measurement that would justify a re-ranker or an expander does not exist yet
+([section 8.4](#84-what-this-project-does-not-measure-and-why)), so adding one
+would be an unmeasured cost.
+
+**The parser is conservative on purpose.** It only accepts a message that is
+*entirely* a highlight request. "How do I highlight a word?" is a question about
+the feature, and "highlight the difference between the two papers" is not a
+request to find that phrase. A real question silently downgraded to a word
+search is a wrong answer; a highlight that has to be typed into the box is a
+missing feature. The asymmetry decides the design.
+
+### 6.6c Re-ranking, hierarchical, graph and agentic RAG: none of these
+
+The article's maturity path is chunking → embeddings → retrieval metrics →
+re-ranking → multi-stage → hierarchical/graph → agentic. This project stops at
+retrieval metrics.
+
+| Technique | Status | Why |
+|---|---|---|
+| Re-ranking (cross-encoder) | Not implemented | Needs a second model and a latency budget; no measured headroom yet |
+| Hierarchical RAG | Not implemented | Corpus is 21 short documents; there is no long-form structure to descend |
+| Graph RAG | Not implemented | Would need entity extraction and a graph store; no cross-document reasoning requirement exists yet |
+| Agentic loops | Not implemented | Every question here is a single lookup; an iterative loop would add latency and cost for no measurable gain |
+
+This is the article's own argument applied honestly: *advanced techniques should
+not be implemented prematurely, and must be justified by complexity.* A notebook
+that answers "what is the refund window" does not need a reasoning loop, and
+shipping one would be a worse answer than the question.
+
+The one thing this project did instead is make the absence visible:
+`MIN_RATIO` and `NUMERIC_PENALTY_SHARE` exist in `/api/status` and change nothing
+measurable ([6.6a](#66a-two-knobs-that-do-nothing-on-purpose)).
 
 ### 6.7 History
 
@@ -436,6 +517,75 @@ another document's questions and reported five retrieval failures. The lesson is
 the same as the upload bug: tests and evaluations are code, and they fail
 silently when they are wrong.
 
+### 8.4 What this project does not measure, and why
+
+The article asks for Recall@K, MRR and nDCG. This project measures none of
+them, and that is a gap worth naming rather than a gap to hide. Here is what it
+has instead, and what each number actually tells you.
+
+| Metric in the article | Status here | What the project has instead |
+|---|---|---|
+| Recall@K | Not implemented | `considered` vs `returned`, plus trap rejection |
+| MRR | Not implemented | None |
+| nDCG | Not implemented | None |
+| Precision@K | Not implemented | `evidence.cited` vs `citations` |
+| Faithfulness / groundedness | Implemented | `0.917` — fraction of answers with no unsupported claim |
+| Answer relevance | Implemented | `0.167`, explicitly reported as not fit for purpose |
+| Citation precision | Implemented | `1.000` |
+| Trap refusal | Implemented | `1.000` |
+| Answer correctness vs ground truth | Not implemented | None |
+| Per-format breakdown | Partial | 17 formats, aggregated |
+
+**Why Recall@K is not implemented, concretely.** It needs a ground-truth chunk
+id per question. The corpus here is 21 synthetic documents written to exercise
+parsers, not a labelled retrieval benchmark, so there is no defensible mapping
+from a question to "the one chunk that should have been retrieved". Inventing
+one — by asking a model to label its own top-k — is exactly the circularity that
+makes such numbers look precise and mean nothing. See [section 8.5](#85-why-recallk-is-hard-here-and-where-the-work-is).
+
+**Why the trap number is not a substitute.** "Was this off-topic question
+refused?" is a different question from "was the right passage retrieved". A
+system that refuses everything scores perfectly on traps and is useless; a
+system that retrieves everything passes traps and invents freely. Both
+directions need measuring, and only the first is measured here.
+
+**What to add first, if there is time.** A `gold.json` mapping each of the 79
+relevant questions to the chunk(s) that answer it, hand-written once. That
+single file unlocks Recall@K, MRR and nDCG, because all three need nothing but
+an id to compare against. It is roughly a day of work and it would convert the
+retrieval claims in [8.1b](#81b-retrieval-accuracy) from "nothing above the
+floor was rejected" into "the right passage was in the top 6, and here is the
+rank".
+
+### 8.5 Why Recall@K is hard here, and where the work is
+
+A reference implementation was studied while writing this section
+(`ArmishRao/RAG_EVAL`). Its six retrieval metrics are correct and worth reading,
+but its method is circular in a way worth understanding, because it is the
+obvious way to build this and it does not work:
+
+- Ground truth is produced by retrieving the **top 6 chunks from the very
+  retriever being graded**, then asking an LLM to mark a subset of those six as
+  relevant.
+- The retriever is then scored on whether it retrieved that subset.
+
+So `expected_chunks` is, by construction, a subset of what it already returned.
+**A retrieval miss cannot be detected by this method, because a chunk that was
+never retrieved can never appear in the expected set.** Its `Recall@6 = 0.875`
+measures the LLM judge's approval rate of the retriever's own output. That is
+not a criticism of the code — the metrics are implemented correctly — it is a
+warning about the method.
+
+The same repo also reports a security scorecard and a LangSmith integration in
+its README, with no code behind either. Worth remembering when reading any
+benchmark: check that the artefact exists.
+
+**The rule this project follows instead:** every number in this document comes
+from a committed artefact that regenerates on demand, and a metric whose
+meaning cannot be stated in one sentence is either fixed or reported as
+unfit. That is why relevance is `0.167` and labelled as such — a low number
+honestly labelled beats a high number nobody can define.
+
 ## 9. Privacy, tracing, and observability
 
 Default posture: **documents do not leave the machine.** Embeddings run locally;
@@ -463,6 +613,13 @@ production.
 Verified locally with 5 spans across answered and refused questions, with no
 document text present. LangSmith network delivery was not live-tested; say that
 rather than implying both were.
+
+**Ingestion observability** covers parse failures and refusals, which carry
+reasons. It does not cover a parse that *succeeds and extracts the wrong thing*,
+which is currently undetectable: the document looks indexed, and questions about
+it simply find nothing. That is the gap the article calls "retrieval degradation
+going undetected", and it is the honest limit of what the current monitoring
+claims.
 
 ## 10. Security posture, including what is missing
 
@@ -493,6 +650,11 @@ Present these as gaps:
 - **Markdown subset** rendering, so raw HTML, images, and tables from the model
   display literally.
 - **No streaming** - the answer appears at once.
+- **No governance layer.** The enterprise requirements in the article — row-level
+  security, chunk-level access control, data masking, tenant isolation, audit
+  logging — are all absent. That follows from single-user scope rather than
+  oversight: there is no notion of "who" to govern. Per-chunk metadata is stored
+  but never used for access filtering.
 
 ## 11. Honest limitations
 
@@ -510,6 +672,9 @@ found out.
 | No deep links to the original file page | A citation scrolls to the passage inside the app only |
 | Highlight intent uses a heuristic | When no passage overlaps the highlight, a query is still derived. Better than doing nothing; not a substitute for a real selector |
 | Large documents block the server | Needs a job queue |
+| Re-uploading a file re-indexes it; no hash-based skip | No incremental ingestion or dedup, so the same document counted twice drags a source into every answer twice |
+| No MRR, nDCG or Recall@K | Needs a chunk-level gold set; see [8.4](#84-what-this-project-does-not-measure-and-why) |
+| No answer correctness against ground truth | Would need reference answers per question, which is a labelling exercise |
 | Ground-truth corpus is small | ~110 labels, so chunking numbers are directional for larger corpora |
 
 ## 12. Questions you will be asked
@@ -535,6 +700,15 @@ embedding-specific - change the model, re-measure the floor.
 Single-user, local, loopback-only by default. It is the honest scope for the
 project rather than a hidden omission, and adding it is documented. If it were
 deployed, auth would be the first change.
+
+**"You don't have Recall@K or MRR. Isn't that the basic stuff?"**
+Agreed, and it is the most valuable thing to add next ([8.4](#84-what-this-project-does-not-measure-and-why)).
+They need a mapping from each question to the chunk that answers it, which does
+not exist for a synthetic corpus written to exercise parsers. I would rather
+report the metric I can define than ship a Recall@K computed against labels a
+model produced from its own top-k — which measures the judge's approval rate, not
+retrieval. Concretely: writing `gold.json` is about a day, and it unlocks all
+three.
 
 **"Your relevancy score is 0.167. Isn't that bad?"**
 That is a lexical metric being used outside its competence, and the honest answer

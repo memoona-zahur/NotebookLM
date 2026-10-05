@@ -2,6 +2,24 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import { api, setApiBase } from "./api.js";
 import { readIntent } from "./highlightIntent.js";
 import { suggestionsFor } from "./suggestions.js";
+
+/**
+ * Offered by "show me other questions".
+ *
+ * These are generic on purpose, unlike `suggestionsFor`, which derives its
+ * questions from the source names actually in the notebook. Every one is
+ * phrased so that a corpus with no answer to it produces the ordinary refusal
+ * rather than something stranger - "no relevant passage" is a correct response
+ * to "Are there any contradictions between these documents?", and pretending
+ * otherwise would break the promise the rest of the interface makes.
+ */
+const MORE_QUESTIONS = [
+  "What are the key points across these sources?",
+  "What terminology or jargon does this define?",
+  "Are there any contradictions or disagreements between these sources?",
+  "What questions do these sources leave unanswered?",
+  "Which of these sources would I start with?",
+];
 import { Rail } from "./Rail.jsx";
 import { SourcesDrawer } from "./SourcesDrawer.jsx";
 import { Thread } from "./Thread.jsx";
@@ -28,6 +46,11 @@ export default function App() {
   const [highlight, setHighlight] = useState(null);
   const commands = useRef(0);
   const [toasts, setToasts] = useState([]);
+  // Extra questions, revealed by the "show me other questions" control in the
+  // empty state. Kept out of `suggestions` so that replacing the derived list
+  // with a wider one is a separate piece of state rather than a mutation of a
+  // value that is recomputed on every status refresh.
+  const [extraQuestions, setExtraQuestions] = useState([]);
 
   // Guards against a slow response for a session the user has already left
   // writing itself into the thread.
@@ -281,7 +304,19 @@ export default function App() {
           turns={turns}
           pending={pending}
           onSuggest={status ? send : null}
-          suggestions={status ? suggestionsFor(status.sources) : []}
+          suggestions={
+            status
+              ? [...suggestionsFor(status.sources), ...extraQuestions]
+              : []
+          }
+          // Hidden once revealed, so it cannot be clicked into an empty list.
+          onExplore={
+            status &&
+            suggestionsFor(status.sources).length &&
+            !extraQuestions.length
+              ? () => setExtraQuestions(MORE_QUESTIONS)
+              : null
+          }
           onUpload={() => setSourcesOpen(true)}
           sourceCount={status ? status.sources.length : 0}
           notebookName={active ? active.name : ""}

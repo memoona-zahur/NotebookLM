@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from "react";
 import { Answer, Citation, Evidence, useCitationLinks } from "./Answer.jsx";
+import { EXPLORE } from "./suggestions.js";
 
 function Thinking() {
   return (
@@ -71,6 +72,7 @@ export function Thread({
   pending,
   suggestions = [],
   onSuggest,
+  onExplore,
   onUpload,
   sourceCount = 0,
   notebookName = "",
@@ -93,6 +95,9 @@ export function Thread({
     // explicit and read as a terms-of-service notice before the user had done
     // anything. It now lives where the reference product puts it: underneath.
     const hasSources = sourceCount > 0;
+    // The explore flag is a control, not a question, so it is separated out
+    // before rendering rather than filtered while rendering.
+    const questions = suggestions.filter((q) => q !== EXPLORE);
     return (
       <div className="thread" ref={ref}>
         <div className="thread-inner">
@@ -134,16 +139,30 @@ export function Thread({
                   </span>
                 </div>
               </div>
-            ) : onSuggest && suggestions.length ? (
-              <ul className="suggestions">
-                {suggestions.map((question) => (
-                  <li key={question}>
-                    <button type="button" onClick={() => onSuggest(question)}>
-                      {question}
-                    </button>
-                  </li>
-                ))}
-              </ul>
+            ) : onSuggest && questions.length ? (
+              <>
+                <ul className="suggestions">
+                  {questions.map((question) => (
+                    <li key={question}>
+                      <button type="button" onClick={() => onSuggest(question)}>
+                        {question}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+                {/* The one control that is not a question. It used to be a pill
+                    reading "What questions should I be asking about this?", and
+                    clicking it sent that text to the model - which found no
+                    passage about how to use the app and refused, so the app
+                    answered a question it had written itself with "I could not
+                    find anything relevant". It now does what it says: reveals
+                    the questions above, in place, without asking anything. */}
+                {onExplore ? (
+                  <button type="button" className="explore" onClick={onExplore}>
+                    Show me other questions
+                  </button>
+                ) : null}
+              </>
             ) : null}
 
             <p className="empty-foot">
