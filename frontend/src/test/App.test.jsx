@@ -75,10 +75,16 @@ const NO_MATCH = {
 describe("first paint", () => {
   it("points at the one action available instead of showing a blank page", async () => {
     await boot();
-    // With no sources there is nothing to ask about, so the empty state says
-    // so. It used to explain the grounding rules here instead, which read as a
-    // terms-of-service notice on first load.
-    expect(screen.getByText(/Add a source to start asking questions/i)).toBeInTheDocument();
+    // With no sources there is nothing to ask about, so the empty state offers
+    // the two things that can be done next rather than a paragraph of rules.
+    expect(screen.getByRole("heading", { name: /Add a source to get started/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /upload my own documents/i })).toBeInTheDocument();
+// The topbar toggle also renders "0 sources", so the empty state's own line is
+    // matched by its class rather than by text that appears twice on the page.
+    expect(document.querySelector(".empty-meta")).toHaveTextContent("0 sources");
+    // Web search is shown but disabled: absent would read as a missing feature
+    // rather than a deliberate one.
+    expect(screen.getByText(/Search the web for sources/i)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /send/i })).toBeDisabled();
   });
 
@@ -337,7 +343,7 @@ describe("the session-switch race", () => {
     expect(screen.queryByText(/Escape velocity at the surface/)).not.toBeInTheDocument();
     // The thread is back to empty and offering to be filled, which is the same
     // state the switch away from Alpha produced.
-    expect(screen.getByText(/Add a source to start asking questions/i)).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /Add a source to get started/i })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Beta" })).toBeInTheDocument();
   });
 

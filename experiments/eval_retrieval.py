@@ -12,6 +12,7 @@ subjects, plus any real PDF already in data/uploads, then reports:
     one document
 """
 
+import os
 import sys
 from collections import defaultdict
 from pathlib import Path
@@ -24,12 +25,17 @@ from experiments import corpus  # noqa: E402
 
 CORPUS = Path(__file__).resolve().parent / "corpus"
 
-# One uploaded PDF is included as a real-world document, labelled by its format
-# rather than named, so the report stays about formats and not about one file.
-REAL_PDF = next(
-    (p for p in sorted(config.UPLOAD_DIR.glob("*.pdf"), key=lambda p: -p.stat().st_size)),
-    None,
-)
+# An optional real-world PDF, labelled by its format rather than named, so the
+# report stays about formats and not about one file.
+#
+# It must be named explicitly. This used to fall back to "the largest PDF in
+# UPLOAD_DIR", which was a bug worth explaining: UPLOAD_DIR accumulates whatever
+# anyone has ever uploaded, so the slot silently filled with an unrelated test
+# fixture while the hardcoded questions still asked about the intended document.
+# The result was 5 questions scored against the wrong file, reported as retrieval
+# failures - a measurement of the harness, not of the retriever. Pinning the path
+# means the slot is either the real document or it is absent and says so.
+REAL_PDF = Path(os.environ["EVAL_REAL_PDF"]) if os.environ.get("EVAL_REAL_PDF") else None
 
 QUESTION_SETS = dict(corpus.QUESTIONS)
 
@@ -313,3 +319,12 @@ if __name__ == "__main__":
     sensitivity(stores)
     print()
     print(f"supported formats: {len(parsers.SUPPORTED)}")
+    if REAL_PDF is None:
+        # Printed on purpose. Without it, the totals below silently differ from a
+        # run that included the extra document, and a reader comparing two runs
+        # has no way to tell that the difference was the harness and not the
+        # retriever. Set EVAL_REAL_PDF=/path/to/doc.pdf to include it.
+        print()
+        print("real-world PDF: SKIPPED (set EVAL_REAL_PDF to include it)")
+        print("  the totals above cover the committed corpus only, so they are")
+        print("  lower than a run that also scored one external document.")

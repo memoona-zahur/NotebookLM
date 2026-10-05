@@ -986,10 +986,72 @@ mark.hit {
   background: var(--accent-soft);
   color: var(--accent-text);
 }
-.empty-cta {
-  margin: 0;
+/* One element, one job. The count and date were split into two spans purely to
+   colour the date differently, which meant a screen reader announced
+   "0 sources · 5 Oct 2026" as two items and a test could not find the phrase
+   unambiguously. The date is de-emphasised with opacity instead. */
+.empty-meta {
+  margin: -4px 0 24px;
   color: var(--muted);
+  font-size: 13.5px;
+}
+.empty-meta time {
+  opacity: 0.75;
+}
+
+/* Onboarding cards. Bordered and tappable-looking, but only the upload card is
+   actually enabled — the web-search card is rendered disabled because leaving it
+   out entirely would read as a missing feature rather than a deliberate one. */
+.onboard {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 12px;
+  width: 100%;
+  max-width: 40rem;
+  margin-bottom: 26px;
+  text-align: left;
+}
+.onboard-card {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 15px 17px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  text-align: left;
+  transition: border-color 0.15s, background 0.15s;
+}
+.onboard-card:not(.disabled):hover {
+  border-color: var(--accent-line);
+  background: var(--accent-soft);
+}
+.onboard-card.disabled {
+  cursor: default;
+  opacity: 0.55;
+}
+.onboard-title {
+  color: var(--accent-text);
   font-size: 14.5px;
+  font-weight: 600;
+}
+.onboard-card.disabled .onboard-title {
+  color: var(--text-2);
+}
+.onboard-sub {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+/* The grounding promise, stated once at the foot of the empty state rather than
+   as the empty state itself. */
+.empty-foot {
+  max-width: 34rem;
+  margin: 0;
+  color: var(--faint);
+  font-size: 13px;
+  line-height: 1.55;
 }
 
 /* Composer ---------------------------------------------------------------- */

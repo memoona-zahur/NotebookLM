@@ -592,6 +592,48 @@ supplied. The UI renders this as a confidence chip, dims citation cards the mode
 used, and shows a warning when a reference had to be removed - so a grounding failure is
 visible instead of silent.
 
+### Three verdicts, not two
+
+`verdict` is one of three values, and the third exists because "Hi" used to come back
+as a relevance score:
+
+| `verdict` | When | What it means |
+|---|---|---|
+| `answered` | Passages cleared the floor and the model was asked | The normal case |
+| `no_match` | Retrieval ran and nothing cleared the floor | "I looked, your documents do not cover this" |
+| `conversational` | The message was not a question about the corpus | "There was nothing to look up" |
+
+`conversational` is not a softer `no_match`. A greeting is not a failed retrieval: it
+has no passage to retrieve and no answer to ground, and the old reply led with
+"best match 0%, below the 25% floor" about a message that was never a search. Worse,
+that `0.00` was not a finding about the user's documents - it was the absence of a
+comparison. An empty notebook has the same problem, so it is told to add a source
+rather than given a score about zero documents.
+
+`app/intent.py` makes that distinction before anything is embedded, so a greeting costs
+no embedding and no token. It matches the **whole message** against a greeting list, and
+that is the load-bearing detail: "hey, what is the refund window?" opens with a social
+word and is a real question, and a keyword scan would greet it and drop the query. Every
+doubt resolves towards retrieval, because the failures are not symmetric - a wrongly
+greeted real question gets a useless reply, while a wrongly-searched "hi" costs one
+embedding and gets an honest refusal.
+
+The cost of this is one honest limit: `SMALL_TALK` contains `perfect`, `nice`, `ok` and
+`great`, so typing only one of those as a document query is treated as small talk rather
+than searched for. The escape hatch is length - "what does perfect mean in this
+contract?" is a question - but a user searching for a single-word term that happens to be
+one of those four will get a greeting. That is a known trade, not an oversight.
+
+### Citations survive a reload
+
+`messages` stores `role`, `content`, and - since migration `0002` - `citations` and
+`evidence` as JSONB. This is worth calling out because getting it wrong was a real bug:
+the `[n]` markers live in `content`, so they survived a reload while the citation cards,
+which only ever existed in the HTTP response, did not. Ask a question, read a cited
+answer, close the tab, come back, and the provenance was gone with the markers pointing
+at nothing. Nullable because a user turn has neither field; JSONB rather than more tables
+because this is only ever read with its parent row and never queried on its own.
+
 ## Handling tables and numbers without losing data
 
 A PDF table page extracts as bare numbers with no headers:
@@ -673,8 +715,18 @@ Both axes of variety are deliberate. A corpus that varies file type but keeps on
 will happily agree with a system tuned to one document. Questions come in polite and terse
 keyword forms, and every document gets its own trap questions.
 
-Current result at `MIN_SCORE=0.25`: **84/84 relevant answered, 45/46 traps rejected**,
-with 16 of 17 formats at 100% recall and 100% trap rejection.
+Current result at `MIN_SCORE=0.25` over the committed corpus: **79/79 relevant
+answered, 42/42 traps rejected**, across 17 formats.
+
+An optional external PDF can be scored too, with
+`EVAL_REAL_PDF=/path/to/doc.pdf`. It is pinned by path and never guessed, which
+is a correction: this used to fall back to "the largest PDF in `UPLOAD_DIR`", and
+since that directory accumulates every file anyone has uploaded, the slot filled
+with an unrelated fixture while the questions still asked about the intended
+document. The five mismatched questions were then reported as retrieval failures
+— a measurement of the harness, not of the retriever. If the variable is unset the
+run prints `real-world PDF: SKIPPED`, because silently different totals between
+two runs are worse than smaller ones.
 
 The sensitivity sweep re-queries the whole corpus per value, so a flat row means the
 constant is not load-bearing and a swinging row means the default is a guess. It shows

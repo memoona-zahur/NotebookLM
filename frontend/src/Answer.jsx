@@ -84,6 +84,21 @@ export function Citation({ citation, index, cited }) {
 export function Evidence({ evidence }) {
   if (!evidence) return null;
 
+  if (evidence.verdict === "conversational") {
+    // No retrieval ran, so there is no score to report and no floor to have
+    // missed. The one fact worth stating is that no document was consulted and
+    // nothing was spent, because that is the guarantee the rest of this strip
+    // exists to make.
+    return (
+      <div className="evidence">
+        <span className="nomatch">
+          No documents consulted for this one — nothing was invented.
+        </span>
+        <Cost cost={evidence.cost} />
+      </div>
+    );
+  }
+
   if (evidence.verdict === "no_match") {
     return (
       <div className="evidence">

@@ -21,7 +21,7 @@ whose whole job is to make one policy legible.
 
 import time
 
-from . import config, db, tracing, usage
+from . import config, db, intent, tracing, usage
 from .llm import NO_MATCH, Grounded, LLMUnavailable, answer as run_answer
 from .llm import last_usage
 from .llm import summarize as run_summary
@@ -42,6 +42,23 @@ def ask(question: str, session: db.SessionRow) -> dict:
     # that supplies its own turns could otherwise inject context the server did
     # not record.
     history = db.recent_messages(session_id, config.HISTORY_TURNS)
+
+    # Not every message is a question about the corpus. "Hi" has no passage to
+    # retrieve and no answer to ground, so it is answered without embedding
+    # anything or spending a token. See app/intent.py for why this is a
+    # whole-message match and not a keyword scan.
+    kind = intent.classify(question)
+    has_sources = bool(store.stats(session_id)["sources"])
+    if kind != "question":
+        # An empty notebook is the one case where even a real question has
+        # nothing to retrieve, and "best match 0%, below the 25% floor" about
+        # zero documents is a diagnostic about nothing. So an empty notebook
+        # says what to do next instead.
+        if not has_sources:
+            return _conversational(question, session_id, "empty")
+        return _conversational(question, session_id, kind)
+    if not has_sources:
+        return _conversational(question, session_id, "empty")
 
     # Retrieval and generation are traced as separate spans, and that separation
     # is the reason to trace at all: a bad answer caused by bad retrieval is
@@ -116,6 +133,45 @@ def ask(question: str, session: db.SessionRow) -> dict:
             "citations": search.hits,
             "evidence": summary,
         }
+
+
+def _conversational(question: str, session_id: str, kind: str) -> dict:
+    """Answer a greeting, or a notebook with nothing in it, without retrieval.
+
+    The verdict is `conversational`, not `answered` and not `no_match`, and that
+    distinction is the whole point. `no_match` means "I looked and your documents
+    do not cover this"; `conversational` means "there was nothing to look up".
+    The frontend shows the evidence strip for the latter too, and the strip says
+    the model was not called - so the user still learns the important thing, that
+    nothing was invented and nothing was spent.
+    """
+    reply = (
+        intent.EMPTY_NOTEBOOK_REPLY
+        if kind == "empty"
+        else intent.reply_for(kind)
+    )
+    summary = {
+        "verdict": "conversational",
+        "confidence": "none",
+        "retrieval": "none",
+        "best_score": None,
+        "min_score": config.MIN_SCORE,
+        "considered": 0,
+        "returned": 0,
+        "passages": 0,
+        "cited": [],
+        "invalid": [],
+        "ungrounded": False,
+        "injection": [],
+        # A measured zero like any other path that skips the model, for the same
+        # reason: an omitted metric is read as an unknown one.
+        "cost": usage.not_called(config.resolved_model(), 0.0, "conversational", 0)
+        .as_dict(),
+    }
+    db.add_message(session_id, "user", question)
+    db.add_message(session_id, "assistant", reply, evidence=summary)
+    db.touch_session(session_id)
+    return {"answer": reply, "citations": [], "evidence": summary}
 
 
 def _refuse(question, session_id, search, retrieval_ms, span) -> dict:

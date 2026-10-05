@@ -66,7 +66,16 @@ function Turn({ turn }) {
   );
 }
 
-export function Thread({ turns, pending, suggestions = [], onSuggest }) {
+export function Thread({
+  turns,
+  pending,
+  suggestions = [],
+  onSuggest,
+  onUpload,
+  sourceCount = 0,
+  notebookName = "",
+  createdAt = "",
+}) {
   const ref = useRef(null);
   useCitationLinks(ref);
 
@@ -76,22 +85,56 @@ export function Thread({ turns, pending, suggestions = [], onSuggest }) {
   }, [turns, pending]);
 
   if (!turns.length && !pending) {
+    // Modelled on the reference product's opening screen: a greeting, then a
+    // count and a date, then either an onboarding choice or questions to start.
+    //
+    // The grounding promise is stated once, in the footer line rather than as a
+    // paragraph of rules. It used to be the whole empty state, which was more
+    // explicit and read as a terms-of-service notice before the user had done
+    // anything. It now lives where the reference product puts it: underneath.
+    const hasSources = sourceCount > 0;
     return (
       <div className="thread" ref={ref}>
         <div className="thread-inner">
           <div className="empty">
-            <h2>Ask anything about your notebook</h2>
-            <p>
-              Answers come only from your uploaded sources, with the exact passage
-              cited.
+            <h2>
+              {hasSources
+                ? `Hello, what would you like to know about ${notebookName}?`
+                : "Hello. Add a source to get started."}
+            </h2>
+            <p className="empty-meta">
+              {sourceCount} source{sourceCount === 1 ? "" : "s"}
+              {createdAt ? (
+                <>
+                  {" · "}
+                  <time>{createdAt}</time>
+                </>
+              ) : null}
             </p>
-            {/* Suggested questions, as in the reference product. This replaced a
-                paragraph explaining the grounding rules, which was more honest
-                and read as a terms-of-service notice on first load. The grounding
-                rules are still stated - in the composer hint and in every
-                answer's evidence strip - but they are no longer the first thing
-                on screen. */}
-            {onSuggest && suggestions.length ? (
+
+            {/* Onboarding, shown only while the notebook is empty. These are
+                the two things that can actually be done next, so they are the
+                only things offered - a suggestion question here would be
+                guaranteed to be refused. */}
+            {!hasSources ? (
+              <div className="onboard">
+                <button type="button" className="onboard-card" onClick={onUpload}>
+                  <span className="onboard-title">I want to upload my own documents</span>
+                  <span className="onboard-sub">
+                    PDF, DOCX, Markdown, CSV and more. Answers come only from what
+                    you upload.
+                  </span>
+                </button>
+                <div className="onboard-card disabled" aria-disabled="true">
+                  <span className="onboard-title">
+                    Search the web for sources
+                  </span>
+                  <span className="onboard-sub">
+                    Not available in this local build — nothing leaves your machine.
+                  </span>
+                </div>
+              </div>
+            ) : onSuggest && suggestions.length ? (
               <ul className="suggestions">
                 {suggestions.map((question) => (
                   <li key={question}>
@@ -102,13 +145,11 @@ export function Thread({ turns, pending, suggestions = [], onSuggest }) {
                 ))}
               </ul>
             ) : null}
-            {/* With no sources the list would be empty, so the empty state says
-                the one thing that can actually be done next. */}
-            {!suggestions.length ? (
-              <p className="empty-cta">
-                Add a source to start asking questions.
-              </p>
-            ) : null}
+
+            <p className="empty-foot">
+              Every answer is drawn from your sources with the exact passage cited,
+              and nothing is invented.
+            </p>
           </div>
         </div>
       </div>

@@ -2565,6 +2565,95 @@ def test_summarize_reports_bad_query_distinctly(client: TestClient) -> None:
     print("  narrow summarize query -> no_match without the misleading upload hint: OK")
 
 
+def test_greetings_are_not_answered_as_failed_retrievals(client: TestClient) -> None:
+    """A greeting has no passage to retrieve and no answer to ground.
+
+    It used to come back as "best match 0%, below the 25% floor", which is
+    technically true - there was nothing to score against - and reads as an
+    error rather than a reply. It now costs no embedding and no token.
+
+    Asserted with a provider stub that would raise if called, so "no LLM call"
+    is checked rather than assumed.
+    """
+    sid = client.post("/api/sessions", json={"name": "greetings"}).json()["id"]
+    upload(client, "g.pdf", make_pdf(), session_id=sid)
+
+    def explode(messages):
+        raise AssertionError("the model must not be called for a greeting")
+
+    for message in ("Hi", "hello!", "Hey there.", "thanks"):
+        with stubbed(explode):
+            body = client.post(
+                "/api/ask", params={"session_id": sid}, json={"question": message}
+            ).json()
+        assert body["evidence"]["verdict"] == "conversational", (message, body)
+        assert body["evidence"]["considered"] == 0, message
+        assert body["evidence"]["cost"]["called"] is False, message
+        assert body["evidence"]["cost"]["total_tokens"] == 0, message
+        # No score is reported, because none was computed.
+        assert body["evidence"]["best_score"] is None, body["evidence"]
+        assert "below the" not in body["answer"], body["answer"]
+        assert "%" not in body["answer"], body["answer"]
+    print("  greetings answered without retrieval, tokens, or a fake score: OK")
+
+
+def test_a_real_question_that_opens_with_a_greeting_still_retrieves(
+    client: TestClient,
+) -> None:
+    """The reason `intent` matches the whole message rather than scanning words.
+
+    "hey, what is the refund window?" starts with a social word and is a real
+    question. A keyword-based check would greet it and drop the query.
+    """
+    sid = client.post("/api/sessions", json={"name": "leading-word"}).json()["id"]
+    upload(client, "q.pdf", make_pdf(), session_id=sid)
+
+    captured: list[dict] = []
+    with stubbed("[1] Escape velocity is 11.2 km/s.", captured):
+        body = client.post(
+            "/api/ask",
+            params={"session_id": sid},
+            json={"question": f"Hey, {RELEVANT_Q}"},
+        ).json()
+
+    assert body["evidence"]["verdict"] == "answered", body["evidence"]
+    assert body["citations"], "the question must reach retrieval, not be greeted"
+    assert captured, "the model should have been called for a real question"
+    print("  a question opening with 'hey' is retrieved and answered: OK")
+
+
+def test_an_empty_notebook_says_what_to_do_instead_of_a_score(
+    client: TestClient,
+) -> None:
+    """Zero documents makes "best match 0%, below the floor" a non-diagnostic."""
+    sid = client.post("/api/sessions", json={"name": "bare"}).json()["id"]
+
+    def explode(messages):
+        raise AssertionError("the model must not be called with no sources")
+
+    with stubbed(explode):
+        body = client.post(
+            "/api/ask", params={"session_id": sid}, json={"question": "what about X?"}
+        ).json()
+
+    assert body["evidence"]["verdict"] == "conversational", body["evidence"]
+    assert "add a pdf" in body["answer"].lower(), body["answer"]
+    assert "%" not in body["answer"], body["answer"]
+    print("  an empty notebook is told to add a source, not given a score: OK")
+
+
+def test_a_conversational_turn_replays_with_its_evidence(client: TestClient) -> None:
+    """Same rule as citations: what is shown must survive a reload."""
+    sid = client.post("/api/sessions", json={"name": "greet-reload"}).json()["id"]
+    client.post("/api/ask", params={"session_id": sid}, json={"question": "Hi"})
+
+    replayed = client.get(f"/api/sessions/{sid}").json()["history"][-1]
+    assert replayed["evidence"]["verdict"] == "conversational"
+    assert replayed["evidence"]["cost"]["called"] is False
+    assert replayed["evidence"]["best_score"] is None
+    print("  a reopened greeting still shows that nothing was consulted: OK")
+
+
 ORDER = [
     ("status and indexing", test_status_and_indexing),
     ("retrieval quality", test_retrieval_quality),
@@ -2572,6 +2661,10 @@ ORDER = [
     ("ask reports cost", test_ask_reports_the_cost_of_the_question),
     ("reopened answer keeps citations", test_a_reopened_session_still_has_its_citations),
     ("reopened refusal keeps its reason", test_a_reopened_refusal_still_explains_itself),
+    ("greetings are not failed retrievals", test_greetings_are_not_answered_as_failed_retrievals),
+    ("question opening with hey", test_a_real_question_that_opens_with_a_greeting_still_retrieves),
+    ("empty notebook gets guidance", test_an_empty_notebook_says_what_to_do_instead_of_a_score),
+    ("reopened greeting keeps evidence", test_a_conversational_turn_replays_with_its_evidence),
     ("reported tokens beat estimates", test_provider_reported_tokens_are_used_not_guessed),
     ("static files and empty question", test_static_and_empty_question),
     ("frontend bundle served", test_frontend_bundle_is_served),

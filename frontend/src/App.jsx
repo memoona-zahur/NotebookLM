@@ -227,6 +227,20 @@ export default function App() {
 
   const active = sessions.find((s) => s.id === activeId);
 
+  // "5 Oct 2026", matching how the reference product dates a notebook. Guarded
+  // because an unparseable date should cost the date, not the empty state.
+  const createdAt = (() => {
+    if (!active?.created_at) return "";
+    const when = new Date(active.created_at);
+    return Number.isNaN(when.getTime())
+      ? ""
+      : when.toLocaleDateString(undefined, {
+          day: "numeric",
+          month: "short",
+          year: "numeric",
+        });
+  })();
+
   return (
     <div className="app">
       <Rail
@@ -268,6 +282,10 @@ export default function App() {
           pending={pending}
           onSuggest={status ? send : null}
           suggestions={status ? suggestionsFor(status.sources) : []}
+          onUpload={() => setSourcesOpen(true)}
+          sourceCount={status ? status.sources.length : 0}
+          notebookName={active ? active.name : ""}
+          createdAt={createdAt}
         />
         <Composer onSend={send} busy={pending} />
       </main>
