@@ -154,6 +154,64 @@ GROQ_MODEL = os.getenv("GROQ_MODEL", "openai/gpt-oss-120b")
 OLLAMA_URL = os.getenv("OLLAMA_URL", "http://localhost:11434")
 OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "llama3.1")
 
+# -- Web search ------------------------------------------------------------
+#
+# Off unless GROQ_API_KEY is present, because it is the one feature here that
+# sends text off the machine. Everything else in this app keeps the documents
+# local and only sends the question and the retrieved passages to the
+# configured provider; this sends the *search query* to a third-party search
+# engine and fetches whatever it finds. That is a different promise, so it is
+# opt-out (WEB_SEARCH=0) rather than opt-in, and the UI states it.
+#
+# The search model is separate from the generation model on purpose. Finding
+# pages is not a reasoning task, and the browser tool injects whole pages into
+# the prompt: one search measured ~72,500 input tokens, which is roughly three
+# orders of magnitude more than answering a question from this notebook. So the
+# cheap model does the looking, and the configured model still does the
+# answering.
+WEB_SEARCH_ENABLED = os.getenv("WEB_SEARCH", "1") not in {"0", "false", "no"}
+WEB_SEARCH_MODEL = os.getenv("WEB_SEARCH_MODEL", "openai/gpt-oss-20b")
+
+# Pages ingested per search. Each one is a real source in the notebook, so this
+# bounds both the cost of the search and how much the corpus grows per click.
+WEB_SEARCH_MAX_PAGES = int(os.getenv("WEB_SEARCH_MAX_PAGES", "5"))
+
+# Wall-clock ceilings. Search is a reasoning model with a browser tool, so it
+# is genuinely slow - 8-15s is normal - and a fetch that has not answered by
+# this point is not going to.
+WEB_SEARCH_TIMEOUT = int(os.getenv("WEB_SEARCH_TIMEOUT", "60"))
+WEB_FETCH_TIMEOUT = int(os.getenv("WEB_FETCH_TIMEOUT", "20"))
+
+# Ceiling on one fetched page, applied while reading rather than after, so an
+# endless response body cannot be buffered whole before anything objects.
+WEB_FETCH_MAX_BYTES = int(os.getenv("WEB_FETCH_MAX_MB", "8")) * 1024 * 1024
+
+# Redirect hops followed. Zero would be safest but breaks any site that moves
+# http:// to https://, and every hop is re-checked against the same address
+# rules as the first one.
+WEB_FETCH_MAX_REDIRECTS = int(os.getenv("WEB_FETCH_MAX_REDIRECTS", "3"))
+
+
+def web_search_available() -> tuple[bool, str]:
+    """Whether web search can run, and the sentence explaining it when it cannot.
+
+    Returned as a pair rather than a bare bool because the UI has to say *why*
+    the card is disabled, and a greyed-out control with no reason is the thing
+    this project keeps trying not to ship. Depends on Groq specifically: the
+    browser tool is a Groq built-in, so an OpenAI or Ollama configuration has no
+    way to search even when a key is set.
+    """
+    if not WEB_SEARCH_ENABLED:
+        return False, "Disabled with WEB_SEARCH=0."
+    if resolved_provider() != "groq":
+        return False, (
+            "Web search needs the Groq provider, but LLM_PROVIDER is "
+            f"{resolved_provider()!r}. Browser search is a Groq built-in tool."
+        )
+    if not GROQ_API_KEY:
+        return False, "GROQ_API_KEY is not set."
+    return True, ""
+
 
 def resolved_provider() -> str:
     if LLM_PROVIDER:

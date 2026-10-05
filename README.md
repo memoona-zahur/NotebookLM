@@ -92,6 +92,11 @@ first thing to revisit if reading comfort turns out to matter more than resembla
   the brand colour is not a trademark question; the logo itself would be.
 - **The generated-artifact chip row** above the composer, which would only ever
   render disabled here.
+- **The "Add source" wall.** The empty notebook used to be a page that told you it
+  was empty and offered nothing. It now leads with what you can do: upload a file,
+  or search the web for pages on a topic. The heading names the product's actual
+  promise - the answer comes from the sources, whether those arrived as an upload
+  or as a search.
 
 ### "Session" and "notebook"
 
@@ -210,7 +215,7 @@ all of them run.
 ```bash
 cd frontend
 npm install
-npm test           # 122 checks, jsdom, no database or API key needed
+npm test           # 165 checks, jsdom, no database or API key needed
 npm run test:watch # re-runs on save
 ```
 
@@ -257,6 +262,13 @@ SQL, which is reviewable before it reaches a database.
 application uses, so a migration cannot be pointed at a different database than
 the app by accident.
 
+The chain is `0001_baseline` → `0002_message_evidence` (citations and evidence on
+messages) → `0003_source_url` (where a source came from). `0003` exists for one
+reason: once a web page is indexed, nothing in the row says whether it was
+uploaded or found, so the source list could not link back to the page it came
+from. `sources.url` is `NOT NULL DEFAULT ''` rather than nullable, so the
+"uploaded, so no origin" case is a stated fact instead of a hole in the data.
+
 ## Configuration
 
 Everything is set in `.env` (all optional):
@@ -281,6 +293,12 @@ Everything is set in `.env` (all optional):
 | `MIN_SCORE` | `0.25` | Relevance floor - see below |
 | `MAX_PER_SOURCE` | `3` | Max chunks from one source, so answers can span sources |
 | `HISTORY_TURNS` | `6` | Prior turns read for follow-ups (`0` disables) |
+| `WEB_SEARCH` | on | `0` turns off web-source search; see below |
+| `WEB_SEARCH_MODEL` | `openai/gpt-oss-20b` | Groq model used to find URLs |
+| `WEB_SEARCH_MAX_PAGES` | `5` | Ceiling on pages fetched per search |
+| `WEB_FETCH_TIMEOUT` | `20` | Seconds per page fetch |
+| `WEB_FETCH_MAX_MB` | `8` | Larger pages are refused, not truncated |
+| `WEB_FETCH_MAX_REDIRECTS` | `3` | Redirect hops followed |
 | `LANGSMITH_TRACING` | off | Send traces to LangSmith - see below |
 | `LANGSMITH_TRACING_INCLUDE_TEXT` | off | Let document text leave the machine. Separate switch, deliberately |
 | `LANGSMITH_TRACING_LOCAL` | – | Write the same traces to a local JSONL file, no network call |
@@ -339,6 +357,65 @@ Two guarantees that are asserted by tests rather than promised in prose:
 included, so "is anything leaving this machine?" is a question the app answers
 rather than one you answer by reading `.env`.
 
+## Web search, and where the promise changes
+
+Everything above keeps document text on this machine. Web search is the one feature
+that breaks that, and it is worth being specific about what crosses the boundary:
+
+- the **search term** goes to the search provider (Groq's browser tool), and
+- the app then **fetches the pages it finds** and indexes them locally.
+
+Documents you uploaded still behave as before - only their retrieved chunks go to
+the model. But a page found on the web is fetched by this machine, and that is a
+network request to a site chosen by a search engine answering a model, so it needs
+the same care as any other fetch of untrusted input.
+
+`WEB_SEARCH=0` turns the feature off, and the card in the empty notebook greys out
+and says why rather than failing when clicked. With no Groq key, or with a
+non-Groq provider, `/api/status` reports `web_search.available: false` with a
+reason and the same card stays disabled.
+
+### A web page becomes a source, not an answer
+
+The search model is asked for a bare list of URLs and nothing else, then the pages
+are downloaded, parsed, chunked and embedded through exactly the same code path as
+an upload. The model never writes a sentence the user reads. That matters for the
+grounding guarantee: a fetched page is a citable source that survives a reload and
+can be deleted, whereas a model's prose summary of a search would be uncitable
+paragraph text with no provenance - exactly what this app is built to avoid.
+
+One search costs real tokens and real time, and the model returns both in the
+response so the cost is visible rather than assumed. Measured live: about 8-13s of
+search and 20k-40k prompt tokens on `openai/gpt-oss-20b`, plus fetch time. That is
+the price of the feature being on, and `WEB_SEARCH=0` is the switch for it.
+
+### Why the fetcher looks paranoid
+
+URLs arriving here come from a search engine responding to a model, so a URL can
+name anything at all - including `http://169.254.169.254/` (a cloud instance's
+credentials endpoint) or this machine's own database at `http://localhost:5432/`.
+The fetch path therefore:
+
+- resolves the hostname and refuses loopback, private, link-local and reserved
+  ranges **before** opening a socket;
+- follows redirects **by hand** and re-checks every hop, because a public host
+  that 302s to `169.254.169.254` is the standard way around a check that only
+  looks at the first URL. `httpx` can follow redirects itself, but it does so
+  after connecting, which is too late - the request to the private address has
+  already gone out by the time the final URL could be inspected;
+- caps response size while streaming, so an endless body is abandoned rather than
+  buffered and then measured;
+- caps fetch time, page count and redirect hops.
+
+Residual risk, stated plainly: the address is validated and then the request goes
+out by hostname, so a hostile DNS server could return a public address to
+`getaddrinfo` and a private one to the connection (DNS rebinding). Closing that
+completely means pinning the connection to the validated IP, which is not
+implemented.
+
+This is also why the feature is unsuitable for an unauthenticated deployment on a
+public network: anyone who can reach the app can make it fetch arbitrary URLs.
+
 ## Sessions
 
 Everything lives inside a session: its own sources and its own chat history. Create
@@ -361,6 +438,7 @@ session; without one it uses the default session.
 | `POST` | `/api/sessions/{id}/messages/clear` | Clear the transcript, keep sources |
 | `GET` | `/api/status` | Provider, model, source/chunk counts, tuning |
 | `POST` | `/api/sources` | Upload a file (multipart `file`) |
+| `POST` | `/api/sources/web` | `{query, limit}` → find pages and index them as sources |
 | `DELETE` | `/api/sources/{id}` | Remove one source |
 | `DELETE` | `/api/sources` | Clear the session's sources |
 | `POST` | `/api/ask` | `{question}` → `{answer, citations, evidence}` (`evidence.cost` carries tokens and latency, see below) |
@@ -610,8 +688,17 @@ that `0.00` was not a finding about the user's documents - it was the absence of
 comparison. An empty notebook has the same problem, so it is told to add a source
 rather than given a score about zero documents.
 
-`app/intent.py` makes that distinction before anything is embedded, so a greeting costs
-no embedding and no token. It matches the **whole message** against a greeting list, and
+It also is not a canned string. In a notebook that has sources, a greeting is answered
+by the model through `llm.chat()`, which sends the history but no passages and records
+what the call actually cost - the same reason ChatGPT answers "hi" rather than
+printing a fixed line. There is nothing to be faithful to, so there is nothing to
+ground and no citation to check, but the reply is still the model's. Two cases stay
+local and free, because in both the model has nothing to work with: a notebook with no
+sources (there is no subject to be helpful about) and a provider that is unreachable
+(falls back to a fixed line rather than an error page).
+
+`app/intent.py` makes the question/greeting distinction before anything is embedded, so a
+greeting costs no embedding and no retrieval. It matches the **whole message** against a greeting list, and
 that is the load-bearing detail: "hey, what is the refund window?" opens with a social
 word and is a real question, and a keyword scan would greet it and drop the query. Every
 doubt resolves towards retrieval, because the failures are not symmetric - a wrongly
@@ -979,7 +1066,7 @@ prices change.
 
 ## Tests
 
-76 checks covering upload, per-format parsing (including YAML/TOML/INI and hard-wrapped
+102 checks covering upload, per-format parsing (including YAML/TOML/INI and hard-wrapped
 text), OCR (a scanned page recovered and searchable, pages kept in order, both halves of a
 mixed PDF indexed, a blank scan refused with an actionable message, the missing-language
 message naming the install command, an over-cap document refused rather than indexed

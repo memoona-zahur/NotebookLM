@@ -51,6 +51,12 @@ export default function App() {
   // with a wider one is a separate piece of state rather than a mutation of a
   // value that is recomputed on every status refresh.
   const [extraQuestions, setExtraQuestions] = useState([]);
+  // Web search is the only action that waits on the open internet - the search
+  // itself takes 8-15s, because it is a reasoning model with a browser tool. It
+  // gets its own flag rather than reusing `uploading`, so a failed search cannot
+  // clear a half-finished upload, and so the drawer can say which one it is
+  // waiting for.
+  const [searching, setSearching] = useState(false);
 
   // Guards against a slow response for a session the user has already left
   // writing itself into the thread.
@@ -157,6 +163,39 @@ export default function App() {
       toast(`${file.name}: ${err.message}`);
     } finally {
       setUploading(false);
+    }
+  }
+
+  async function webSearch(query) {
+    const id = sessionRef.current;
+    if (!id) return;
+    const trimmed = (query || "").trim();
+    if (!trimmed) return;
+    setSearching(true);
+    setSourcesOpen(true);
+    try {
+      const data = await api.webSearch(id, trimmed, status?.web_search?.max_pages);
+      await refreshStatus(id);
+      const { added_count: added, failed } = data.web_search;
+      if (added) {
+        toast(
+          `Added ${added} source${added === 1 ? "" : "s"} from the web.`,
+          "ok",
+        );
+      }
+      // Reported even when something was added. A search that indexed three
+      // pages and could not read two is worth telling the user about, and
+      // swallowing the reasons would leave them thinking it found nothing.
+      for (const miss of failed || []) {
+        toast(`${miss.url}: ${miss.reason}`, "error");
+      }
+      if (!added && !(failed || []).length) {
+        toast(`No pages found for "${trimmed}". Try different words.`, "error");
+      }
+    } catch (err) {
+      toast(err.message);
+    } finally {
+      setSearching(false);
     }
   }
 
@@ -318,6 +357,18 @@ export default function App() {
               : null
           }
           onUpload={() => setSourcesOpen(true)}
+          onWebSearch={
+            status?.web_search?.available
+              ? () => {
+                  const query = window.prompt(
+                    "What should the web pages be about?",
+                    "",
+                  );
+                  if (query) webSearch(query);
+                }
+              : null
+          }
+          webSearchReason={status?.web_search?.reason || "Not available in this local build."}
           sourceCount={status ? status.sources.length : 0}
           notebookName={active ? active.name : ""}
           createdAt={createdAt}
@@ -336,6 +387,8 @@ export default function App() {
             setHighlight(null);
           }}
           onUpload={upload}
+          onWebSearch={status?.web_search?.available ? webSearch : null}
+          searching={searching}
           onDeleteSource={deleteSource}
           onClearSources={clearSources}
           onFindOccurrences={findOccurrences}

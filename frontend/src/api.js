@@ -77,6 +77,14 @@ export const api = {
     form.append("file", file);
     return request("/api/sources", { method: "POST", body: form, sessionId });
   },
+  // Searches the web and indexes what it finds. `limit` is capped server-side;
+  // the value here is what the UI asks for, not what it is guaranteed.
+  webSearch: (sessionId, query, limit) =>
+    request("/api/sources/web", {
+      method: "POST",
+      body: { query, limit },
+      sessionId,
+    }),
   deleteSource: (sessionId, sourceId) =>
     request(`/api/sources/${encodeURIComponent(sourceId)}`, { method: "DELETE", sessionId }),
   clearSources: (sessionId) => request("/api/sources", { method: "DELETE", sessionId }),

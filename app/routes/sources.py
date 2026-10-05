@@ -3,17 +3,23 @@
 The upload path is the one place in the app that accepts a file from the
 network, so it is the one place with a size ceiling and a stream rather than a
 read. Everything else is bounded by a Pydantic field or by a query parameter.
+
+Web search also accepts a network request, and it is bounded differently: the
+query is a Pydantic field, but the *responses* are bounded in
+`app/websearch.py`, because their sizes are not known until they are read.
 """
 
 import uuid
 from pathlib import Path
 
 from fastapi import APIRouter, File, HTTPException, Request, UploadFile
+from pydantic import BaseModel, Field
 
 from .. import config
 from ..parsers import SUPPORTED, UnreadableDocument
 from ..payloads import resolve_session
 from ..store import MAX_TERM_CHARS, store
+from ..webingest import ingest
 
 router = APIRouter(prefix="/api", tags=["sources"])
 
@@ -22,6 +28,18 @@ ALLOWED = SUPPORTED
 # Uploads are copied to disk in pieces this size rather than one `file.read()`,
 # which would hold the whole file in memory with no ceiling on it.
 UPLOAD_CHUNK_BYTES = 1024 * 1024
+
+
+class WebSearchRequest(BaseModel):
+    """A web search request.
+
+    Bounded here rather than in `ingest` so an oversized `limit` is rejected
+    before a search - the most expensive call in the app - is started, and so the
+    ceiling the user is told about is the one enforced.
+    """
+
+    query: str = Field(min_length=1, max_length=500)
+    limit: int = Field(default=5, ge=1, le=20)
 
 
 @router.get("/occurrences")
@@ -76,6 +94,25 @@ async def add_source(
         raise HTTPException(400, f"Could not read file: {exc}") from exc
 
     return {"source": vars(source), **store.stats(str(session.id))}
+
+
+@router.post("/sources/web")
+def add_web_source(body: WebSearchRequest, session_id: str | None = None) -> dict:
+    """Search the web and index what it finds into this notebook.
+
+    Returns 200 even when some or all pages failed. A search that found five
+    results and indexed three is a partial success, and reporting it as an error
+    would throw away the three real sources the user just gained along with the
+    information about the two that did not work - which is in `failed`, per URL,
+    and shown to them.
+
+    400 is reserved for "this cannot run at all" (no key, wrong provider, empty
+    query), and 502 for the search itself failing upstream. Both are conditions
+    where nothing was indexed.
+    """
+    session = resolve_session(session_id)
+    outcome = ingest(body.query, str(session.id), body.limit)
+    return {"web_search": outcome.as_dict(), **store.stats(str(session.id))}
 
 
 async def _write_upload(file: UploadFile, target: Path) -> None:

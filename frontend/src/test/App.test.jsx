@@ -77,15 +77,87 @@ describe("first paint", () => {
     await boot();
     // With no sources there is nothing to ask about, so the empty state offers
     // the two things that can be done next rather than a paragraph of rules.
-    expect(screen.getByRole("heading", { name: /Add a source to get started/i })).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: /Ask anything\. I'll answer from your sources\./i }),
+    ).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /upload my own documents/i })).toBeInTheDocument();
 // The topbar toggle also renders "0 sources", so the empty state's own line is
     // matched by its class rather than by text that appears twice on the page.
     expect(document.querySelector(".empty-meta")).toHaveTextContent("0 sources");
-    // Web search is shown but disabled: absent would read as a missing feature
-    // rather than a deliberate one.
+    // Web search is offered but greyed out, and says why. It used to claim
+    // "not available in this local build" unconditionally, which was never
+    // actually true - the provider key was right there.
     expect(screen.getByText(/Search the web for sources/i)).toBeInTheDocument();
+    expect(document.querySelector(".onboard-card.disabled")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /send/i })).toBeDisabled();
+  });
+
+  it("enables web search when a provider that can search is configured", async () => {
+    on("GET", "/api/status", () => ({
+      provider: "groq",
+      model: "openai/gpt-oss-120b",
+      embed_model: "sentence-transformers/all-MiniLM-L6-v2",
+      min_score: 0.25,
+      web_search: {
+        available: true,
+        reason: "",
+        model: "openai/gpt-oss-20b",
+        max_pages: 5,
+      },
+      sources: [],
+      chunks: 0,
+    }));
+    const user = await boot();
+
+    // A real button, not a disabled div: the whole point is that the user can
+    // now actually do the thing the card promises.
+    const card = screen.getByRole("button", { name: /Search the web for sources/i });
+    expect(card).toBeEnabled();
+    expect(document.querySelector(".onboard-card.disabled")).not.toBeInTheDocument();
+
+    // Clicking it searches, and the drawer reports what was indexed.
+    on("POST", "/api/sources/web", () => ({
+      web_search: {
+        added_count: 2,
+        added: [{ url: "https://a.example", title: "A" }],
+        failed: [{ url: "https://b.example", reason: "HTTP 403." }],
+      },
+      sources: [],
+      chunks: 8,
+    }));
+    window.prompt = () => "vector indexing";
+    await user.click(card);
+
+    await waitFor(() =>
+      expect(screen.getByText(/Added 2 sources from the web/i)).toBeInTheDocument(),
+    );
+    // The failure is surfaced rather than swallowed: a search that indexed two
+    // pages and failed one should not read as a clean sweep.
+    expect(screen.getByText(/HTTP 403/)).toBeInTheDocument();
+  });
+
+  it("says so when a search comes back with nothing", async () => {
+    on("GET", "/api/status", () => ({
+      provider: "groq",
+      model: "openai/gpt-oss-120b",
+      embed_model: "sentence-transformers/all-MiniLM-L6-v2",
+      min_score: 0.25,
+      web_search: { available: true, reason: "", model: "openai/gpt-oss-20b", max_pages: 5 },
+      sources: [],
+      chunks: 0,
+    }));
+    on("POST", "/api/sources/web", () => ({
+      web_search: { added_count: 0, added: [], failed: [] },
+      sources: [],
+      chunks: 0,
+    }));
+    const user = await boot();
+
+    window.prompt = () => "asdkjhaskdjh";
+    await user.click(screen.getByRole("button", { name: /Search the web for sources/i }));
+    await waitFor(() =>
+      expect(screen.getByText(/No pages found for/i)).toBeInTheDocument(),
+    );
   });
 
   it("offers a question as soon as there is a source to ask about", async () => {
@@ -391,7 +463,9 @@ describe("the session-switch race", () => {
     expect(screen.queryByText(/Escape velocity at the surface/)).not.toBeInTheDocument();
     // The thread is back to empty and offering to be filled, which is the same
     // state the switch away from Alpha produced.
-    expect(screen.getByRole("heading", { name: /Add a source to get started/i })).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: /Ask anything\. I'll answer from your sources\./i }),
+    ).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Beta" })).toBeInTheDocument();
   });
 

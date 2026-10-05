@@ -16,6 +16,8 @@ export function SourcesDrawer({
   uploading,
   onClose,
   onUpload,
+  onWebSearch,
+  searching = false,
   onDeleteSource,
   onClearSources,
   onFindOccurrences,
@@ -25,6 +27,7 @@ export function SourcesDrawer({
   const closeButton = useRef(null);
   const [dragging, setDragging] = useState(false);
   const [finding, setFinding] = useState(false);
+  const [query, setQuery] = useState("");
 
   // Escape closes, and focus moves into the drawer so keyboard users are not
   // left tabbing through the thread behind the overlay.
@@ -99,6 +102,42 @@ export function SourcesDrawer({
             <small>Drop files or click · PDF, DOCX, MD, CSV, TXT</small>
           </label>
 
+          {/* Web search lives here as well as on the empty-state card, because
+              a notebook is rarely empty for long: once two files are indexed the
+              card is gone, and being unable to add a web source without clearing
+              the notebook would be an odd restriction to design in.
+              `disabled` while a search runs so one slow provider call cannot be
+              fired twice. */}
+          {onWebSearch ? (
+            <form
+              className="websearch"
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (!query.trim() || searching) return;
+                onWebSearch(query.trim());
+                setQuery("");
+              }}
+            >
+              <strong>Search the web</strong>
+              <div className="websearch-row">
+                <input
+                  type="search"
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder="e.g. vector database indexing"
+                  aria-label="Web search query"
+                  disabled={searching}
+                />
+                <button type="submit" disabled={searching || !query.trim()}>
+                  {searching ? "Searching…" : "Add"}
+                </button>
+              </div>
+              <small>
+                Finds pages and indexes them like uploads. Takes 10–20 seconds.
+              </small>
+            </form>
+          ) : null}
+
           <div className="sources">
             {count === 0 ? (
               <p className="sources-empty">Nothing indexed in this notebook yet.</p>
@@ -106,8 +145,18 @@ export function SourcesDrawer({
               status.sources.map((source) => (
                 <div className="source" key={source.id}>
                   <span className="source-kind">{source.kind}</span>
+                  {/* A web source links back to the page it came from. That link
+                      is the only way a user can check the app indexed what they
+                      think it did, which is the whole concern with pulling in
+                      pages from the open internet. */}
                   <span className="source-name" title={source.name}>
-                    {source.name}
+                    {source.url ? (
+                      <a href={source.url} target="_blank" rel="noreferrer noopener">
+                        {source.name}
+                      </a>
+                    ) : (
+                      source.name
+                    )}
                   </span>
                   {source.chunks !== undefined ? (
                     <span className="source-meta">{source.chunks}</span>

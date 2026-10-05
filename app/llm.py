@@ -16,6 +16,15 @@ Rules:
 - Be concise and direct. Use short paragraphs or bullet points when helpful.
 - Plain text only. No HTML, no Markdown headings, no tables, and never wrap the whole answer in a code fence. A "-" bullet is fine."""
 
+CHAT_PROMPT = """You are a research assistant greeting someone who has just opened a notebook.
+
+The user has said something that is not a question about their documents - a greeting, or thanks, or a goodbye. Reply the way a helpful assistant would in a chat window: warmly and briefly, in one or two sentences.
+
+- Greet them back if it was a greeting, and let them know you are ready to answer questions about the sources in this notebook.
+- Do not invent facts about their documents. You have not been given any, so do not claim to have read, found or summarised anything.
+- Do not list example questions or capabilities at length. Two sentences is plenty.
+- Plain text only. No markdown headings, no lists, no emoji."""
+
 NO_MATCH = (
     "I could not find anything relevant in the indexed sources. "
     "Try rephrasing the question, or upload a source that covers this topic."
@@ -328,6 +337,43 @@ def answer(question: str, hits: list[dict], history: list[dict]) -> Grounded:
     if not hits:
         return Grounded(text=NO_MATCH, cited=[], invalid=[], passages=0)
     return _finish(_generate(_build_messages(question, hits, history)), len(hits))
+
+
+def chat(question: str, history: list[dict]) -> Grounded:
+    """Answer a greeting with the model, and with no documents attached.
+
+    The alternative - a hardcoded reply - was cheaper and deterministic, and it
+    is what this app did before. It reads as canned because it is: the same
+    three sentences for every greeting, forever, with nothing about the notebook
+    or the moment in it. Asking the model costs one small call and makes the
+    first interaction read like an assistant rather than a lookup table.
+
+    What it must not do is start answering questions about the corpus. No SOURCES
+    block is sent, so there is nothing to ground on and no way to cite; `cited`
+    comes back empty and `passages` is zero, which the frontend uses to keep the
+    evidence strip honest about a reply that was never grounded in a document.
+
+    Falls back to the caller's default reply when the provider is unreachable,
+    because a greeting that raises a 503 is a worse greeting than a plain one.
+    """
+    sections: list[str] = []
+    prior = _format_history(history)
+    if prior:
+        sections.append(
+            "PRIOR CONVERSATION (context only, not evidence):\n" + prior
+        )
+    sections.append(f"MESSAGE: {question}")
+
+    text = _generate([
+        {"role": "system", "content": CHAT_PROMPT},
+        {"role": "user", "content": "\n\n".join(sections)},
+    ])
+
+    # No citation rewrite: there are no numbered passages to point at, and the
+    # prompt forbids the model from inventing numbers anyway. Whitespace is still
+    # tidied so a chatty model does not hand the UI ragged blank lines.
+    cleaned = re.sub(r"[ \t]{2,}", " ", text or "").strip()
+    return Grounded(text=cleaned, cited=[], invalid=[], passages=0)
 
 
 def summarize(hits: list[dict], instruction: str = "") -> Grounded:

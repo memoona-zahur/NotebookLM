@@ -75,6 +75,9 @@ class Source:
     pages: int = 0
     chunks: int = 0
     numeric: int = 0
+    # Empty for an uploaded file, which has no address; set when the source came
+    # from a web search, so the page can be identified and linked later.
+    url: str = ""
 
 
 @dataclass
@@ -147,7 +150,7 @@ class VectorStore:
 
     # -- writes ------------------------------------------------------------
 
-    def add(self, path: Path, display_name: str, session_id: str) -> Source:
+    def add(self, path: Path, display_name: str, session_id: str, url: str = "") -> Source:
         blocks = parsers.parse(path)
         name = display_name or path.name
 
@@ -165,10 +168,10 @@ class VectorStore:
         source_id = None
         with db.connection() as conn:
             source = conn.execute(
-                "INSERT INTO sources (session_id, name, kind, pages, storage_path) "
-                "VALUES (%s, %s, %s, %s, %s) RETURNING id",
+                "INSERT INTO sources (session_id, name, kind, pages, storage_path, url) "
+                "VALUES (%s, %s, %s, %s, %s, %s) RETURNING id",
                 (session_id, name, path.suffix.lower().lstrip("."),
-                 len(blocks), str(path)),
+                 len(blocks), str(path), url or ""),
             ).fetchone()
             source_id = source[0]
             if keep:
@@ -196,6 +199,7 @@ class VectorStore:
             pages=len(blocks),
             chunks=chunk_count,
             numeric=numeric,
+            url=url or "",
         )
 
     def remove(self, source_id: str, session_id: str) -> bool:
@@ -246,7 +250,7 @@ class VectorStore:
     def sources(self, session_id: str) -> list[Source]:
         with db.connection() as conn:
             rows = conn.execute(
-                "SELECT id::text, name, kind, pages, chunk_count, numeric_count "
+                "SELECT id::text, name, kind, pages, chunk_count, numeric_count, url "
                 "FROM sources WHERE session_id = %s ORDER BY created_at",
                 (session_id,),
             ).fetchall()

@@ -128,9 +128,10 @@ know which ones you tuned and why.
 Assumes a notebook named **Handover** with three sources: a release checklist, a
 support policy, and a CSV of incident counts.
 
-**Step 1 - empty state (5 seconds).** Open a fresh notebook. Point at the greeting,
-the `0 sources` count, and the two onboarding cards. Say: *it tells me there is
-nothing to ask yet, instead of offering questions it cannot answer.*
+**Step 1 - empty state (5 seconds).** Open a fresh notebook. Point at the heading,
+the `0 sources` count, and the two onboarding cards - upload, and web search.
+Say: *it tells me there is nothing to ask yet, instead of offering questions it
+cannot answer - and it offers both ways of fixing that.*
 
 **Step 2 - upload (30 seconds).** Upload all three files. Watch the source count
 go to 3. Say: *PDF, DOCX, Markdown, CSV, text. OCR for scanned pages, and a document
@@ -169,13 +170,25 @@ citations are stored with the message, not just in the HTTP response. Say: *this
 was a real bug - the `[1]` markers survived a reload while the passages they
 pointed at did not.*
 
-**Step 8 - a greeting (10 seconds).** Type `Hi`. Say: *no embedding, no token, no
-fake relevance score. It distinguishes "I could not find it" from "that was not
-a question".*
+**Step 8 - a greeting (15 seconds).** Type `Hi`. Say: *no embedding, no
+retrieval, no fake relevance score - it distinguishes "I could not find it" from
+"that was not a question". The reply itself is the model's, not a fixed line: it
+has nothing to be faithful to, but it is still generated, and the cost is
+reported honestly.*
 
-**Step 9 - what it does not do (10 seconds).** Say: *no audio or video
-overviews, no mind maps, no web sources, no multi-user accounts.* Being explicit
-about the gap is what makes the rest of the list believable.
+**Step 9 - web sources (45 seconds, only if you want the risk).** Open a fresh
+notebook, click *Search the web for sources*, and type a topic. Say: *this is the
+one feature that changes the privacy story - the search term goes to Groq and this
+machine fetches the pages it finds. The page is then indexed exactly like an
+upload, so it is citable and deletable, rather than an uncitable paragraph the
+model wrote.* Then stop, or say: *the fetch path resolves and refuses private
+addresses on every redirect, because a URL from a search engine can name
+`169.254.169.254`.* Only do this step with a topic you are willing to have logged
+by a third party.
+
+**Step 10 - what it does not do (10 seconds).** Say: *no audio or video overviews,
+no mind maps, no multi-user accounts.* Being explicit about the gap is what makes
+the rest of the list believable.
 
 ## 5. What happens to a question, step by step
 
@@ -444,6 +457,15 @@ and meaningless, since there was nothing to score against. A greeting is not a
 failed retrieval, and an empty notebook should be told to add a source rather
 than be given a score about zero documents.
 
+The `conversational` verdict is a routing decision, not a canned reply. In a
+notebook with sources, a greeting goes to the model through `llm.chat()` with the
+history and no passages: there is nothing to ground and nothing to cite, but the
+reply is generated, and it is billed honestly like any other call. That is what
+separates it from the fixed line this replaced, and it is the same reason ChatGPT
+answers "hi" instead of printing a template. Two cases stay local and free - an
+empty notebook, where there is no subject to be helpful about, and a provider
+that is unreachable, where a fallback beats an error page.
+
 `app/intent.py` matches the **whole message**, and that is the load-bearing
 detail: "hey, what is the refund window?" opens with a social word and is a real
 question. A keyword scan would greet it and drop the query. Every doubt resolves
@@ -501,9 +523,18 @@ quality would be the fastest way to lose the room.
 
 ### 8.3 Tests
 
-`./run_tests.sh` — 93 backend, 158 frontend. Includes: relevance floor,
+`./run_tests.sh` — 102 backend, 165 frontend. Includes: relevance floor,
 citation validation, injection defence, history injection attempts, upload
-ownership, citation persistence across reload, and greeting behaviour.
+ownership, citation persistence across reload, greeting behaviour, and web-source
+ingestion (a found page becomes a citable source, one unreachable page does not
+discard the rest, and a redirect into private address space is refused *before*
+it is requested).
+
+That last one is worth mentioning unprompted, because it is the check that would
+have caught the obvious bug: letting `httpx` follow redirects means the request
+to the private address has already been sent by the time you can look at the
+final URL. The test asserts on the URLs actually requested, not on the error
+message.
 
 **The ownership test exists because of a real bug.** The evaluation harness
 indexed `experiments/corpus/` through the normal store, and deleting an
@@ -588,9 +619,18 @@ honestly labelled beats a high number nobody can define.
 
 ## 9. Privacy, tracing, and observability
 
-Default posture: **documents do not leave the machine.** Embeddings run locally;
-only question text and retrieved passages go to the configured LLM provider,
-which is unavoidable for generation and is stated in the UI.
+Default posture: **uploaded documents do not leave the machine.** Embeddings run
+locally; only question text and retrieved passages go to the configured LLM
+provider, which is unavoidable for generation and is stated in the UI.
+
+**The one exception, stated rather than buried: web search.** If `WEB_SEARCH` is
+on (the default) and a provider that can search is configured, the *search term*
+goes to that provider and this machine fetches the pages it points at. Fetched
+pages are indexed and stored locally like any upload, but the fetch itself is a
+request to a site named by a search engine answering a model. `WEB_SEARCH=0`
+turns it off, `/api/status` reports availability with a reason, and the UI card
+greys out rather than failing when clicked. Be ready to name this unprompted -
+"documents stay local" is only true of documents you uploaded.
 
 Tracing is opt-in and split by sensitivity:
 
@@ -637,12 +677,16 @@ Present these as deliberate:
 | No client-supplied history | A client cannot fabricate turns it never asked |
 | Uploads streamed, capped at 100 MB | Bounded disk use |
 | Provider key server-side | Never reaches the browser |
+| Web fetch refuses private/loopback/link-local addresses, on every redirect hop | A URL from a search engine can name `169.254.169.254` or this machine's own database. Redirects are followed by hand precisely so the check happens *before* the next request, which `httpx` cannot do for you |
+| Web fetch caps size, time, pages and redirect hops | An untrusted response should not be able to exhaust disk or a worker |
 
 Present these as gaps:
 
 - **No authentication.** Anyone who can reach the app owns every session in it.
   Single-user by assumption, not by enforcement. Adding auth is required before
   this is exposed to anyone else - see `README.md` for the recommended shape.
+  Web search makes this sharper: an unauthenticated app that can fetch URLs is an
+  SSRF endpoint with an index attached.
 - **Injection detection is a regex** over retrieved passages. It surfaces a
   suspicious source; it cannot block a determined injection. The prompt rule is
   the real defence, and the regex is evidence gathering.
@@ -664,7 +708,7 @@ found out.
 | Limitation | Why it exists / when it would change |
 |---|---|
 | No audio, video, or mind-map overviews | NotebookLM's headline feature is out of scope. Deliberate: those features dominate effort while adding no grounding |
-| Web search unimplemented, shown disabled in onboarding | A local-only build. Removing the card would read as a missing feature rather than a deliberate boundary |
+| Web search sends the search term to a third party and fetches arbitrary pages | The one feature that breaks the local-only promise. Off with `WEB_SEARCH=0`; SSRF-guarded, but DNS rebinding is not fully closed and there is no auth, so it is not for a public network |
 | Combined highlight metadata is not persisted | Question plus highlight is executed client-side; the original highlight is lost on reload |
 | Citations before migration `0002_message_evidence` are not clickable | The `[n]` markers are in the message text, but the provenance was never stored. Re-ask, or accept the limitation. Not recoverable - the data does not exist |
 | Long or technical documents may retrieve poorly | MiniLM is a small local model. Re-measure `MIN_SCORE` if you swap it |

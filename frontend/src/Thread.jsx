@@ -74,6 +74,8 @@ export function Thread({
   onSuggest,
   onExplore,
   onUpload,
+  onWebSearch,
+  webSearchReason = "Not available in this local build.",
   sourceCount = 0,
   notebookName = "",
   createdAt = "",
@@ -102,10 +104,16 @@ export function Thread({
       <div className="thread" ref={ref}>
         <div className="thread-inner">
           <div className="empty">
+            {/* The heading is deliberately a statement of what this app does,
+                not an instruction. "Add a source to get started" reads as a
+                scolding when you have already added three, and "Hello." is
+                carried by the assistant's own reply the moment the user types
+                anything - a greeting is now generated, not hardcoded, so a
+                static hello here would pre-empt it. */}
             <h2>
               {hasSources
-                ? `Hello, what would you like to know about ${notebookName}?`
-                : "Hello. Add a source to get started."}
+                ? `What would you like to know about ${notebookName}?`
+                : "Ask anything. I'll answer from your sources."}
             </h2>
             <p className="empty-meta">
               {sourceCount} source{sourceCount === 1 ? "" : "s"}
@@ -122,23 +130,48 @@ export function Thread({
                 only things offered - a suggestion question here would be
                 guaranteed to be refused. */}
             {!hasSources ? (
-              <div className="onboard">
-                <button type="button" className="onboard-card" onClick={onUpload}>
-                  <span className="onboard-title">I want to upload my own documents</span>
-                  <span className="onboard-sub">
-                    PDF, DOCX, Markdown, CSV and more. Answers come only from what
-                    you upload.
-                  </span>
-                </button>
-                <div className="onboard-card disabled" aria-disabled="true">
-                  <span className="onboard-title">
-                    Search the web for sources
-                  </span>
-                  <span className="onboard-sub">
-                    Not available in this local build — nothing leaves your machine.
-                  </span>
+              onWebSearch ? (
+                <div className="onboard">
+                  <button type="button" className="onboard-card" onClick={onUpload}>
+                    <span className="onboard-title">
+                      I want to upload my own documents
+                    </span>
+                    <span className="onboard-sub">
+                      PDF, DOCX, Markdown, CSV and more. Answers come only from what
+                      you upload.
+                    </span>
+                  </button>
+                  {/* Live when a provider key is configured. The old card said
+                      "not available in this local build" unconditionally, which
+                      was false: the app could have searched, it had just never
+                      been told how. The sub-line now states what actually
+                      leaves the machine, because a web search really does send
+                      the query to a third-party search engine. */}
+                  <button type="button" className="onboard-card" onClick={onWebSearch}>
+                    <span className="onboard-title">Search the web for sources</span>
+                    <span className="onboard-sub">
+                      Finds pages on a topic and adds them to this notebook. Your
+                      search term is sent to the search provider.
+                    </span>
+                  </button>
                 </div>
-              </div>
+              ) : (
+                <div className="onboard">
+                  <button type="button" className="onboard-card" onClick={onUpload}>
+                    <span className="onboard-title">
+                      I want to upload my own documents
+                    </span>
+                    <span className="onboard-sub">
+                      PDF, DOCX, Markdown, CSV and more. Answers come only from what
+                      you upload.
+                    </span>
+                  </button>
+                  <div className="onboard-card disabled" aria-disabled="true">
+                    <span className="onboard-title">Search the web for sources</span>
+                    <span className="onboard-sub">{webSearchReason}</span>
+                  </div>
+                </div>
+              )
             ) : onSuggest && questions.length ? (
               <>
                 <ul className="suggestions">
@@ -165,6 +198,10 @@ export function Thread({
               </>
             ) : null}
 
+            {/* The grounding promise is qualified where it has to be. Stating it
+                unconditionally would be false now that web search exists: the
+                answer is still drawn from sources and still cited, but one of
+                those sources may have come from the open web. */}
             <p className="empty-foot">
               Every answer is drawn from your sources with the exact passage cited,
               and nothing is invented.

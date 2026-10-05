@@ -1,6 +1,8 @@
 import contextlib
+import inspect
 import json
 import re
+import socket
 import tempfile
 import sys
 from pathlib import Path
@@ -58,7 +60,9 @@ from fastapi.testclient import TestClient
 
 from app.main import app
 from app import config as cfg
-from app import db, llm, ocr, parsers, usage
+from app import db, llm, ocr, parsers, usage, websearch
+from app.webingest import ingest
+from app.websearch import Candidate, FetchedPage
 from app.store import SearchResult
 
 db.migrate()
@@ -249,7 +253,11 @@ def test_migrated_schema_matches_what_the_app_uses(client: TestClient) -> None:
     expected = {
         "sessions": {"id", "name", "is_default", "created_at", "updated_at"},
         "sources": {"id", "session_id", "name", "kind", "pages", "chunk_count",
-                    "numeric_count", "storage_path", "created_at"},
+                    "numeric_count", "storage_path", "created_at",
+                    # Added by 0003. Without it a page found by web search is
+                    # indistinguishable from an upload once it is stored, and
+                    # there is no way to link back to the page it came from.
+                    "url"},
         "chunks": {"id", "source_id", "position", "page", "heading", "text",
                    "numeric_heavy", "embedding"},
         "messages": {
@@ -2565,36 +2573,86 @@ def test_summarize_reports_bad_query_distinctly(client: TestClient) -> None:
     print("  narrow summarize query -> no_match without the misleading upload hint: OK")
 
 
-def test_greetings_are_not_answered_as_failed_retrievals(client: TestClient) -> None:
-    """A greeting has no passage to retrieve and no answer to ground.
+def test_a_greeting_is_answered_by_the_model_not_a_canned_string(
+    client: TestClient,
+) -> None:
+    """A greeting goes to the model, and is reported as costing tokens.
 
     It used to come back as "best match 0%, below the 25% floor", which is
-    technically true - there was nothing to score against - and reads as an
-    error rather than a reply. It now costs no embedding and no token.
+    technically true and reads as an error. It was then replaced with a fixed
+    string, which fixed the score problem but made every greeting identical
+    forever. Now the model answers it, so the reply is warm and costs what a
+    model call costs.
 
-    Asserted with a provider stub that would raise if called, so "no LLM call"
-    is checked rather than assumed.
+    The important thing this test guards is the honesty of the evidence strip: a
+    model-generated greeting *did* spend tokens, so the cost must say so. It
+    reports `considered: 0` and no score because no document was consulted, and
+    the frontend must not present that as "nothing was spent".
     """
     sid = client.post("/api/sessions", json={"name": "greetings"}).json()["id"]
     upload(client, "g.pdf", make_pdf(), session_id=sid)
 
-    def explode(messages):
-        raise AssertionError("the model must not be called for a greeting")
+    captured: list[dict] = []
+    with stubbed("Hello! Ask me anything about your sources.", captured):
+        body = client.post(
+            "/api/ask", params={"session_id": sid}, json={"question": "Hi"}
+        ).json()
 
-    for message in ("Hi", "hello!", "Hey there.", "thanks"):
-        with stubbed(explode):
-            body = client.post(
-                "/api/ask", params={"session_id": sid}, json={"question": message}
-            ).json()
-        assert body["evidence"]["verdict"] == "conversational", (message, body)
-        assert body["evidence"]["considered"] == 0, message
-        assert body["evidence"]["cost"]["called"] is False, message
-        assert body["evidence"]["cost"]["total_tokens"] == 0, message
-        # No score is reported, because none was computed.
-        assert body["evidence"]["best_score"] is None, body["evidence"]
-        assert "below the" not in body["answer"], body["answer"]
-        assert "%" not in body["answer"], body["answer"]
-    print("  greetings answered without retrieval, tokens, or a fake score: OK")
+    assert body["evidence"]["verdict"] == "conversational", body["evidence"]
+    assert body["answer"] == "Hello! Ask me anything about your sources.", body["answer"]
+    assert captured, "a greeting should reach the model"
+
+    cost = body["evidence"]["cost"]
+    assert cost["called"] is True, cost
+    # No passage was consulted, so no score and nothing to cite - but the call
+    # was real, and reporting zero tokens here would be a lie the UI shows.
+    assert body["evidence"]["considered"] == 0, body["evidence"]
+    assert body["evidence"]["best_score"] is None, body["evidence"]
+    assert body["citations"] == [], body["citations"]
+    assert "below the" not in body["answer"], body["answer"]
+    assert "%" not in body["answer"], body["answer"]
+
+    # The greeting must not have been sent a SOURCES block: there is nothing to
+    # ground on, and letting the model answer as if there were would reintroduce
+    # the ungrounded-answer problem this app exists to avoid.
+    prompt = captured[0][0]["content"]
+    assert "SOURCES" not in prompt, prompt
+    print("  a greeting is answered by the model and reports its real cost: OK")
+
+
+def test_a_greeting_falls_back_when_the_provider_is_down(client: TestClient) -> None:
+    """A dead provider must not make "hello" a 503.
+
+    The hardcoded reply exists as a fallback for exactly this. It is the right
+    shape for this one input: nothing is being grounded, so there is no
+    correctness to lose by answering locally.
+    """
+    sid = client.post("/api/sessions", json={"name": "offline"}).json()["id"]
+    upload(client, "g.pdf", make_pdf(), session_id=sid)
+
+    def unavailable(messages):
+        raise llm.LLMUnavailable("provider unreachable")
+
+    # Patched directly rather than through `stubbed`, which returns its argument
+    # as the completion text - passing a function there would hand the rest of the
+    # pipeline a function object instead of raising.
+    saved = {name: getattr(llm, name) for name in _PROVIDERS}
+    for name in _PROVIDERS:
+        setattr(llm, name, unavailable)
+    try:
+        res = client.post(
+            "/api/ask", params={"session_id": sid}, json={"question": "Hello"}
+        )
+    finally:
+        for name, fn in saved.items():
+            setattr(llm, name, fn)
+
+    assert res.status_code == 200, res.text
+    body = res.json()
+    assert body["evidence"]["verdict"] == "conversational", body["evidence"]
+    assert body["evidence"]["cost"]["called"] is False, body["evidence"]
+    assert body["answer"].strip(), body
+    print("  a greeting degrades to the fixed reply when the provider is down: OK")
 
 
 def test_a_real_question_that_opens_with_a_greeting_still_retrieves(
@@ -2642,16 +2700,273 @@ def test_an_empty_notebook_says_what_to_do_instead_of_a_score(
     print("  an empty notebook is told to add a source, not given a score: OK")
 
 
+def test_an_empty_notebook_greets_without_pretending_to_have_sources(
+    client: TestClient,
+) -> None:
+    """A greeting on an empty notebook must not be sent to the model.
+
+    The model-generated greeting exists to be warm when there are documents to
+    be warm *about*. With none, a generated "I'm ready to answer questions about
+    your sources" is describing something that does not exist, so the empty
+    notebook keeps its fixed reply and spends no tokens.
+    """
+    sid = client.post("/api/sessions", json={"name": "bare-greet"}).json()["id"]
+
+    def explode(messages):
+        raise AssertionError("no model call on an empty notebook")
+
+    with stubbed(explode):
+        body = client.post(
+            "/api/ask", params={"session_id": sid}, json={"question": "Hello"}
+        ).json()
+
+    assert body["evidence"]["verdict"] == "conversational", body["evidence"]
+    assert body["evidence"]["cost"]["called"] is False, body["evidence"]
+    assert body["evidence"]["considered"] == 0, body["evidence"]
+    print("  a greeting on an empty notebook stays local and free: OK")
+
+
 def test_a_conversational_turn_replays_with_its_evidence(client: TestClient) -> None:
     """Same rule as citations: what is shown must survive a reload."""
     sid = client.post("/api/sessions", json={"name": "greet-reload"}).json()["id"]
-    client.post("/api/ask", params={"session_id": sid}, json={"question": "Hi"})
+    with stubbed("Hello again."):
+        client.post("/api/ask", params={"session_id": sid}, json={"question": "Hi"})
 
     replayed = client.get(f"/api/sessions/{sid}").json()["history"][-1]
     assert replayed["evidence"]["verdict"] == "conversational"
-    assert replayed["evidence"]["cost"]["called"] is False
+    assert replayed["evidence"]["considered"] == 0
     assert replayed["evidence"]["best_score"] is None
     print("  a reopened greeting still shows that nothing was consulted: OK")
+
+
+# --------------------------------------------------------------------------
+# web search
+# --------------------------------------------------------------------------
+
+def test_web_search_ingests_found_pages_as_real_sources(
+    client: TestClient, monkeypatch
+) -> None:
+    """A found page must arrive through `store.add`, like an upload.
+
+    This is the design claim worth testing: a web page becomes a *source* rather
+    than a paragraph of model prose, so it is chunked, embedded, cited, persisted
+    and deletable by exactly the same code path. A test that only checked "some
+    content came back" would pass even if the page were never indexed.
+    """
+    sid = client.post("/api/sessions", json={"name": "web"}).json()["id"]
+
+    page = (
+        b"<html><head><title>Vector indexing explained</title></head>"
+        b"<body><h1>Vector indexing explained</h1>"
+        b"<p>HNSW builds a navigable small-world graph over the vectors.</p></body></html>"
+    )
+    monkeypatch.setattr(
+        websearch, "find",
+        lambda query, limit: ([Candidate("https://example.org/vectors")], {
+            "model": "stub", "prompt_tokens": 1, "completion_tokens": 2, "search_ms": 5.0,
+        }),
+    )
+    monkeypatch.setattr(
+        websearch, "fetch",
+        lambda candidate: FetchedPage(
+            url="https://example.org/vectors",
+            title="Vector indexing explained",
+            suffix=".html",
+            content=page,
+        ),
+    )
+
+    with provider("groq", GROQ_API_KEY="stub-key"):
+        res = client.post(
+            "/api/sources/web", params={"session_id": sid}, json={"query": "hnsw"}
+        )
+
+    assert res.status_code == 200, res.text
+    body = res.json()
+    assert body["web_search"]["added_count"] == 1, body["web_search"]
+    assert body["chunks"] > 0, "the page must actually be chunked and embedded"
+    assert body["sources"][0]["name"] == "Vector indexing explained", body["sources"]
+    assert body["sources"][0]["url"] == "https://example.org/vectors", body["sources"]
+
+    # And it must be answerable, which is the whole point of indexing it.
+    with stubbed("HNSW uses a navigable small-world graph [1]."):
+        answer = client.post(
+            "/api/ask", params={"session_id": sid}, json={"question": "What is HNSW?"}
+        ).json()
+    assert answer["evidence"]["verdict"] == "answered", answer["evidence"]
+    assert answer["citations"], answer
+    print("  a web page is indexed as a source and is then answerable: OK")
+
+
+def test_one_unreachable_page_does_not_discard_the_others(
+    client: TestClient, monkeypatch
+) -> None:
+    """Partial success is the normal case and must not be reported as failure.
+
+    Search results routinely include bot-walled PDFs and dead links. Throwing
+    away the pages that worked because one failed would make the feature useless
+    in exactly the situations people use it.
+    """
+    sid = client.post("/api/sessions", json={"name": "partial"}).json()["id"]
+
+    good = b"<html><body><h1>Fine</h1><p>Readable body text here.</p></body></html>"
+    monkeypatch.setattr(
+        websearch, "find",
+        lambda query, limit: (
+            [Candidate("https://ok.example/a"), Candidate("https://bad.example/b")],
+            {"model": "stub", "prompt_tokens": 1, "completion_tokens": 1, "search_ms": 1.0},
+        ),
+    )
+
+    def fetch(candidate):
+        if "bad" in candidate.url:
+            raise websearch.WebSearchUnavailable("bad.example returned HTTP 403.")
+        return FetchedPage(
+            url="https://ok.example/a", title="Fine", suffix=".html", content=good
+        )
+
+    monkeypatch.setattr(websearch, "fetch", fetch)
+
+    with provider("groq", GROQ_API_KEY="stub-key"):
+        res = client.post(
+            "/api/sources/web", params={"session_id": sid}, json={"query": "x"}
+        )
+
+    assert res.status_code == 200, res.text
+    body = res.json()
+    assert body["web_search"]["added_count"] == 1, body["web_search"]
+    assert len(body["web_search"]["failed"]) == 1, body["web_search"]
+    assert "403" in body["web_search"]["failed"][0]["reason"], body["web_search"]
+    print("  a failed page is reported beside the pages that worked: OK")
+
+
+def test_web_search_refuses_when_no_provider_can_search(
+    client: TestClient, monkeypatch
+) -> None:
+    """A disabled feature must say why, not fail obscurely.
+
+    `browser_search` is a Groq built-in, so an Ollama or OpenAI configuration
+    cannot search even with other keys present. That is a 400 with the reason,
+    surfaced by /api/status so the UI can grey the card out and say so.
+    """
+    sid = client.post("/api/sessions", json={"name": "nokey"}).json()["id"]
+    with provider("ollama"):
+        res = client.post(
+            "/api/sources/web", params={"session_id": sid}, json={"query": "x"}
+        )
+        assert res.status_code == 400, res.text
+        assert "groq" in res.json()["detail"].lower(), res.json()
+
+        # Status has to be read inside the override: `resolved_provider` is
+        # consulted per request, so reading it afterwards would report whatever
+        # the ambient configuration happens to say and pass for a working test.
+        status = client.get("/api/status", params={"session_id": sid}).json()
+        assert status["web_search"]["available"] is False, status["web_search"]
+        assert status["web_search"]["reason"], status["web_search"]
+
+    # And with a working provider the same flag flips, so the test above is
+    # measuring the provider check and not a constant.
+    with provider("groq", GROQ_API_KEY="stub-key"):
+        ready = client.get("/api/status", params={"session_id": sid}).json()
+    assert ready["web_search"]["available"] is True, ready["web_search"]
+    print("  web search is unavailable, and says which provider it needs: OK")
+
+
+def test_web_search_query_is_bounded(client: TestClient) -> None:
+    """The limit is rejected before a search runs, since a search is the
+    most expensive call in the app and must not happen for a bad request."""
+    sid = client.post("/api/sessions", json={"name": "bounds"}).json()["id"]
+    res = client.post(
+        "/api/sources/web", params={"session_id": sid}, json={"query": "x", "limit": 500}
+    )
+    assert res.status_code == 422, res.text
+    res = client.post(
+        "/api/sources/web", params={"session_id": sid}, json={"query": ""}
+    )
+    assert res.status_code == 422, res.text
+    print("  oversized web search requests are refused before searching: OK")
+
+
+def test_private_addresses_are_never_fetched(client: TestClient) -> None:
+    """The SSRF guard, tested without a network call.
+
+    A URL comes from a search engine responding to a model, so it can name
+    anything - including the cloud metadata endpoint or this machine's own
+    database. Resolution happens before any socket is opened.
+    """
+    for host in ("127.0.0.1", "localhost", "169.254.169.254", "10.0.0.5"):
+        try:
+            websearch._public_addresses(host)
+        except websearch.WebSearchUnavailable as exc:
+            assert "non-public" in str(exc), (host, exc)
+        else:
+            raise AssertionError(f"{host} should have been refused")
+
+
+def test_a_redirect_cannot_smuggle_the_app_onto_a_private_address(
+    client: TestClient, monkeypatch
+) -> None:
+    """A public URL that redirects inward must be refused mid-chain.
+
+    This is the whole reason redirects are followed by hand instead of by
+    httpx: if the library follows them, the request to `169.254.169.254` has
+    already gone out by the time the final URL can be inspected, and inspecting
+    it afterwards only prints a warning nobody sees.
+    """
+    import httpx
+
+    public = "example.org"
+    requested: list[str] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        requested.append(str(request.url))
+        return httpx.Response(302, headers={"location": "http://169.254.169.254/latest/"})
+
+    real_client = httpx.Client
+    real_getaddrinfo = socket.getaddrinfo
+
+    def fake_getaddrinfo(host, *args, **kwargs):
+        # Everything looks public while resolving; the block below is the
+        # redirect check, not a first-hop check that happens to pass.
+        if host in {"169.254.169.254", "metadata.google.internal"}:
+            return real_getaddrinfo("127.0.0.1", *args, **kwargs)
+        return [(2, 1, 6, "", ("93.184.216.34", 80))]
+
+    monkeypatch.setattr(socket, "getaddrinfo", fake_getaddrinfo)
+    monkeypatch.setattr(
+        httpx,
+        "Client",
+        lambda **kw: real_client(transport=httpx.MockTransport(handler), **kw),
+    )
+
+    try:
+        websearch.fetch(websearch.Candidate(url=f"http://{public}/start"))
+    except websearch.WebSearchUnavailable as exc:
+        assert "non-public" in str(exc), exc
+    else:
+        raise AssertionError("a redirect to a private address should be refused")
+
+    # The decisive assertion: only the first hop was ever requested.
+    assert requested == [f"http://{public}/start"], requested
+    print("  a redirect into private space is stopped before it is requested: OK")
+
+
+def test_urls_with_parentheses_survive_extraction(client: TestClient) -> None:
+    """A naive regex truncates Wikipedia paths at the first ')'.
+
+    `https://en.wikipedia.org/wiki/ROUGE_(metric)` becomes a 404 when the closing
+    paren is treated as sentence punctuation, and that is not a rare shape - it
+    is every Wikipedia disambiguation-style path.
+    """
+    text = "https://en.wikipedia.org/wiki/ROUGE_(metric)"
+    assert websearch._extract(text, 5)[0].url == text, websearch._extract(text, 5)
+
+    # And prose wrapping a URL must not lose it either.
+    wrapped = f"See {text} for details, and https://x.org/a.pdf."
+    urls = [c.url for c in websearch._extract(wrapped, 5)]
+    assert text in urls, urls
+    assert "https://x.org/a.pdf" in urls, urls
+    print("  URLs containing parentheses are extracted whole: OK")
 
 
 ORDER = [
@@ -2661,9 +2976,11 @@ ORDER = [
     ("ask reports cost", test_ask_reports_the_cost_of_the_question),
     ("reopened answer keeps citations", test_a_reopened_session_still_has_its_citations),
     ("reopened refusal keeps its reason", test_a_reopened_refusal_still_explains_itself),
-    ("greetings are not failed retrievals", test_greetings_are_not_answered_as_failed_retrievals),
+    ("greeting answered by model", test_a_greeting_is_answered_by_the_model_not_a_canned_string),
+    ("greeting falls back offline", test_a_greeting_falls_back_when_the_provider_is_down),
     ("question opening with hey", test_a_real_question_that_opens_with_a_greeting_still_retrieves),
     ("empty notebook gets guidance", test_an_empty_notebook_says_what_to_do_instead_of_a_score),
+    ("empty notebook greeting stays local", test_an_empty_notebook_greets_without_pretending_to_have_sources),
     ("reopened greeting keeps evidence", test_a_conversational_turn_replays_with_its_evidence),
     ("reported tokens beat estimates", test_provider_reported_tokens_are_used_not_guessed),
     ("static files and empty question", test_static_and_empty_question),
@@ -2712,6 +3029,13 @@ ORDER = [
     ("H4 cross-source answer", test_answer_spans_multiple_sources),
     ("summarize endpoint", test_summarize_endpoint),
     ("summarize bad query", test_summarize_reports_bad_query_distinctly),
+    ("web page becomes a source", test_web_search_ingests_found_pages_as_real_sources),
+    ("partial web search succeeds", test_one_unreachable_page_does_not_discard_the_others),
+    ("web search needs groq", test_web_search_refuses_when_no_provider_can_search),
+    ("web search bounds", test_web_search_query_is_bounded),
+    ("ssrf guard", test_private_addresses_are_never_fetched),
+    ("paren urls survive", test_urls_with_parentheses_survive_extraction),
+    ("redirect ssrf guard", test_a_redirect_cannot_smuggle_the_app_onto_a_private_address),
     # Sessions: run before source deletion so each has its own documents.
     # Migrations: the schema has to be at head and still behave.
     ("schema at head", test_schema_is_at_head),
@@ -2760,12 +3084,24 @@ def main() -> int:
     client.delete("/api/sources")
 
     passed, failed = 0, []
+    # Most tests take only the client; a few need pytest's `monkeypatch` to stub
+    # the search provider. Rather than thread a fixture through every signature,
+    # each of those is opted into by naming its parameters here, and a small
+    # recording stand-in is built for the ones that do.
+    patcher = pytest.MonkeyPatch()
     for name, fn in ORDER:
         print(f"\n> {name}")
+        # Optional params like `tmp_path` have defaults and are not fixtures, so
+        # only the ones this runner can actually supply are filled in.
+        kwargs = {}
+        if "monkeypatch" in inspect.signature(fn).parameters:
+            kwargs["monkeypatch"] = patcher
         try:
-            fn(client)
+            fn(client, **kwargs)
+            patcher.undo()
             passed += 1
         except Exception as exc:  # noqa: BLE001
+            patcher.undo()
             failed.append((name, exc))
             print(f"  FAIL: {type(exc).__name__}: {exc}")
 

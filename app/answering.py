@@ -23,6 +23,7 @@ import time
 
 from . import config, db, intent, tracing, usage
 from .llm import NO_MATCH, Grounded, LLMUnavailable, answer as run_answer
+from .llm import chat as run_chat
 from .llm import last_usage
 from .llm import summarize as run_summary
 from .payloads import evidence
@@ -50,13 +51,14 @@ def ask(question: str, session: db.SessionRow) -> dict:
     kind = intent.classify(question)
     has_sources = bool(store.stats(session_id)["sources"])
     if kind != "question":
-        # An empty notebook is the one case where even a real question has
-        # nothing to retrieve, and "best match 0%, below the 25% floor" about
-        # zero documents is a diagnostic about nothing. So an empty notebook
-        # says what to do next instead.
-        if not has_sources:
-            return _conversational(question, session_id, "empty")
-        return _conversational(question, session_id, kind)
+        # Greetings and small talk go to the model when it is reachable, so the
+        # first thing the app says sounds like an assistant rather than a canned
+        # string. An empty notebook still short-circuits: there is nothing to
+        # offer help with yet, and the useful reply is the one that says what to
+        # do next rather than a warm sentence about sources that do not exist.
+        if has_sources:
+            return _conversational(question, session_id, kind, history)
+        return _conversational(question, session_id, "empty")
     if not has_sources:
         return _conversational(question, session_id, "empty")
 
@@ -135,21 +137,33 @@ def ask(question: str, session: db.SessionRow) -> dict:
         }
 
 
-def _conversational(question: str, session_id: str, kind: str) -> dict:
+def _conversational(
+    question: str, session_id: str, kind: str, history: list[dict] | None = None
+) -> dict:
     """Answer a greeting, or a notebook with nothing in it, without retrieval.
 
     The verdict is `conversational`, not `answered` and not `no_match`, and that
     distinction is the whole point. `no_match` means "I looked and your documents
     do not cover this"; `conversational` means "there was nothing to look up".
-    The frontend shows the evidence strip for the latter too, and the strip says
-    the model was not called - so the user still learns the important thing, that
-    nothing was invented and nothing was spent.
+
+    There are two shapes of this reply and they must not be conflated, because
+    they cost different amounts and mean different things:
+
+    - `kind == "empty"` is a fixed local string. Nothing was asked of any model,
+      so the cost is a measured zero and the evidence strip says so.
+    - anything else is a real model call with no documents attached. It is
+      reported with its actual tokens and latency like any other generation, and
+      the strip still notes that no document was consulted - the reply was never
+      grounded in a passage, and must not look as though it was.
     """
-    reply = (
-        intent.EMPTY_NOTEBOOK_REPLY
-        if kind == "empty"
-        else intent.reply_for(kind)
-    )
+    if kind == "empty":
+        reply = intent.EMPTY_NOTEBOOK_REPLY
+        cost = usage.not_called(
+            config.resolved_model(), 0.0, "conversational", 0
+        )
+    else:
+        reply, cost = _chat_reply(question, history or [], kind)
+
     summary = {
         "verdict": "conversational",
         "confidence": "none",
@@ -163,15 +177,43 @@ def _conversational(question: str, session_id: str, kind: str) -> dict:
         "invalid": [],
         "ungrounded": False,
         "injection": [],
-        # A measured zero like any other path that skips the model, for the same
-        # reason: an omitted metric is read as an unknown one.
-        "cost": usage.not_called(config.resolved_model(), 0.0, "conversational", 0)
-        .as_dict(),
+        "cost": cost.as_dict(),
     }
     db.add_message(session_id, "user", question)
     db.add_message(session_id, "assistant", reply, evidence=summary)
     db.touch_session(session_id)
     return {"answer": reply, "citations": [], "evidence": summary}
+
+
+def _chat_reply(question: str, history: list[dict], kind: str) -> tuple[str, object]:
+    """A greeting from the model, or the fixed reply if the model is down.
+
+    The fallback is the important half. A provider that is unreachable should
+    degrade to the old canned line, not surface a 503 on the word "hello" - the
+    one input for which a fixed string was never actually a bad answer.
+    """
+    try:
+        audit = run_chat(question, history)
+        reported = last_usage()
+    except LLMUnavailable:
+        reply = intent.reply_for(kind)
+        return reply, usage.not_called(config.resolved_model(), 0.0, "conversational", 0)
+
+    text = audit.text or intent.reply_for(kind)
+    if not audit.text:
+        # An empty completion is not a greeting; fall back rather than show the
+        # user a blank turn.
+        return text, usage.not_called(config.resolved_model(), 0.0, "conversational", 0)
+
+    return text, usage.Request(
+        model=reported.model or config.resolved_model(),
+        usage=reported,
+        retrieval_ms=0.0,
+        generation_ms=reported.latency_ms,
+        passages_sent=0,
+        context_chars=len(question),
+        verdict="conversational",
+    )
 
 
 def _refuse(question, session_id, search, retrieval_ms, span) -> dict:

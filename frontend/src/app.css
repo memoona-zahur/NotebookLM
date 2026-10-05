@@ -441,6 +441,72 @@
   color: var(--muted);
 }
 
+/* Web source, from the sources drawer --------------------------------------- */
+
+.source-name a {
+  color: inherit;
+  text-decoration: none;
+}
+/* Underlined on hover rather than always: most sources are uploads with no
+   link, and a permanently underlined list reads as "everything is external". */
+.source-name a:hover {
+  text-decoration: underline;
+}
+
+.websearch {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 10px 0 14px;
+  padding: 11px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-2);
+}
+.websearch strong {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-1);
+}
+.websearch-row {
+  display: flex;
+  gap: 6px;
+}
+.websearch input {
+  flex: 1;
+  min-width: 0;
+  padding: 6px 9px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--surface-1);
+  color: var(--text-1);
+  font-size: 13px;
+  font-family: inherit;
+}
+.websearch input:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -1px;
+}
+.websearch button {
+  flex: 0 0 auto;
+  padding: 6px 13px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--surface-1);
+  color: var(--text-1);
+  font-size: 12.5px;
+  font-family: inherit;
+  cursor: pointer;
+}
+.websearch button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.websearch small {
+  font-size: 11px;
+  color: var(--faint);
+}
+
 /* Word highlight ---------------------------------------------------------- */
 
 .occ-holder {
