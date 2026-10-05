@@ -604,6 +604,99 @@ fail, so a passing suite is not the set agreeing with itself.
 Three corpus documents are still uncovered: `catalysis.txt`, `glaciology.pdf`,
 `music.txt`.
 
+## Does the answer stay faithful to the passages?
+
+Retrieval can be perfect and the answer still wrong: the model reads the right
+chunk, misreads it, or blends it with something it remembered. `eval_gold`
+measures whether the evidence reached the prompt. This measures what came back
+out, using the same labels.
+
+```bash
+.venv/bin/python -m experiments.eval_generation --limit 12 --dry-run --allow-machine
+```
+
+Three numbers, each answering a different question:
+
+| Metric | Question it answers |
+|---|---|
+| `faithfulness` | Is every cited claim traceable to the passage it cites? |
+| `citation_precision` | Are the citations load-bearing, or decoration? |
+| `substance` | Did the answer cover the labelled facts, tolerating rewording? |
+| `relevancy` | Did it land every labelled fact, word for word? |
+| `verbatim` | How much does the answer quote rather than paraphrase? |
+
+### No judge model, on purpose
+
+An LLM judge is the usual way to score these and it was rejected here. It costs
+money per evaluation, it is non-deterministic, and it is the same family of model
+as the one being graded, so its errors correlate with the errors being measured.
+A metric that fails for the same reason the system fails cannot be used to detect
+that failure. `experiments/metrics.py` makes the same argument for its definitions.
+
+The cost of this choice is real: these are lexical proxies, not entailment
+judgements. They can be fooled by a close paraphrase that changes the meaning and
+cannot detect entailment that shares no words. They are a floor and a regression
+alarm, not proof of grounding. Both metrics modules are written out in full
+rather than imported from a library, because a definition you cannot read is a
+definition you cannot argue with.
+
+### Why there are three relevance numbers, and how that was found
+
+The first version matched required facts against the answer as literal
+substrings, exactly as `fact_coverage` does for chunks. It scored **0.000 on six
+out of six correct answers**. The labels are whole source sentences — *"mash at
+sixty-six degrees Celsius favours a balanced body"* — and the model answers
+*"a single-infusion mash at 66 °C favours a balanced body"*. Correct, and scored
+zero for using digits.
+
+Literal matching is right for chunks and wrong for answers. The chunk text *is*
+the chunk text; a good answer paraphrases and normalises units. So relevance
+counts content words with numbers and units canonicalised, and reports three
+strictnesses:
+
+```
+substance / relevancy / verbatim bracket the same answers from three levels.
+A high substance with a low relevancy means the answer reworded the evidence
+correctly. A high relevancy with a low substance means the labels are too
+short to distinguish anything.
+```
+
+A tolerant metric alone is also wrong, in the dangerous direction. Scored on
+"most content words present", the answer *"the limit is 600 requests per hour"*
+passes against a fact reading *"the limit is 600 rpm"* — a confidently wrong
+answer scoring 1.0. So `relevancy` requires **every** content word of a fact,
+which rejects it and still accepts the digit-and-unit differences that are
+formatting rather than knowledge.
+
+### What the numbers look like
+
+At `--limit 12` against the cloze gold set: `faithfulness 0.917`,
+`citation_precision 1.000`, `substance 0.725`, `relevancy 0.167`,
+`verbatim 0.000`, trap refusal `1.000`.
+
+`verbatim 0.000` is the headline caveat, and it is why the strict number is not
+the headline: **the labels in this gold set are whole source sentences, and no
+generated answer reproduces one.** Scoring against them measures paraphrase, not
+quality. The strict number is kept because it is the signal that catches a changed
+unit, not because it is a score to quote.
+
+The one genuine generation failure in that run was `G004`: *"These differences
+are described in the source passage [1]"* — a claim with no checkable content, two
+of them uncited. It scores `faithfulness 0.00` and `uncited 2`, which is exactly
+what the metric exists to surface.
+
+### Refusals are never averaged into faithfulness
+
+A correct refusal has no claims, so scoring it 0.0 would make the safest possible
+behaviour look like the worst. Refusals are counted separately, and the verdict
+comes from the server rather than from matching a phrase like "I could not" —
+so rewording the refusal cannot silently turn it into a hallucination.
+
+`SUPPORT_THRESHOLD` is a judgement call, so the harness re-scores every answer at
+several thresholds and prints how many claims sit near the boundary. A constant
+nobody has tested is a constant that will be "tuned" by whoever next feels like
+changing it.
+
 ### Known retrieval limits
 
 - **Entity-overlap traps leak.** Asked a pharmacology document "which antibiotics treat
@@ -715,7 +808,9 @@ mixed PDF indexed, a blank scan refused with an actionable message, the missing-
 message naming the install command, an over-cap document refused rather than indexed
 partly, and a normal PDF untouched by any of it), an oversized upload refused at 413 with
 the partial file removed, chunking, hybrid retrieval,
-numeric damping, citations, the 503 LLM-down path, Groq routing, BOM handling, the
+numeric damping, citations, per-question cost reporting (a refusal recorded as
+having spent nothing, and a provider's own token count preferred over an estimate),
+generation metric definitions, the 503 LLM-down path, Groq routing, BOM handling, the
 built frontend resolving every asset it references, migrations (schema at head,
 idempotency, column-for-column agreement with the app, and the `role` check and
 `ON DELETE CASCADE` surviving), sessions (CRUD, source scoping, retrieval isolation,
@@ -731,6 +826,12 @@ A failed check no longer stops the run: every check is reported and the process 
 non-zero if any failed.
 
 ## Known limitations
+
+- **A vacuous claim can be cited and still be unfaithful.** The metric catches
+  *"These differences are described in the source passage [1]"* because there is no
+  checkable content in it, but a longer sentence that mixes one real fact with one
+  invented clause can clear the lexical threshold. Lexical proxies cannot tell
+  which part of a sentence is wrong, and this is the honest edge of the approach.
 
 - Migrations are hand-written. There is no ORM, so `--autogenerate` cannot
   detect drift; the tests assert the migrated columns match what the code reads,

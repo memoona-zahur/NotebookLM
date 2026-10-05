@@ -1643,6 +1643,91 @@ def test_word_sections_respect_the_chunk_ceiling(client: TestClient) -> None:
     print(f"  word chunking: {len(blocks)} chunks, ceiling {size}, overlap honoured")
 
 
+def test_generation_metric_definitions(client: TestClient = None) -> None:
+    """The generation metrics, checked against cases chosen to break them."""
+    from experiments import generation
+
+    # The module's own worked examples run first, so a broken definition fails
+    # here rather than quietly changing a reported number.
+    generation._self_check()
+
+    passages = [
+        "Standard returns are accepted within 30 days of delivery.",
+        "The contract was signed in March 2019.",
+    ]
+
+    # A vacuous claim is the failure mode worth catching: the model cites a
+    # passage and says nothing checkable about it.
+    vacuous = generation.faithfulness(
+        "These differences are described in the source passage[1].", passages
+    )
+    assert vacuous["cited_claims"] == 1, vacuous
+    assert vacuous["grounded"] == 0, vacuous
+    assert vacuous["unsupported"], vacuous
+
+    # And an answer that is ungrounded must not average in beside a refusal.
+    out = generation.score_answer(
+        "These differences are described in the source passage[1].",
+        passages,
+        ["returns are accepted within 30 days"],
+        verdict="answered",
+    )
+    assert out["faithfulness"]["score"] == 0.0, out
+    assert out["relevancy"]["kind"] == "missed", out
+    assert out["refused"] is False, out
+
+    # The same text as a refusal is not a hallucination, and the verdict decides
+    # that rather than the wording - so rewording the refusal cannot change it.
+    refused = generation.score_answer(
+        "These differences are described in the source passage[1].",
+        passages,
+        ["returns are accepted within 30 days"],
+        verdict="no_match",
+    )
+    assert refused["refused"] is True, refused
+
+    # Labels in this project's gold set are whole source sentences, and no
+    # generated answer reproduces one. If that ever changes, verbatim jumps and
+    # the numbers below stop being a paraphrase measurement.
+    reworded = generation.answer_relevancy(
+        "Standard returns are accepted within 30 days of delivery [1].",
+        ["Standard returns are accepted within 30 days of delivery"],
+    )
+    assert reworded["verbatim"] == 1.0, reworded
+
+    print("  generation metrics: faithfulness, citation precision, relevance "
+          "- definitions verified")
+
+
+def test_generation_metric_does_not_grade_its_own_model(client: TestClient = None) -> None:
+    """The metrics must run with no model configured at all.
+
+    A judge model would make every one of these assertions cost tokens and be
+    non-deterministic, which is why the definitions are pure instead.
+    """
+    import os
+
+    saved = {k: os.environ.get(k) for k in ("GROQ_API_KEY", "OPENAI_API_KEY")}
+    for key in saved:
+        os.environ.pop(key, None)
+    try:
+        from experiments import generation
+
+        scored = generation.score_answer(
+            "Standard returns are accepted within 30 days [1].",
+            [{"text": "Standard returns are accepted within 30 days of delivery."}],
+            ["standard returns are accepted within thirty days"],
+        )
+        assert scored["faithfulness"]["score"] == 1.0, scored
+        assert scored["citations"]["score"] == 1.0, scored
+        assert scored["relevancy"]["kind"] == "complete", scored
+    finally:
+        for key, value in saved.items():
+            if value is not None:
+                os.environ[key] = value
+    print("  generation metrics: run with no provider configured")
+
+
 def test_retrieval_metric_definitions(client: TestClient = None) -> None:
     from experiments import metrics
 
@@ -2288,6 +2373,8 @@ ORDER = [
     ("type-aware parsing", test_type_aware_parsing),
     ("word sections chunked", test_word_sections_respect_the_chunk_ceiling),
     ("metric definitions", test_retrieval_metric_definitions),
+    ("generation metric definitions", test_generation_metric_definitions),
+    ("generation metrics need no model", test_generation_metric_does_not_grade_its_own_model),
     ("config formats as data", test_config_formats_parsed_as_data),
     ("hard-wrapped text rejoined", test_hard_wrapped_text_is_rejoined),
     ("hybrid tokenisation", test_hybrid_lexical_index),
