@@ -33,7 +33,7 @@ export function Composer({ onSend, busy }) {
           ref={textarea}
           rows={1}
           value={value}
-          placeholder="Ask a question about this session's sources…"
+          placeholder="Ask a question about this notebook's sources…"
           onChange={(e) => {
             setValue(e.target.value);
             grow();

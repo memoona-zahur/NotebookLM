@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { api, setApiBase } from "./api.js";
 import { readIntent } from "./highlightIntent.js";
+import { suggestionsFor } from "./suggestions.js";
 import { Rail } from "./Rail.jsx";
 import { SourcesDrawer } from "./SourcesDrawer.jsx";
 import { Thread } from "./Thread.jsx";
@@ -257,7 +258,17 @@ export default function App() {
           ) : null}
         </header>
 
-        <Thread turns={turns} pending={pending} />
+        {/* Starter questions when the thread is empty. `send` is passed
+            directly rather than wrapped: a suggestion is a question, and it must
+            take the same path as a typed one - same intent parsing, same
+            highlight handling - or the empty state would answer differently
+            from the composer. */}
+        <Thread
+          turns={turns}
+          pending={pending}
+          onSuggest={status ? send : null}
+          suggestions={status ? suggestionsFor(status.sources) : []}
+        />
         <Composer onSend={send} busy={pending} />
       </main>
 

@@ -65,7 +65,7 @@ function Turn({ turn }) {
   );
 }
 
-export function Thread({ turns, pending }) {
+export function Thread({ turns, pending, suggestions = [], onSuggest }) {
   const ref = useRef(null);
   useCitationLinks(ref);
 
@@ -79,22 +79,35 @@ export function Thread({ turns, pending }) {
       <div className="thread" ref={ref}>
         <div className="thread-inner">
           <div className="empty">
-            <h2>Ask your sources anything</h2>
+            <h2>Ask anything about your notebook</h2>
             <p>
-              Answers come only from the documents in this session, with the exact passage
-              cited. Nothing retrieved means no answer — the model is not asked to guess.
+              Answers come only from your uploaded sources, with the exact passage
+              cited.
             </p>
-            <ul>
-              <li>
-                <b>Upload</b> a PDF, DOCX, Markdown, CSV or source file to get started
-              </li>
-              <li>
-                <b>Follow up</b> in the same session and it will remember the thread
-              </li>
-              <li>
-                <b>Open a new session</b> to keep separate sets of documents apart
-              </li>
-            </ul>
+            {/* Suggested questions, as in the reference product. This replaced a
+                paragraph explaining the grounding rules, which was more honest
+                and read as a terms-of-service notice on first load. The grounding
+                rules are still stated - in the composer hint and in every
+                answer's evidence strip - but they are no longer the first thing
+                on screen. */}
+            {onSuggest && suggestions.length ? (
+              <ul className="suggestions">
+                {suggestions.map((question) => (
+                  <li key={question}>
+                    <button type="button" onClick={() => onSuggest(question)}>
+                      {question}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+            {/* With no sources the list would be empty, so the empty state says
+                the one thing that can actually be done next. */}
+            {!suggestions.length ? (
+              <p className="empty-cta">
+                Add a source to start asking questions.
+              </p>
+            ) : null}
           </div>
         </div>
       </div>

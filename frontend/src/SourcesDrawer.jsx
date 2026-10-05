@@ -53,7 +53,7 @@ export function SourcesDrawer({
           {count > 0 ? (
             <button
               className="icon-btn"
-              title="Remove all sources from this session"
+              title="Remove all sources from this notebook"
               aria-label="Remove all sources"
               onClick={onClearSources}
             >
@@ -101,7 +101,7 @@ export function SourcesDrawer({
 
           <div className="sources">
             {count === 0 ? (
-              <p className="sources-empty">Nothing indexed in this session yet.</p>
+              <p className="sources-empty">Nothing indexed in this notebook yet.</p>
             ) : (
               status.sources.map((source) => (
                 <div className="source" key={source.id}>

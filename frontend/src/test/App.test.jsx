@@ -73,13 +73,57 @@ const NO_MATCH = {
 };
 
 describe("first paint", () => {
-  it("states the grounding rules instead of showing a blank page", async () => {
+  it("points at the one action available instead of showing a blank page", async () => {
     await boot();
-    expect(screen.getByText(/Nothing retrieved means no answer/i)).toBeInTheDocument();
+    // With no sources there is nothing to ask about, so the empty state says
+    // so. It used to explain the grounding rules here instead, which read as a
+    // terms-of-service notice on first load.
+    expect(screen.getByText(/Add a source to start asking questions/i)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /send/i })).toBeDisabled();
   });
 
-  it("lists sessions and marks the active one", async () => {
+  it("offers a question as soon as there is a source to ask about", async () => {
+    on("GET", "/api/status", () => ({
+      provider: "groq",
+      model: "openai/gpt-oss-120b",
+      embed_model: "sentence-transformers/all-MiniLM-L6-v2",
+      min_score: 0.25,
+      sources: [
+        { id: "s1", name: "returns-policy.pdf", kind: "pdf", pages: 1, chunks: 2, numeric: 0 },
+      ],
+      chunks: 2,
+    }));
+    const user = await boot();
+
+    // Exact name: two suggestions mention "returns policy" by design.
+    const chip = screen.getByRole("button", {
+      name: "What are the key points about returns policy?",
+    });
+
+    // A suggestion must take the same path as a typed question, so clicking it
+    // sends rather than only filling the box.
+    on("POST", "/api/ask", () => ANSWER);
+    await user.click(chip);
+    await waitFor(() => expect(requests().some((c) => c.method === "POST" && c.path.includes("/api/ask"))).toBe(true));
+    const sent = requests().find((c) => c.method === "POST" && c.path.includes("/api/ask"));
+    expect(JSON.parse(sent.body).question).toBe("What are the key points about returns policy?");
+  });
+
+  it("does not suggest a numbers question for a corpus with no figures", async () => {
+    on("GET", "/api/status", () => ({
+      provider: "groq",
+      model: "openai/gpt-oss-120b",
+      embed_model: "sentence-transformers/all-MiniLM-L6-v2",
+      min_score: 0.25,
+      sources: [{ id: "s1", name: "manifesto.txt", kind: "txt", chunks: 1, numeric: 0 }],
+      chunks: 1,
+    }));
+    await boot();
+    expect(screen.queryByRole("button", { name: /figures and dates/i })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /key points about manifesto/i })).toBeInTheDocument();
+  });
+
+  it("lists notebooks and marks the active one", async () => {
     await boot();
     const rail = screen.getByRole("complementary");
     const options = within(rail).getAllByRole("option");
@@ -87,6 +131,23 @@ describe("first paint", () => {
     expect(options[0]).toHaveAttribute("aria-selected", "true");
     expect(options[0]).toHaveTextContent("Alpha");
     expect(options[1]).toHaveTextContent("Beta");
+  });
+
+  it("filters notebooks by name and says so when nothing matches", async () => {
+    const user = await boot();
+    const rail = screen.getByRole("complementary");
+
+    await user.type(within(rail).getByRole("searchbox", { name: /notebooks/i }), "bet");
+
+    // Alpha must actually leave the list; keeping it visible would make the
+    // search look broken rather than filtered.
+    expect(within(rail).getAllByRole("option")).toHaveLength(1);
+    expect(within(rail).getByText("Beta")).toBeInTheDocument();
+
+    await user.clear(within(rail).getByRole("searchbox", { name: /notebooks/i }));
+    await user.type(within(rail).getByRole("searchbox", { name: /notebooks/i }), "zzz");
+    expect(within(rail).getByText(/No notebooks match/i)).toBeInTheDocument();
+    expect(within(rail).queryAllByRole("option")).toHaveLength(0);
   });
 
   // Regression: the server returns `content`, the client read `text`, and the
@@ -231,7 +292,9 @@ describe("the session-switch race", () => {
     await new Promise((r) => setTimeout(r, 60));
 
     expect(screen.queryByText(/Escape velocity at the surface/)).not.toBeInTheDocument();
-    expect(screen.getByText(/Nothing retrieved means no answer/i)).toBeInTheDocument();
+    // The thread is back to empty and offering to be filled, which is the same
+    // state the switch away from Alpha produced.
+    expect(screen.getByText(/Add a source to start asking questions/i)).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Beta" })).toBeInTheDocument();
   });
 
@@ -368,7 +431,7 @@ describe("chat-first layout", () => {
   // Sources left the rail and moved into a drawer, so the conversation is
   // what occupies the screen. This is the part that can break silently: the
   // drawer exists as a component but nothing reaches it.
-  it("keeps the rail to sessions and hides sources until asked", async () => {
+  it("keeps the rail to notebooks and hides sources until asked", async () => {
     const user = await boot();
     const rail = screen.getByRole("complementary");
 

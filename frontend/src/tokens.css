@@ -1,64 +1,76 @@
 /* Design tokens.
 
-One accent, a warm paper ramp, and semantic confidence colours. Everything
-below references these, so the whole surface retunes from this block.
+These used to be a deliberate departure from the reference product: warm
+"paper" surfaces, a terracotta accent, and a serif for anything the model
+wrote, on the argument that a document you are reading should look like paper
+and that provenance and emphasis should be the same colour. That reasoning was
+recorded in this file and it was not wrong about reading.
+
+It was overridden by a direct instruction to make the app feel like the real
+NotebookLM. Warm paper and a serif is the one thing that could never have felt
+like it, so both went. The argument now lives in the README under "What the
+design gives up" rather than here, because a token block is read by people
+editing the app and a discarded position is only useful to someone who wonders
+why the obvious choice was rejected.
+
+Everything below references these, so the whole surface retunes from this block.
 */
 
 :root {
-  /* Paper, not screen. A document you are reading should look like it is on
-     paper: warm off-white rather than #fff (which glares on a light background
-     for long stretches) and never blue-grey, which reads as "application". */
-  --paper: #faf7f2;
-  --surface: #fffdfa;
-  --surface-2: #f4f0e8;
-  --surface-3: #ebe5d9;
+  /* Neutral light surfaces, matching the reference product. White and a cool
+     grey ramp rather than warm paper: the warmth was a considered choice and
+     it was the single biggest obstacle to the requested fidelity. */
+  --paper: #f8f9fa;
+  --surface: #ffffff;
+  --surface-2: #f1f3f4;
+  --surface-3: #e8eaed;
 
-  /* Warm grey ramp. Text needs more contrast on light than dark: #333 on white
-     is roughly what #bbb on black looks like, so these sit darker than instinct
-     suggests. */
-  --line: #e6dfd2;
-  --line-strong: #d5cbb8;
+  /* Grey ramp. Slightly darker than instinct suggests, because light-mode text
+     needs more contrast than dark-mode text at the same weight. */
+  --line: #e3e5e8;
+  --line-strong: #d0d3d8;
 
-  --text: #2c2823;
-  --text-2: #565049;
-  --muted: #7d766c;
-  --faint: #a8a094;
+  --text: #1f1f1f;
+  --text-2: #444746;
+  --muted: #6b6f73;
+  --faint: #9aa0a6;
 
-  /* A single terracotta accent. Reads as annotation on a page, and it is the
-     colour of the citation marks, so provenance and emphasis are the same
-     colour - which is the point. */
-  --accent: #b4552d;
-  --accent-soft: #b4552d14;
-  --accent-line: #b4552d45;
-  --accent-text: #8f4223;
+  /* One blue accent, as in the reference. It is also the citation colour, so
+     provenance and emphasis stay the same colour - that idea survived the
+     retune, only the hue changed. */
+  --accent: #1a73e8;
+  --accent-soft: #1a73e81f;
+  --accent-line: #1a73e859;
+  --accent-text: #1558b0;
 
-  /* Highlight for a passage a citation scrolled to. Warm yellow, low alpha, so
-     it reads as a marker pen rather than a system alert. */
-  --flash: #f2d99a66;
+  /* The passage a citation scrolled to. Low alpha so it reads as a marker
+     rather than a system alert. */
+  --flash: #fdd66366;
 
-  /* The word the user asked to see, marked in place. Same marker-pen idea as
-     --flash but a step stronger, because this one stays on screen instead of
-     fading, and it must not be mistaken for the citation flash. */
-  --mark: #f0d492;
+  /* The word the user asked to see, marked in place. A step stronger than
+     --flash because this one stays on screen instead of fading, and it must
+     not be mistaken for the citation flash. */
+  --mark: #fdd663;
   --mark-ink: #7a4a12;
 
-  --good: #3f7d52;
-  --mid: #9a6b1f;
-  --warn: #a63f3f;
+  --good: #188038;
+  --mid: #b06000;
+  --warn: #c5221f;
 
   --radius: 8px;
-  --radius-lg: 12px;
+  --radius-lg: 24px;
 
-  /* Serif for anything the model wrote or that came out of a document: the
-     answer should look like prose. Sans for chrome, so the two never blur
-     together. */
-  --font: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia,
-    "Times New Roman", serif;
-  --font-ui: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  /* Sans throughout, matching the reference product. The serif that used to
+     carry model output is gone: it read well and it looked nothing like the
+     thing being imitated, and the second objection wins. */
+  --font: "Google Sans", Roboto, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    system-ui, sans-serif;
+  --font-ui: "Google Sans", Roboto, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    system-ui, sans-serif;
   --mono: "SF Mono", "JetBrains Mono", "Fira Code", ui-monospace, Menlo, monospace;
 
-  --shadow: 0 1px 2px #2c28230a, 0 6px 20px -14px #2c282326;
-  --shadow-lg: 0 2px 4px #2c28230f, 0 16px 40px -20px #2c282333;
+  --shadow: 0 1px 2px #1f1f1f0a, 0 1px 3px #1f1f1f0f;
+  --shadow-lg: 0 2px 6px #1f1f1f14, 0 8px 28px -8px #1f1f1f24;
   --ease: cubic-bezier(0.32, 0.72, 0, 1);
 }
 
@@ -120,7 +132,10 @@ textarea {
   background-clip: content-box;
 }
 *::-webkit-scrollbar-thumb:hover {
-  background: #c0b5a0;
+  /* A step darker than --line-strong rather than a literal: the token retune
+     would have missed this one, because a warm hex sitting in a scrollbar rule
+     looks nothing like a palette decision. */
+  background: var(--muted);
   background-clip: content-box;
 }
 

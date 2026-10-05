@@ -61,6 +61,74 @@ Run the API on port 8000 alongside `npm run dev` and the Vite proxy handles the
 rest. For production, `npm run build` and `python run.py` is enough — the
 compiled bundle is committed, so there is no Node requirement at runtime.
 
+### The interface is meant to look like NotebookLM
+
+The UI is a deliberate attempt at the real product's feel: a notebook rail with
+search on the left, tappable starter questions instead of an empty pane, sans
+type throughout, a single blue accent, and citations that are the accent colour so
+provenance and emphasis are the same thing.
+
+This replaced an earlier design and the reasoning is worth recording, because the
+earlier version was not accidental. It used warm "paper" surfaces, a terracotta
+accent, and a serif for anything the model wrote, on the argument that a document
+you are reading should look like paper on a desk. That argument was sound about
+reading and it was overridden about resemblance: warm paper and a serif is exactly
+the set of choices that can never make something feel like the reference product,
+and feeling like the product was the actual requirement. The discarded position is
+not in `tokens.css` any more, since a token block is read by people editing the
+app and a rejected position is only useful to whoever wonders why the obvious
+choice was avoided.
+
+**What the design gives up.** Long answers are slightly less pleasant to read than
+they were in the serif version. That is a real cost, paid knowingly, and it is the
+first thing to revisit if reading comfort turns out to matter more than resemblance.
+
+### What it does not copy, on purpose
+
+- **NotebookLM's generated artifacts.** Audio overviews, video overviews and mind
+  maps are the reference product's most distinctive feature and this app has none
+  of them. They are a separate model pipeline, not styling.
+- **Real logo.** The rail uses a rounded square in the accent colour. A shape in
+  the brand colour is not a trademark question; the logo itself would be.
+- **The generated-artifact chip row** above the composer, which would only ever
+  render disabled here.
+
+### "Session" and "notebook"
+
+The UI says **notebook**, matching the reference product's name for a named set of
+sources plus its own conversation. Everything below the UI — the API, the database
+schema, the tests — still says **session**, because "notebook" names the concept
+and "session" names the isolation boundary, and the boundary is what the server
+actually enforces. Renaming the plumbing would imply a semantic change that is not
+being made.
+
+### Starter questions are name-derived, not content-derived
+
+`suggestions.js` builds the empty-state questions from source *filenames*, source
+*kinds*, and each source's numeric-density flag. The reference product reads the
+notebook to write its suggestions, which means a model call on every load — money
+and latency before the user has typed anything. Names, kinds and the flag are
+already in memory from `/api/status`, so this costs nothing and cannot fail.
+
+The honest limitation: for a notebook called `notes.txt` the suggestions are
+generic. Three guards keep them from being worse than useless:
+
+- **No suggestions at all for an empty notebook.** Every one would be a refusal,
+  and that would be the first impression.
+- **No figures question unless there is reason to think there are figures** — a
+  spreadsheet, or a source with numeric-dense chunks. Prose that happens to
+  mention "30 days" triggers neither. Two signals rather than one, because the
+  numeric flag almost never fires for spreadsheets: the CSV parser reshapes a
+  table into `Label: Value` lines, and `Revenue: 12000` is 5 digits in 13
+  characters, far below the density `parsers.is_numeric_heavy` asks for. A
+  40-row revenue table and a one-paragraph memo both report `numeric: 0`.
+- **No filename too short or too long to read in a sentence.** When every name is
+  dropped, the fallback questions are generic by wording rather than by accident,
+  because "the key points about r2?" is worse than no question.
+
+If generic suggestions prove not worth having, the fix is an endpoint that samples
+a few chunks and asks for questions, not a longer hardcoded list.
+
 ## Run without Docker
 
 You need a PostgreSQL 16 server with the `vector` extension available
