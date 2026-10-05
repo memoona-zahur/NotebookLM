@@ -314,7 +314,12 @@ describe("chat-first layout", () => {
       model: "openai/gpt-oss-120b",
       embed_model: "sentence-transformers/all-MiniLM-L6-v2",
       min_score: 0.25,
-      sources: [{ name: "kepler.pdf", kind: "pdf", chunks: 2 }, { name: "notes.txt", kind: "txt", chunks: 1 }],
+      // `id` is included because the real /api/status always sends one and the
+      // drawer keys its list on it; a fixture without it makes React warn.
+      sources: [
+        { id: "s1", name: "kepler.pdf", kind: "pdf", chunks: 2 },
+        { id: "s2", name: "notes.txt", kind: "txt", chunks: 1 },
+      ],
       chunks: 3,
     }));
 

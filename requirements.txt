@@ -14,3 +14,7 @@ tomli>=2.0; python_version < "3.11"
 httpx>=0.27
 openai>=1.40
 pydantic>=2.7
+
+# Tests only. Kept here rather than in a separate file so that the documented
+# `pip install -r requirements.txt` gives a checkout that can run ./run_tests.sh.
+pytest>=8.0

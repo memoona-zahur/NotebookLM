@@ -9,3 +9,7 @@ __pycache__/
 # requirements.txt` and `python run.py` work without a Node toolchain.
 node_modules/
 frontend/.vite/
+
+# Scratch PDFs the parser tests rasterise into. They are tens of megabytes and
+# are rewritten on every run.
+notebooklm-parse-tests/

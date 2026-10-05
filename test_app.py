@@ -1616,6 +1616,70 @@ def test_retrieval_metric_definitions(client: TestClient = None) -> None:
     print("  metrics: definitions behave as documented")
 
 
+def test_rebuilding_the_corpus_does_not_dirty_the_checkout(
+    client: TestClient = None,
+) -> None:
+    """`eval_gold.run` rebuilds the corpus, and the corpus is committed.
+
+    A PDF and a DOCX both carry a creation timestamp, so regenerating one that
+    already exists produced a byte-different file with identical text. Every test
+    run then left three modified binaries in `git status`, which trains you to
+    ignore the output of `git status` and to commit changes you did not make.
+
+    Compared on bytes, since that is what `git status` reports. The plain text
+    documents are rewritten every run and land identical, so only the binary
+    formats have to be left alone.
+    """
+    from experiments import corpus
+
+    target = eval_gold_corpus()
+    binary = sorted(n for n in corpus.PROSE_PAGES if (target / n).exists())
+    binary.append("agronomy.docx")
+    before = {n: (target / n).read_bytes() for n in binary}
+
+    corpus.build(target)
+
+    changed = sorted(n for n in binary if (target / n).read_bytes() != before[n])
+    assert not changed, f"regenerated with identical content: {changed}"
+    print(f"  corpus: {len(binary)} binary documents left byte-for-byte alone")
+
+
+def test_corpus_build_still_replaces_a_changed_document(
+    client: TestClient = None,
+) -> None:
+    """The skip above must not turn a stale corpus into a permanent one."""
+    import tempfile
+
+    from experiments import corpus
+
+    with tempfile.TemporaryDirectory() as folder:
+        target = Path(folder)
+        corpus.build(target)
+        missing = target / "brew-guide.pdf"
+        assert missing.exists(), "the fixture corpus did not build"
+        expected = missing.read_bytes()
+
+        missing.unlink()
+        assert corpus._needs_write(expected, missing), "a missing file must be written"
+
+        corpus.build(target)
+        assert missing.exists(), "a missing document was not rebuilt"
+
+        # Not a byte comparison: a rebuild stamps a new creation time. The check
+        # is that the recovered text is the same document.
+        from app import parsers
+
+        rebuilt = " ".join(b.text for b in parsers.parse(missing))
+        assert "mash tun" in rebuilt, rebuilt[:200]
+    print("  corpus: a missing document is rebuilt")
+
+
+def eval_gold_corpus() -> Path:
+    from experiments import eval_gold
+
+    return eval_gold.CORPUS
+
+
 def test_gold_set_cannot_be_scored_until_verified(client: TestClient = None) -> None:
     import json as _json
     import tempfile
@@ -2161,6 +2225,8 @@ ORDER = [
     ("refused question skips the model", test_refused_question_never_calls_the_model),
     # Clears the notebook, so it must stay last.
     ("unverified gold cannot be scored", test_gold_set_cannot_be_scored_until_verified),
+    ("rebuild leaves the corpus alone", test_rebuilding_the_corpus_does_not_dirty_the_checkout),
+    ("a changed corpus file is rebuilt", test_corpus_build_still_replaces_a_changed_document),
     ("cloze labels are checked mechanically", test_cloze_labels_are_checked_mechanically),
     ("labels can actually fail", test_labels_can_actually_fail),
     ("machine labels are gated not trusted", test_machine_checked_labels_are_gated_not_trusted),

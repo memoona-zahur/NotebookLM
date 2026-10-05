@@ -16,7 +16,10 @@ answers. Those "entity-overlap traps" are the ones that separate a working
 retriever from a plausible-looking one.
 """
 
+import io
 import json
+import tempfile
+from pathlib import Path
 
 PROSE_PAGES = {
     "brew-guide.pdf": [
@@ -777,14 +780,47 @@ def _docx(paragraphs, table):
     return word
 
 
+def _needs_write(payload: bytes, path: Path) -> bool:
+    """Whether `payload` differs in content from what is already at `path`.
+
+    Compared on parsed text rather than bytes: the writers embed a creation
+    timestamp, so a byte comparison reports a change on every run and rewrites a
+    file whose content is identical, leaving the checkout permanently dirty.
+    """
+    if not path.exists():
+        return True
+    if path.read_bytes() == payload:
+        return False
+    with tempfile.TemporaryDirectory() as folder:
+        candidate = Path(folder) / path.name
+        candidate.write_bytes(payload)
+        try:
+            from app.parsers import parse as _parse
+
+            fresh = " ".join(b.text for b in _parse(candidate))
+            current = " ".join(b.text for b in _parse(path))
+        except Exception:
+            # If either will not parse, fall back to bytes. An unnecessary rewrite
+            # is harmless; skipping a genuinely changed file is not.
+            return True
+    return current != fresh
+
+
 def build(target):
-    """Write the whole corpus into `target` and return {filename: questions}."""
+    """Write the whole corpus into `target` and return {filename: questions}.
+
+    A PDF or DOCX carries a creation timestamp, so regenerating one that is
+    already there produces a different file with identical content and leaves the
+    checkout permanently dirty. The corpus is committed, so only write a document
+    that is missing or whose bytes actually differ.
+    """
     target.mkdir(parents=True, exist_ok=True)
     written = {}
 
     for name, pages in PROSE_PAGES.items():
         doc = _pdf(pages)
-        doc.save(target / name)
+        if _needs_write(doc.tobytes(), target / name):
+            doc.save(target / name)
         doc.close()
         written[name] = name
 
@@ -833,11 +869,11 @@ def build(target):
             ["foliar", "0", "field lead", "101"],
         ],
     )
-    word.save(target / "agronomy.docx")
+    buffer = io.BytesIO()
+    word.save(buffer)
+    if _needs_write(buffer.getvalue(), target / "agronomy.docx"):
+        (target / "agronomy.docx").write_bytes(buffer.getvalue())
 
-    for name in written:
-        pass
-    for extra in ("agronomy.docx",):
-        written[extra] = extra
+    written["agronomy.docx"] = "agronomy.docx"
 
     return written
