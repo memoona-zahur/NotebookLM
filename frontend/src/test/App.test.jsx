@@ -46,6 +46,13 @@ const ANSWER = {
     considered: 40,
     returned: 6,
     invalid: [],
+    cost: {
+      called: true,
+      total_tokens: 8234,
+      estimated: false,
+      retrieval_ms: 41.2,
+      generation_ms: 890.4,
+    },
   },
   citations: [
     { source: "kepler.pdf", page: 3, score: 0.42, text: "The photometer has 42 CCDs." },
@@ -60,6 +67,7 @@ const NO_MATCH = {
     verdict: "no_match",
     best_score: 0.11,
     min_score: 0.25,
+    cost: { called: false, retrieval_ms: 12, total_tokens: 0 },
   },
   citations: [],
 };
@@ -132,6 +140,27 @@ describe("asking a question", () => {
     expect(await screen.findByText(/Escape velocity at the surface/)).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "[1]" })).toHaveAttribute("href", "#cite-1");
     expect(screen.getByText("high confidence")).toBeInTheDocument();
+  });
+
+  // Cost sits next to confidence on purpose: "should I believe this" and "was
+  // this worth asking" are the two questions a grounded system has to answer.
+  it("shows what the question cost next to the confidence chip", async () => {
+    on("POST", "/api/ask", () => ANSWER);
+    const user = await boot();
+
+    await ask(user, "what is escape velocity?");
+
+    expect(await screen.findByText(/8,234 tokens/)).toBeInTheDocument();
+    expect(screen.getByText(/890ms to answer/)).toBeInTheDocument();
+  });
+
+  it("says a refusal spent no tokens", async () => {
+    on("POST", "/api/ask", () => NO_MATCH);
+    const user = await boot();
+
+    await ask(user, "unrelated question");
+
+    expect(await screen.findByText(/no tokens spent/i)).toBeInTheDocument();
   });
 
   it("lists the passages behind the answer", async () => {
@@ -286,6 +315,52 @@ describe("failure modes", () => {
     await ask(user, "does the user get told?");
 
     expect(await screen.findByText(/Could not reach the server/)).toBeInTheDocument();
+  });
+});
+
+describe("two instructions in one message", () => {
+  // The regression this exists for: "what is the fee? highlight late payment"
+  // used to be sent to the server whole, so retrieval searched for the words
+  // "highlight late payment" too. That is noise in the dense query and in BM25,
+  // and it is unrecoverable downstream.
+  it("asks the question and highlights, and sends only the question to the model", async () => {
+    on("POST", "/api/ask", () => ANSWER);
+    const user = await boot();
+
+    await ask(user, "what is the return window? highlight 30 days");
+
+    expect(await screen.findByText(/Escape velocity at the surface/)).toBeInTheDocument();
+    const sent = JSON.parse(requests().find((r) => r.path === "/api/ask").body);
+    expect(sent.question).toBe("what is the return window");
+    expect(sent.question).not.toMatch(/highlight/i);
+
+    // And the drawer opened on the word, without waiting for the answer.
+    const drawer = await screen.findByRole("dialog");
+    await waitFor(() =>
+      expect(within(drawer).getByPlaceholderText(/highlight a word/i)).toHaveValue("30 days")
+    );
+  });
+
+  // The user typed one message, so the thread shows one message. Appending per
+  // branch in send() would render it twice, which reads as a duplicate send.
+  it("shows the message the user typed, once, not the stripped question", async () => {
+    on("POST", "/api/ask", () => ANSWER);
+    const user = await boot();
+
+    await ask(user, "what is the return window? highlight 30 days");
+
+    await screen.findByText(/Escape velocity at the surface/);
+    expect(screen.getAllByText("what is the return window? highlight 30 days")).toHaveLength(1);
+  });
+
+  // A bare command must not become an answer, and must not be asked about.
+  it("never calls the model for a bare highlight command", async () => {
+    const user = await boot();
+
+    await ask(user, "highlight late payment");
+
+    expect(await screen.findByRole("dialog")).toBeInTheDocument();
+    expect(requests().filter((r) => r.path === "/api/ask")).toHaveLength(0);
   });
 });
 

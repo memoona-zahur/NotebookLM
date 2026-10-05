@@ -786,6 +786,12 @@ mark.hit {
 .chip.warn::before {
   display: none;
 }
+/* Cost is not a quality signal, so it stays neutral; a refusal is the one
+   cost line that reads as good news and takes the green. */
+.evidence .chip.ok {
+  border-color: #3f7d5240;
+  color: var(--good);
+}
 .evidence .nomatch {
   color: var(--mid);
 }

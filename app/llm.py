@@ -1,7 +1,8 @@
 import re
+import time
 from dataclasses import dataclass
 
-from . import config
+from . import config, usage
 
 SYSTEM_PROMPT = """You are a research assistant that answers questions ONLY from the provided SOURCES.
 
@@ -30,6 +31,24 @@ _FULLWIDTH_DIGITS = str.maketrans("０１２３４５６７８９", "0123456789"
 
 class LLMUnavailable(RuntimeError):
     pass
+
+
+# Usage for the most recent provider call. Module-level because the call happens
+# deep inside the provider path and threading a return value back up through
+# every wrapper would touch five functions to carry one integer.
+#
+# Safe because the app handles a request at a time in a worker thread and reads
+# this immediately after the call it made. It would be wrong under concurrent
+# async requests sharing a thread pool, which is the trade: a per-call object
+# threaded through the stack is correct everywhere and adds a parameter to every
+# signature for a number nothing else needs. If this app ever runs requests
+# concurrently, this becomes a contextvar.
+_last_usage: usage.Usage | None = None
+
+
+def last_usage() -> usage.Usage:
+    """Usage for the call just made, or an empty reading if none was made."""
+    return _last_usage or usage.Usage(model="", called=False)
 
 
 @dataclass
@@ -198,15 +217,28 @@ def _finish(raw: str, passages: int) -> Grounded:
 
 
 def _openai_compatible(messages: list[dict], base_url: str, api_key: str, model: str) -> str:
+    """One completion against any OpenAI-compatible endpoint.
+
+    Groq and OpenAI differ only in base URL, key and model, so they share this
+    path. The last reply is kept on the function so the caller can report what
+    the call cost; token counts are read off the provider response rather than
+    guessed, and fall back to a labelled estimate when it reports none.
+    """
     from openai import OpenAI
 
     client = OpenAI(base_url=base_url, api_key=api_key)
+    started = time.perf_counter()
     response = client.chat.completions.create(
         model=model,
         messages=messages,
         temperature=0.2,
     )
-    return response.choices[0].message.content or ""
+    elapsed = (time.perf_counter() - started) * 1000
+
+    text = response.choices[0].message.content or ""
+    global _last_usage
+    _last_usage = usage.from_response(model, messages, response, elapsed, text)
+    return text
 
 
 def _openai(messages: list[dict]) -> str:
@@ -232,7 +264,9 @@ def _groq(messages: list[dict]) -> str:
 def _ollama(messages: list[dict]) -> str:
     import httpx
 
+    global _last_usage
     try:
+        started = time.perf_counter()
         response = httpx.post(f"{config.OLLAMA_URL}/api/chat", json={
             "model": config.OLLAMA_MODEL,
             "messages": messages,
@@ -240,7 +274,26 @@ def _ollama(messages: list[dict]) -> str:
             "options": {"temperature": 0.2},
         }, timeout=180)
         response.raise_for_status()
-        return response.json()["message"]["content"]
+        elapsed = (time.perf_counter() - started) * 1000
+
+        body = response.json()
+        text = body["message"]["content"]
+        # Ollama reports prompt_eval_count and eval_count. Older builds and some
+        # proxies omit them, and then the counts come back as None rather than
+        # zero - which must not be reported as a free request.
+        _last_usage = usage.from_response(
+            config.OLLAMA_MODEL,
+            messages,
+            # Shaped like the shared reader's input, so there is one place that
+            # knows how to read a provider's counts.
+            type("OllamaUsage", (), {"usage": type("U", (), {
+                "prompt_tokens": body.get("prompt_eval_count"),
+                "completion_tokens": body.get("eval_count"),
+            })()})(),
+            elapsed,
+            text,
+        )
+        return text
     except Exception as exc:  # noqa: BLE001
         raise LLMUnavailable(
             f"Could not reach Ollama at {config.OLLAMA_URL}. "
@@ -250,11 +303,24 @@ def _ollama(messages: list[dict]) -> str:
 
 
 def _generate(messages: list[dict]) -> str:
-    return {
+    global _last_usage
+    # Cleared before the call, not left from a previous one: a provider that
+    # raises or that reports nothing must not be credited with the previous
+    # request's tokens.
+    _last_usage = None
+    text = {
         "openai": _openai,
         "groq": _groq,
         "ollama": _ollama,
     }.get(config.resolved_provider(), _ollama)(messages)
+
+    if _last_usage is None:
+        # Text came back but nothing recorded a count. That is still a model call
+        # that cost tokens, so record a labelled estimate rather than leaving the
+        # cost blank and letting it read as free. A stubbed provider lands here,
+        # which is why this is an estimate and not a measurement.
+        _last_usage = usage.estimate(config.resolved_model(), messages, 0.0, text)
+    return text
 
 
 def answer(question: str, hits: list[dict], history: list[dict]) -> Grounded:

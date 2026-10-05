@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { api, setApiBase } from "./api.js";
-import { highlightTerm as parseHighlightTerm } from "./highlightIntent.js";
+import { readIntent } from "./highlightIntent.js";
 import { Rail } from "./Rail.jsx";
 import { SourcesDrawer } from "./SourcesDrawer.jsx";
 import { Thread } from "./Thread.jsx";
@@ -171,26 +171,37 @@ export default function App() {
     const id = sessionRef.current;
     if (!id) return;
 
-    // A highlight command is a lookup, not a question, so it must not reach the
-    // model: it would answer in prose about a word instead of showing where the
-    // word is. Everything it needs is already in the drawer, so this just opens
-    // it with the word filled in.
-    const wanted = parseHighlightTerm(question);
-    if (wanted) {
-      setTurns((all) => [...all, { role: "user", text: question }]);
+    // A message can carry two instructions: what to ask, and which words to
+    // highlight. Only the question is retrieved on or shown to the model, so
+    // "highlight 30 days" does not dilute the search.
+    const { question: asked, term } = readIntent(question);
+
+    // The highlight is a lookup over the index, so it runs whether or not there
+    // is a question to answer, and before the model call so the passages are on
+    // screen while it is still thinking.
+    if (term) {
       commands.current += 1;
-      setHighlight({ term: wanted, id: commands.current });
+      setHighlight({ term, id: commands.current });
       setSourcesOpen(true);
+    }
+
+    // Nothing to answer: a bare "highlight velocity" is a lookup, and calling the
+    // model on it produces prose about the word instead of showing where it is.
+    // The turn is still recorded, because the user did type it.
+    if (!asked) {
+      setTurns((all) => [...all, { role: "user", text: question }]);
       return;
     }
 
-    // Show the question immediately; the server keeps the real transcript, so
-    // this local copy is purely optimistic and gets replaced on the next load.
+    // Show the question the user typed, not the stripped version, so the thread
+    // matches what they sent. Only the model receives the stripped question.
+    // Added once whether or not there was also a highlight; appending per branch
+    // would show the message twice.
     setTurns((all) => [...all, { role: "user", text: question }]);
     setPendingFor(id);
 
     try {
-      const answer = await api.ask(id, question);
+      const answer = await api.ask(id, asked);
       if (sessionRef.current !== id) return; // the user switched sessions
       setTurns((all) => [
         ...all,

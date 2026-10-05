@@ -130,4 +130,73 @@ describe("Evidence", () => {
     const { container } = render(<Evidence evidence={null} />);
     expect(container).toBeEmptyDOMElement();
   });
+
+  const answered = {
+    verdict: "answered",
+    confidence: "high",
+    best_score: 0.51,
+    considered: 40,
+    returned: 6,
+    invalid: [],
+  };
+
+  it("shows tokens and split latency when the model was called", () => {
+    render(
+      <Evidence
+        evidence={{
+          ...answered,
+          cost: {
+            called: true,
+            total_tokens: 8234,
+            estimated: false,
+            retrieval_ms: 41.2,
+            generation_ms: 890.4,
+          },
+        }}
+      />,
+    );
+    expect(screen.getByText(/8,234 tokens/)).toBeInTheDocument();
+    // Split, not totalled: retrieval is local CPU, generation is the network.
+    expect(screen.getByText(/890ms to answer/)).toBeInTheDocument();
+    expect(screen.getByText(/41ms to search/)).toBeInTheDocument();
+  });
+
+  // An estimate shown as a measurement is a lie about precision, so it is
+  // marked as one. The server knows the difference and says so.
+  it("marks an estimated token count as estimated", () => {
+    render(
+      <Evidence
+        evidence={{
+          ...answered,
+          cost: {
+            called: true,
+            total_tokens: 900,
+            estimated: true,
+            retrieval_ms: 5,
+            generation_ms: 20,
+          },
+        }}
+      />,
+    );
+    expect(screen.getByText(/900 tokens \(est\.\)/)).toBeInTheDocument();
+  });
+
+  it("says a refusal cost nothing instead of showing zero tokens", () => {
+    render(
+      <Evidence
+        evidence={{
+          ...answered,
+          cost: { called: false, retrieval_ms: 12, total_tokens: 0 },
+        }}
+      />,
+    );
+    expect(screen.getByText(/no tokens spent/i)).toBeInTheDocument();
+    // "0 tokens" alone would read as a failed measurement.
+    expect(screen.queryByText(/0 tokens/)).not.toBeInTheDocument();
+  });
+
+  it("says nothing about cost when the server sent none", () => {
+    render(<Evidence evidence={{ ...answered }} />);
+    expect(screen.queryByText(/tokens/)).not.toBeInTheDocument();
+  });
 });

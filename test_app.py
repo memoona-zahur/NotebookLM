@@ -55,7 +55,7 @@ from fastapi.testclient import TestClient
 
 from app.main import app
 from app import config as cfg
-from app import db, llm, ocr, parsers
+from app import db, llm, ocr, parsers, usage
 from app.store import SearchResult
 
 db.migrate()
@@ -459,7 +459,87 @@ def test_refused_question_never_calls_the_model(client: TestClient) -> None:
     assert res.status_code == 200, res.text
     assert res.json()["evidence"]["verdict"] == "no_match", res.json()
     assert not calls, "the model must not be called when nothing is relevant"
+
+    # A refusal has a cost, and the cost is that no tokens were bought. Reporting
+    # this explicitly is what makes "how often do we refuse" answerable later.
+    cost = res.json()["evidence"]["cost"]
+    assert cost["called"] is False, cost
+    assert cost["total_tokens"] == 0, cost
+    assert cost["retrieval_ms"] >= 0, cost
+    assert cost["verdict"] == "no_match", cost
     print("  refused question: model not called: OK")
+
+
+def test_ask_reports_the_cost_of_the_question(client: TestClient) -> None:
+    """Every answer must say what it cost, or cost is invisible.
+
+    A grounded answer can still be a wasteful one, and with no number on the
+    response there is no way to tell a well-scoped question from one that drags
+    the whole library into the prompt.
+    """
+    with stubbed(STUB):
+        res = client.post("/api/ask", json={"question": RELEVANT_Q, "history": []})
+    assert res.status_code == 200, res.text
+    cost = res.json()["evidence"]["cost"]
+
+    assert cost["called"] is True, cost
+    assert cost["verdict"] == "answered", cost
+    assert cost["passages_sent"] >= 1, cost
+    assert cost["context_chars"] > 0, cost
+    assert cost["retrieval_ms"] >= 0 and cost["generation_ms"] >= 0, cost
+    # The stubbed provider reports no counts, so this must be labelled an
+    # estimate rather than presented as a measurement.
+    assert cost["estimated"] is True, cost
+    assert cost["prompt_tokens"] > 0, cost
+    assert cost["total_tokens"] == cost["prompt_tokens"] + cost["completion_tokens"], cost
+    print("  /api/ask cost ->", cost["model"], cost["total_tokens"], "tokens",
+          f"({cost['retrieval_ms']}ms retrieval + {cost['generation_ms']}ms generation)")
+
+
+def test_provider_reported_tokens_are_used_not_guessed(client: TestClient) -> None:
+    """A number the provider reported outranks a character-count guess.
+
+    Estimating when an exact count is available would make the estimate
+    untestable against reality and quietly wrong for non-English text.
+    """
+    prompt_chars = len(RELEVANT_Q)
+    reported = 4321
+
+    class FakeUsage:
+        prompt_tokens = reported
+        completion_tokens = 77
+
+    class FakeResponse:
+        usage = FakeUsage()
+
+    saved = llm._openai
+    captured: dict = {}
+
+    def fake_compatible(messages, base_url, api_key, model):
+        captured["chars"] = sum(len(str(m.get("content") or "")) for m in messages)
+        llm._last_usage = usage.from_response(
+            model, messages, FakeResponse(), 12.0, "answer text"
+        )
+        return "answer text [1]"
+
+    llm._openai = lambda messages: fake_compatible(
+        messages, None, cfg.OPENAI_API_KEY, cfg.OPENAI_MODEL
+    )
+    try:
+        with provider("openai"):
+            res = client.post("/api/ask", json={"question": RELEVANT_Q, "history": []})
+    finally:
+        llm._openai = saved
+
+    assert res.status_code == 200, res.text
+    cost = res.json()["evidence"]["cost"]
+    assert cost["prompt_tokens"] == reported, cost
+    assert cost["completion_tokens"] == 77, cost
+    assert cost["estimated"] is False, cost
+    # The real prompt is far larger than the question alone, which is the point:
+    # what you pay for is the context, not the question.
+    assert captured["chars"] > prompt_chars, captured
+    assert cost["generation_ms"] == 12.0, cost
 
 
 # --------------------------------------------------------------------------
@@ -2174,6 +2254,8 @@ ORDER = [
     ("status and indexing", test_status_and_indexing),
     ("retrieval quality", test_retrieval_quality),
     ("ask returns answer + audit", test_ask_returns_answer_and_audit),
+    ("ask reports cost", test_ask_reports_the_cost_of_the_question),
+    ("reported tokens beat estimates", test_provider_reported_tokens_are_used_not_guessed),
     ("static files and empty question", test_static_and_empty_question),
     ("frontend bundle served", test_frontend_bundle_is_served),
     ("llm unavailable -> 503", test_llm_unavailable_returns_503),

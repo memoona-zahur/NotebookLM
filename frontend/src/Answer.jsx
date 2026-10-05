@@ -93,6 +93,10 @@ export function Evidence({ evidence }) {
           {Math.round(evidence.min_score * 100)}% floor. The model was not asked, so
           nothing was invented.
         </span>
+        {/* A refusal is the cheapest answer, and saying so is the point. The
+            sentence above already explains the model was skipped; this records
+            that the skip cost nothing. */}
+        <Cost cost={evidence.cost} />
       </div>
     );
   }
@@ -112,6 +116,36 @@ export function Evidence({ evidence }) {
       {evidence.numeric_damped && evidence.numeric_share < 0.5 ? (
         <span className="chip warn">numeric passages damped</span>
       ) : null}
+      <Cost cost={evidence.cost} />
     </div>
+  );
+}
+
+/**
+ * What the question cost, in the same strip as how confident retrieval was.
+ *
+ * Retrieval confidence answers "should I believe this"; cost answers "was this
+ * worth asking". Both are shown because an answer can be well-cited and still
+ * have dragged half the library into the prompt, and that is only visible if
+ * the tokens are on screen.
+ *
+ * Latency is split rather than totalled, because retrieval and generation fail
+ * for unrelated reasons and one number hides which one was slow.
+ */
+function Cost({ cost }) {
+  if (!cost) return null;
+
+  if (!cost.called) {
+    return <span className="chip ok">no tokens spent — refused before the model</span>;
+  }
+
+  const ms = Math.round(cost.generation_ms);
+  const seconds = ms >= 1000 ? `${(ms / 1000).toFixed(1)}s` : `${ms}ms`;
+
+  return (
+    <span className="chip" title={cost.estimated ? "Token count estimated from text length" : "Token count reported by the provider"}>
+      {cost.total_tokens.toLocaleString()} tokens{cost.estimated ? " (est.)" : ""} ·{" "}
+      {seconds} to answer · {Math.round(cost.retrieval_ms)}ms to search
+    </span>
   );
 }

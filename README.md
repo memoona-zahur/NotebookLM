@@ -238,7 +238,7 @@ session; without one it uses the default session.
 | `POST` | `/api/sources` | Upload a file (multipart `file`) |
 | `DELETE` | `/api/sources/{id}` | Remove one source |
 | `DELETE` | `/api/sources` | Clear the session's sources |
-| `POST` | `/api/ask` | `{question}` → `{answer, citations, evidence}` |
+| `POST` | `/api/ask` | `{question}` → `{answer, citations, evidence}` (`evidence.cost` carries tokens and latency, see below) |
 | `POST` | `/api/summarize` | `{instruction}` → `{summary, citations, evidence}` |
 | `GET` | `/api/occurrences` | `{term}` → every place this session's documents use the word |
 
@@ -361,9 +361,55 @@ document, and a silently short list would read as "that is all of them".
 In the UI this is reachable two ways, both running the same search: type the
 word into the **Highlight a word** box in the Sources drawer, or say
 `highlight velocity` (also `where does velocity appear`, `mark every mention of
-…`) in the composer. A recognised command opens the drawer with the word
-marked and never reaches the model — it is a lookup, not a question. Anything
-the parser does not recognise falls through to `/api/ask` untouched.
+…`) in the composer.
+
+A recognised command opens the drawer with the word marked and never reaches the
+model — it is a lookup, not a question. Anything the parser does not recognise
+falls through to `/api/ask` untouched.
+
+### Two instructions in one message
+
+A message can be both a question and a highlight request, and the two halves are
+handled separately:
+
+```
+what is the return window? highlight 30 days
+```
+
+This asks the question *and* marks every occurrence of `30 days`. The answer
+appears in the thread while the drawer is already open on the word, because the
+highlight search does not depend on the answer.
+
+Only the question is sent to the server. `highlight 30 days` inside the message
+would otherwise be embedded into the dense query and scored by BM25 as if it were
+evidence the user wanted to find, which biases retrieval toward passages about
+highlighting rather than about return windows — and the noise is unrecoverable
+downstream, because nothing later can tell a model that half the question was an
+instruction. The user still sees exactly what they typed in the thread; only the
+model receives the stripped question.
+
+Parsing is deliberately conservative, in `frontend/src/highlightIntent.js`:
+
+- The split only happens on an explicit separator (`?`, `,`, `and`, `then`, new
+  line) followed by a recognised highlight verb. A question that merely contains
+  the word "highlight" — *"how do I highlight a citation?"* — is left alone, as is
+  *"which section should I highlight for the summary?"*
+- A question that ends in a question mark with no highlight clause is left alone.
+- Only the first clause is treated as the question, and only when the remainder
+  begins with a highlight verb.
+
+The failure modes are asymmetric. A missed split means the highlight does not
+happen and the full message is asked, which is recoverable by typing `highlight
+…` again. An over-eager split silently discards part of a real question, so the
+parser is biased towards not splitting.
+
+One thing that is deliberately **not** handled: a highlight term that itself ends
+in a conjunction, such as `highlight 30 days and 2%`. The term parser rejects a
+trailing `and`, because it cannot tell that conjunction from the one the question
+splitter uses, so the whole message is asked instead and nothing is highlighted.
+Accepting it would mean guessing where the term ends and where the question
+resumes, and guessing wrong sends the wrong half to the model. A second explicit
+separator such as `also highlight` would resolve it without guessing.
 
 ## Grounding guarantees
 
@@ -569,6 +615,62 @@ Three corpus documents are still uncovered: `catalysis.txt`, `glaciology.pdf`,
   a conservative default rather than a guarantee; callers needing stricter behaviour pass a
   higher `min_score` per query.
 - `MIN_RATIO` and `NUMERIC_PENALTY_SHARE` are unvalidated by the current corpus.
+
+## What a question costs
+
+Every `/api/ask` response carries a `cost` object next to `evidence`, and the UI
+shows it in the same strip as the confidence chip. That placement is deliberate:
+one answers *should I believe this*, the other answers *was this worth asking*.
+A well-cited answer can still be a wasteful one.
+
+```json
+"cost": {
+  "model": "openai/gpt-oss-120b",
+  "verdict": "answered",
+  "passages_sent": 1,
+  "context_chars": 99,
+  "retrieval_ms": 18.0,
+  "generation_ms": 1179.6,
+  "total_tokens": 526,
+  "prompt_tokens": 461,
+  "completion_tokens": 65,
+  "estimated": false,
+  "called": true
+}
+```
+
+Four decisions here, and what they reject:
+
+**Latency is split, never totalled.** Retrieval is local CPU work and generation is a
+network call. They fail for unrelated reasons, and a single `total_ms` hides which one
+was slow: a slow answer from disk needs better retrieval, a slow answer from the
+network needs a different provider or a smaller context. One number cannot tell them
+apart, so there are two.
+
+**A refusal reports zero tokens as a measurement, not as an absence.** When the
+relevance floor rejects a question the model is never called, and `called: false` with
+zero tokens is the finding. It also means "how often do we refuse" is answerable from
+the response itself. Omitting the block instead would make a free answer and a
+broken measurement look identical.
+
+**Token counts come from the provider, and an estimate says so.** `prompt_tokens` and
+`completion_tokens` are read off the provider response. When a provider reports none
+(older Ollama builds, some proxies) the count falls back to a character-length
+approximation and flips `estimated: true`, which the UI renders as `(est.)`. An
+estimate shown as a measurement is a claim about precision the system does not have,
+and it is worse than no number because it looks equally trustworthy in both the good
+and the bad case.
+
+**Prompt tokens dominate, and that is the point.** In the example above the question
+is about fifteen words and the prompt is 461 tokens. What you pay for is the retrieved
+context plus the system prompt, not the question. This is why `context_chars` and
+`passages_sent` are reported alongside the tokens: the lever that reduces cost is
+sending less evidence, which is a retrieval decision, not a generation one.
+
+`total_tokens` is reported rather than converted to currency. A dollar figure would
+need a price table that goes stale, and would imply the number means the same thing
+across Groq, OpenAI and a local Ollama. Tokens plus the model name stays true when
+prices change.
 
 ## How grounding works
 

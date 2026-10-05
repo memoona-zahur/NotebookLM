@@ -99,7 +99,13 @@ function plausible(term) {
 }
 
 /**
- * The word the user asked to see, or null if this message is a real question.
+ * The word a single, standalone highlight command asks for, or null.
+ *
+ * This is the original parser and the rules that keep it conservative: it only
+ * accepts a message that is *entirely* a highlight request, so "what is escape
+ * velocity" and "highlight the difference between the two papers" both fall
+ * through to the model. `readIntent` below layers the two-instruction case on
+ * top of this, and deliberately reuses these rules rather than loosening them.
  *
  * Returns the user's own casing: the search is case-insensitive, but echoing
  * back "Velocity" when they typed "Velocity" reads better than normalising it.
@@ -135,4 +141,99 @@ export function highlightTerm(message) {
   }
 
   return null;
+}
+
+/**
+ * Split a message into the part that asks a question and the part that names
+ * words to highlight.
+ *
+ * Two instructions in one message are common - "what is the late penalty?
+ * highlight 30 days" - and before this existed the whole string went to the
+ * model, so retrieval was searching for the words "highlight 30 days" as well
+ * as the question. The instruction text dilutes the dense query and adds noise
+ * to BM25, which is the one thing the retrieval work cannot recover from.
+ *
+ * Returns `{question, term}`:
+ *   - both a question and a term, when the message asks and highlights
+ *   - `question: null`, for a bare highlight command: nothing to answer, so the
+ *     model is not called at all
+ *   - `term: null`, for a question with no highlight in it, which is unchanged
+ *     behaviour and by far the common case
+ *
+ * Split on punctuation and connectives rather than an LLM call. A model asked
+ * to do this adds latency to every question and can still be talked out of it;
+ * the shapes people actually type are closed. Anything ambiguous is treated as
+ * a plain question, because a question silently downgraded to a word search is
+ * far worse than a highlight that has to be typed into the box.
+ */
+export function readIntent(message) {
+  if (typeof message !== "string") return { question: null, term: null };
+
+  const whole = message.trim();
+  if (!whole) return { question: null, term: null };
+
+  // The whole message being a highlight command: no question to ask.
+  const bare = highlightTerm(whole);
+  if (bare) return { question: null, term: bare };
+
+  const found = trailingHighlight(whole);
+  if (!found) return { question: whole, term: null };
+
+  const question = whole
+    .slice(0, found.start)
+    .replace(/[\s,;:.!?-]+$/, "")
+    .trim();
+  // Nothing usable left to ask. The message is a lookup with a preamble, not a
+  // request for an answer, so do not call the model on the preamble.
+  if (!question || question.split(/\s+/).length < 2) {
+    return { question: null, term: whole };
+  }
+  return { question, term: found.term };
+}
+
+/**
+ * A highlight instruction in the last clause of a longer message, or null.
+ *
+ * Two rules keep this from eating real questions, and both are load-bearing:
+ *
+ *  1. The verb must open a clause - after a sentence break, a comma, or a
+ *     conjunction. Otherwise "what does the contract say about highlighting the
+ *     deadline" becomes a search for "the deadline", which is a wrong answer
+ *     rather than a missing feature.
+ *  2. The verb must be the imperative form. "how do I highlight a word" is a
+ *     question about the feature; only "highlight a word" is a command. The
+ *     giveaway is the subject before it: a pronoun or nothing at all is a
+ *     command, "I" or "we" is a person asking how.
+ *
+ * Anything else returns null and the message goes to the model whole.
+ */
+function trailingHighlight(message) {
+  const CLAUSE =
+    /(?:^(?<lead>)|(?<=[.!?;])\s+|\s*(?<punct>[,:;])\s*|\s+(?<conj>and|then|also|plus)\s+)(?<clause>(?:please\s+|can\s+you\s+|could\s+you\s+)?(?:highlight|mark|circle|underline|emphasise|emphasize)\b[^]*)$/i;
+
+  const match = message.match(CLAUSE);
+  if (!match || !match.groups) return null;
+
+  const clause = match.groups.clause;
+
+  // A subject in front of the verb, with nothing separating them, means the
+  // sentence is *about* the command rather than issuing it: "how do I highlight a
+  // word". With a separator it is a new instruction and the text before it is a
+  // question: "what is the fee, highlight 30 days".
+  //
+  // Only a separator-free clause is checked, and only the words immediately in
+  // front of the verb, so "what is the fee? highlight 30 days" still splits.
+  const separated = Boolean(match.groups.punct || match.groups.conj);
+  if (!separated) {
+    const before = message.slice(0, match.index);
+    const subject = before.split(/\s+/).slice(-3).join(" ");
+    if (/\b(?:i|we|you|how|why|what|when|where|which|who)\b/i.test(subject)) return null;
+  }
+
+  // Reuse the strict single-message parser on the clause, so a trailing
+  // instruction is accepted under exactly the same rules as a standalone one.
+  const term = highlightTerm(clause);
+  if (!term) return null;
+
+  return { term, start: match.index };
 }

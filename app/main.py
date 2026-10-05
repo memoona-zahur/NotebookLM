@@ -1,5 +1,6 @@
 from contextlib import asynccontextmanager
 from pathlib import Path
+import time
 import uuid
 
 from fastapi import FastAPI, File, HTTPException, Request, UploadFile
@@ -7,8 +8,8 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
-from . import config, db
-from .llm import detect_injection
+from . import config, db, usage
+from .llm import detect_injection, last_usage
 from .parsers import SUPPORTED, UnreadableDocument
 from .store import SearchResult, store
 from . import store as store_module
@@ -74,9 +75,18 @@ def _base_url(request: Request) -> str:
     return str(request.base_url).rstrip("/")
 
 
-def _evidence(search: SearchResult, audit, verdict: str) -> dict:
-    """Combine retrieval stats and the citation audit into one honest summary."""
-    return {
+def _evidence(
+    search: SearchResult,
+    audit,
+    verdict: str,
+    cost: usage.Request | None = None,
+) -> dict:
+    """Combine retrieval stats, the citation audit, and cost into one summary.
+
+    `cost` is optional because the refusal path has a real measurement to report
+    (retrieval happened, the model did not) rather than nothing to say.
+    """
+    evidence = {
         "verdict": verdict,
         "confidence": search.confidence(),
         "retrieval": search.mode,
@@ -96,6 +106,9 @@ def _evidence(search: SearchResult, audit, verdict: str) -> dict:
         # adversarial, so a surprising answer can be traced to the source.
         "injection": detect_injection(search.hits),
     }
+    if cost is not None:
+        evidence["cost"] = cost.as_dict()
+    return evidence
 
 
 def _session_payload(request: Request, session: db.SessionRow) -> dict:
@@ -311,7 +324,11 @@ def ask(request: Request, payload: AskRequest, session_id: str | None = None) ->
     # that supplies its own turns could otherwise inject context the server did
     # not record.
     history = db.recent_messages(str(session.id), config.HISTORY_TURNS)
+    # Timed on its own: retrieval is local CPU work and generation is a network
+    # call, so a single total would hide which of the two a slow answer was.
+    started = time.perf_counter()
     search = store.search_detailed(question, session_id=str(session.id))
+    retrieval_ms = (time.perf_counter() - started) * 1000
 
     # Relevance floor. Passing passages the model would have to guess from is how
     # a grounded assistant turns into a confident liar, so stop here instead.
@@ -319,10 +336,18 @@ def ask(request: Request, payload: AskRequest, session_id: str | None = None) ->
         db.add_message(str(session.id), "user", question)
         db.add_message(str(session.id), "assistant", NO_MATCH)
         db.touch_session(str(session.id))
+        refusal = usage.not_called(
+            config.resolved_model(),
+            retrieval_ms,
+            "no_match",
+            len(search.hits),
+        )
         return {
             "answer": NO_MATCH,
             "citations": [],
-            "evidence": _evidence(search, Grounded(NO_MATCH, [], [], 0), "no_match"),
+            "evidence": _evidence(
+                search, Grounded(NO_MATCH, [], [], 0), "no_match", refusal
+            ),
         }
 
     try:
@@ -334,10 +359,20 @@ def ask(request: Request, payload: AskRequest, session_id: str | None = None) ->
     db.add_message(str(session.id), "assistant", audit.text)
     db.touch_session(str(session.id))
 
+    reported = last_usage()
+    cost = usage.Request(
+        model=reported.model or config.resolved_model(),
+        usage=reported,
+        retrieval_ms=retrieval_ms,
+        generation_ms=reported.latency_ms,
+        passages_sent=audit.passages,
+        context_chars=sum(len(str(h.get("text") or "")) for h in search.hits),
+        verdict="answered",
+    )
     return {
         "answer": audit.text,
         "citations": search.hits,
-        "evidence": _evidence(search, audit, "answered"),
+        "evidence": _evidence(search, audit, "answered", cost),
     }
 
 
