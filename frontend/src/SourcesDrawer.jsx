@@ -19,6 +19,8 @@ export function SourcesDrawer({
   onWebSearch,
   searching = false,
   onDeleteSource,
+  onReindexSource = null,
+  reindexingId = null,
   onClearSources,
   onFindOccurrences,
   autoSearch = null,
@@ -160,6 +162,20 @@ export function SourcesDrawer({
                   </span>
                   {source.chunks !== undefined ? (
                     <span className="source-meta">{source.chunks}</span>
+                  ) : null}
+                  {/* Only offered when the app can actually do it. Without
+                      `onReindexSource` there is nothing to call, so the control
+                      is left out rather than shown and dead. */}
+                  {onReindexSource ? (
+                    <button
+                      className="icon-btn reindex"
+                      title={`Re-index ${source.name}`}
+                      aria-label={`Re-index ${source.name}`}
+                      disabled={reindexingId === source.id}
+                      onClick={() => onReindexSource(source)}
+                    >
+                      {reindexingId === source.id ? "\u2026" : "\u21BB"}
+                    </button>
                   ) : null}
                   <button
                     className="icon-btn danger"

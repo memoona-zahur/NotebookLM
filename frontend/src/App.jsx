@@ -29,6 +29,7 @@ export default function App() {
   const [sessions, setSessions] = useState([]);
   const [activeId, setActiveId] = useState(null);
   const [status, setStatus] = useState(null);
+  const [reindexing, setReindexing] = useState(null);
   const [turns, setTurns] = useState([]);
   // Which session is waiting on an answer. Null when nothing is in flight.
   // Tracking the id rather than a boolean matters: a plain `pending` flag is
@@ -207,6 +208,23 @@ export default function App() {
       await refreshStatus(id);
     } catch (err) {
       toast(err.message);
+    }
+  }
+
+  // Re-indexing is not destructive and needs no confirmation: it rebuilds the
+  // same source in place. It is only slow, so the button is disabled per source
+  // rather than globally.
+  async function reindexSource(source) {
+    const id = sessionRef.current;
+    if (!id) return;
+    setReindexing(source.id);
+    try {
+      await api.reindexSource(id, source.id);
+      await refreshStatus(id);
+    } catch (err) {
+      toast(err.message);
+    } finally {
+      setReindexing(null);
     }
   }
 
@@ -390,6 +408,8 @@ export default function App() {
           onWebSearch={status?.web_search?.available ? webSearch : null}
           searching={searching}
           onDeleteSource={deleteSource}
+          onReindexSource={reindexSource}
+          reindexingId={reindexing}
           onClearSources={clearSources}
           onFindOccurrences={findOccurrences}
           autoSearch={highlight}

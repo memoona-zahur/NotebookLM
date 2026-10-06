@@ -85,6 +85,14 @@ export const api = {
       body: { query, limit },
       sessionId,
     }),
+  // Re-reads the original already on disk and rebuilds its chunks under the
+  // current CHUNK_SIZE / EMBED_MODEL. The id survives, so citations in past
+  // answers still point somewhere real.
+  reindexSource: (sessionId, sourceId) =>
+    request(`/api/sources/${encodeURIComponent(sourceId)}/reindex`, {
+      method: "POST",
+      sessionId,
+    }),
   deleteSource: (sessionId, sourceId) =>
     request(`/api/sources/${encodeURIComponent(sourceId)}`, { method: "DELETE", sessionId }),
   clearSources: (sessionId) => request("/api/sources", { method: "DELETE", sessionId }),

@@ -202,6 +202,83 @@ class VectorStore:
             url=url or "",
         )
 
+    def reindex(self, source_id: str, session_id: str) -> Source | None:
+        """Re-parse and re-embed a source in place, from the copy on disk.
+
+        Why this exists: the upload path deliberately keeps a file it managed to
+        parse, so "the session can be re-indexed without a re-upload" - but
+        nothing ever called it back. Without this the only way to pick up a
+        changed `CHUNK_SIZE` or `EMBED_MODEL` is to delete the source and go
+        find the original file again.
+
+        The source id is kept, not minted. Persisted `messages.citations` point
+        at chunk ids and source ids, so a new id would silently detach every
+        past answer's links from the passage it quoted. `created_at` is kept too,
+        so the source list does not reorder under the user.
+
+        Parse and embed happen *before* the transaction opens. If either fails
+        the existing chunks are still there and the source is untouched; deleting
+        first would leave a readable file indexed as nothing, which is the
+        silent-empty-index failure this app refuses elsewhere.
+        """
+        with db.connection() as conn:
+            row = conn.execute(
+                "SELECT name, storage_path, url FROM sources "
+                "WHERE id = %s AND session_id = %s",
+                (source_id, session_id),
+            ).fetchone()
+        if row is None:
+            return None
+        name, stored, url = row
+        path = Path(stored)
+        if not stored or not path.exists():
+            raise parsers.UnreadableDocument(
+                "The original file for this source is no longer on disk, so it "
+                "cannot be re-read. Upload it again to index it."
+            )
+
+        blocks = parsers.parse(path)
+        keep: list[tuple] = []
+        numeric = 0
+        for position, block in enumerate(blocks):
+            if not block.text.strip():
+                continue
+            heavy = parsers.is_numeric_heavy(block.text)
+            if heavy:
+                numeric += 1
+            keep.append((position, block.page, block.heading, block.text, heavy))
+
+        vectors = embed_texts([row[3] for row in keep]) if keep else []
+
+        with db.connection() as conn:
+            conn.execute("DELETE FROM chunks WHERE source_id = %s", (source_id,))
+            if keep:
+                with conn.cursor() as cur:
+                    cur.executemany(
+                        "INSERT INTO chunks (source_id, position, page, heading, text, "
+                        "numeric_heavy, embedding) VALUES (%s, %s, %s, %s, %s, %s, %s)",
+                        [
+                            (source_id, row[0], row[1], row[2], row[3], row[4], vector)
+                            for row, vector in zip(keep, vectors)
+                        ],
+                    )
+            conn.execute(
+                "UPDATE sources SET chunk_count = %s, numeric_count = %s, pages = %s "
+                "WHERE id = %s",
+                (len(keep), numeric, len(blocks), source_id),
+            )
+
+        self._invalidate(session_id)
+        return Source(
+            id=source_id,
+            name=name,
+            kind=path.suffix.lower().lstrip("."),
+            pages=len(blocks),
+            chunks=len(keep),
+            numeric=numeric,
+            url=url or "",
+        )
+
     def remove(self, source_id: str, session_id: str) -> bool:
         with db.connection() as conn:
             row = conn.execute(

@@ -215,7 +215,7 @@ all of them run.
 ```bash
 cd frontend
 npm install
-npm test           # 167 checks, jsdom, no database or API key needed
+npm test           # 168 checks, jsdom, no database or API key needed
 npm run test:watch # re-runs on save
 ```
 
@@ -287,8 +287,8 @@ Everything is set in `.env` (all optional):
 | `UPLOAD_DIR` | `./data/uploads` | Where originals are kept for re-indexing |
 | `MAX_UPLOAD_MB` | `100` | Upload ceiling; larger files get HTTP 413 |
 | `BASE_URL` | derived from the request | Set when the browser cannot infer the API origin |
-| `CHUNK_SIZE` | `900` | Characters per chunk |
-| `CHUNK_OVERLAP` | `150` | |
+| `CHUNK_SIZE` | `900` | Characters per chunk. Clamped to at least 1 |
+| `CHUNK_OVERLAP` | `150` | Clamped to at most `CHUNK_SIZE / 2` - an overlap at or above the window walks the splitter's cursor backwards, which never terminates |
 | `TOP_K` | `6` | Passes retrieved to the model |
 | `MAX_CONTEXT_CHARS` | `14000` | Truncation guard |
 | `MIN_SCORE` | `0.25` | Relevance floor - see below |
@@ -440,6 +440,7 @@ session; without one it uses the default session.
 | `GET` | `/api/status` | Provider, model, source/chunk counts, tuning |
 | `POST` | `/api/sources` | Upload a file (multipart `file`) |
 | `POST` | `/api/sources/web` | `{query, limit}` → find pages and index them as sources |
+| `POST` | `/api/sources/{id}/reindex` | Re-parse and re-embed from the copy already on disk; keeps the id |
 | `DELETE` | `/api/sources/{id}` | Remove one source |
 | `DELETE` | `/api/sources` | Clear the session's sources |
 | `POST` | `/api/ask` | `{question}` → `{answer, citations, evidence}` (`evidence.cost` carries tokens and latency, see below) |
@@ -1091,7 +1092,7 @@ retry a log line costs more than the line is worth.
 
 ## Tests
 
-106 checks covering upload, per-format parsing (including YAML/TOML/INI and hard-wrapped
+110 checks covering upload, per-format parsing (including YAML/TOML/INI and hard-wrapped
 text), OCR (a scanned page recovered and searchable, pages kept in order, both halves of a
 mixed PDF indexed, a blank scan refused with an actionable message, the missing-language
 message naming the install command, an over-cap document refused rather than indexed
@@ -1126,7 +1127,7 @@ non-zero if any failed.
   detect drift; the tests assert the migrated columns match what the code reads,
   but a column added to `app/db.py` and forgotten in a revision still fails at
   runtime rather than at migrate time.
-- Uploads are kept on disk so a source can be re-indexed without re-uploading. Each delete
+- Uploads are kept on disk so a source can be re-indexed without re-uploading: `POST /api/sources/{id}/reindex` re-reads the original and rebuilds its chunks under the current `CHUNK_SIZE` and `EMBED_MODEL`. Each delete
   path cleans up its own files; a hard crash mid-session can still leave an orphan.
 - No reranking. Fused dense + BM25 order goes straight to the prompt. See the entity-overlap
   note above for the one case that measurably needs a cross-encoder.

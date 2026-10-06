@@ -1048,6 +1048,16 @@ def chunk_text(text: str, size: int, overlap: int) -> list[str]:
     block on a word boundary slices rows in half, which produces fragments like
     "003.52309 11.5 52 0" that match nothing and read as gibberish when cited.
     """
+    # Both values come from config, so they are clamped here rather than trusted.
+    # Overlap at or above size walks `start` backwards below and the loop never
+    # ends: a user who sets CHUNK_SIZE without also lowering CHUNK_OVERLAP would
+    # get a server that hangs on the next upload. Capped at half the window
+    # rather than size-1, because overlap larger than half re-reads more than it
+    # advances and produces one chunk per character. The default (150 of 900) is
+    # far below this. Size has to be at least 1 for the same reason.
+    size = max(1, int(size))
+    overlap = max(0, min(int(overlap), size // 2))
+
     if len(text) <= size:
         return [text] if text else []
 
@@ -1081,7 +1091,12 @@ def chunk_text(text: str, size: int, overlap: int) -> list[str]:
             chunks.append(piece)
         if end >= len(text):
             break
-        start = end - overlap
+        # Monotonic, not merely "minus overlap". A boundary choice can move
+        # `end` only slightly past `start`, and subtracting an overlap larger
+        # than that step walks the cursor *backwards* - so the loop never
+        # terminates and appends forever. Taking the max keeps overlap where it
+        # is useful and guarantees progress where it is not.
+        start = max(start + 1, end - overlap)
     return chunks
 
 

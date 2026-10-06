@@ -978,6 +978,16 @@ mark.hit {
 .cite-heading::before {
   content: "· ";
 }
+.icon-btn.reindex {
+  color: var(--faint);
+}
+.icon-btn.reindex:hover:not(:disabled) {
+  color: var(--accent);
+}
+.icon-btn.reindex:disabled {
+  opacity: 0.5;
+  cursor: progress;
+}
 .occ-heading {
   font-weight: 400;
   color: var(--faint);

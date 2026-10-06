@@ -115,6 +115,30 @@ def add_web_source(body: WebSearchRequest, session_id: str | None = None) -> dic
     return {"web_search": outcome.as_dict(), **store.stats(str(session.id))}
 
 
+@router.post("/sources/{source_id}/reindex")
+def reindex_source(source_id: str, session_id: str | None = None) -> dict:
+    """Re-read a source already on disk and rebuild its index in place.
+
+    The upload route promises this in its own error comment - a file that
+    parsed is kept "so the session can be re-indexed without a re-upload" - and
+    until now nothing honoured it. The practical case is a settings change:
+    `CHUNK_SIZE` and `EMBED_MODEL` only take effect on new text, so an existing
+    notebook silently keeps the chunks it was built with.
+
+    The id and the created_at survive, because past answers' citations point at
+    them. 400 when the file is gone or unreadable, 404 when the source is not in
+    this session.
+    """
+    session = resolve_session(session_id)
+    try:
+        source = store.reindex(source_id, str(session.id))
+    except UnreadableDocument as exc:
+        raise HTTPException(400, str(exc)) from exc
+    if source is None:
+        raise HTTPException(404, "Source not found")
+    return {"source": vars(source), **store.stats(str(session.id))}
+
+
 async def _write_upload(file: UploadFile, target: Path) -> None:
     """Write the upload to disk in bounded chunks, refusing oversized files.
 

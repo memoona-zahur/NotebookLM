@@ -5,6 +5,7 @@ import re
 import socket
 import tempfile
 import sys
+import uuid
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -1404,6 +1405,132 @@ def test_the_prompt_names_the_section_and_not_only_the_page(client: TestClient) 
     # section: , page 3)` reads as a section called "," to the model.
     assert "(source: notes.md)" in context, context
     print("  the prompt carries the section when there is one: OK")
+
+
+
+def test_a_source_is_reindexed_in_place_without_a_reupload(
+    client: TestClient, monkeypatch
+) -> None:
+    """The upload route promises this in its own comment; nothing called it back.
+
+    A chunking or embedding change only reaches text that is ingested after it,
+    so an existing notebook silently kept the chunks it was built with - while
+    the file needed to fix that sat on disk under a comment saying it was kept
+    for exactly this purpose.
+    """
+    sid = client.post("/api/sessions", json={"name": "reindex"}).json()["id"]
+    source = upload(
+        client,
+        "notes.txt",
+        b"Escape velocity at the surface is 11.2 km/s. " * 80,
+        session_id=sid,
+    )
+
+    before = client.get("/api/status", params={"session_id": sid}).json()
+    assert before["chunks"] > 1, before
+    with db.connection() as conn:
+        created = conn.execute(
+            "SELECT created_at FROM sources WHERE id = %s", (source["id"],)
+        ).fetchone()[0]
+
+    monkeypatch.setattr(cfg, "CHUNK_SIZE", 120)
+    res = client.post(
+        f"/api/sources/{source['id']}/reindex", params={"session_id": sid}
+    )
+    assert res.status_code == 200, res.text
+
+    after = res.json()
+    assert after["chunks"] > before["chunks"], (before, after)
+    assert len(after["sources"]) == len(before["sources"]), (
+        "reindexing replaces a source's chunks, it does not add a second source"
+    )
+    # The id and the timestamp both survive. Persisted citations name this id,
+    # and a list that reorders itself under the user is a different bug.
+    assert [s["id"] for s in after["sources"]] == [s["id"] for s in before["sources"]]
+    with db.connection() as conn:
+        assert conn.execute(
+            "SELECT created_at FROM sources WHERE id = %s", (source["id"],)
+        ).fetchone()[0] == created
+    print("  a source is re-indexed in place, keeping its id and position: OK")
+
+
+def test_a_failed_reindex_leaves_the_existing_index_alone(
+    client: TestClient,
+) -> None:
+    """Parse and embed must happen before anything is deleted.
+
+    The tempting order - drop the old chunks, then rebuild - turns a transient
+    failure into an empty source, which is the silent-empty-index failure the
+    upload path refuses elsewhere: the document still appears in Sources and the
+    assistant later says it is not there.
+    """
+    sid = client.post("/api/sessions", json={"name": "keep"}).json()["id"]
+    source = upload(client, "keep.txt", b"The key is hunter2. " * 40, session_id=sid)
+    before = client.get("/api/status", params={"session_id": sid}).json()["chunks"]
+
+    from app.store import store
+
+    # The original is gone, so the re-read cannot happen. Deleting this file is
+    # also the case a user hits after a cleanup script runs.
+    path = store.storage_path(source["id"], sid)
+    assert path is not None
+    path.unlink()
+
+    res = client.post(
+        f"/api/sources/{source['id']}/reindex", params={"session_id": sid}
+    )
+    assert res.status_code == 400, res.text
+    assert "no longer on disk" in res.json()["detail"], res.json()
+
+    after = client.get("/api/status", params={"session_id": sid}).json()
+    assert after["chunks"] == before, (before, after)
+    assert after["sources"], "the source must still be listed"
+    print("  a failed re-index leaves the previous index untouched: OK")
+
+
+def test_a_source_in_another_notebook_cannot_be_reindexed(
+    client: TestClient,
+) -> None:
+    """Scoping, the same rule every other source route already follows."""
+    one = client.post("/api/sessions", json={"name": "mine"}).json()["id"]
+    two = client.post("/api/sessions", json={"name": "theirs"}).json()["id"]
+    source = upload(client, "solo.txt", b"Only in one notebook.", session_id=one)
+
+    assert client.post(
+        f"/api/sources/{source['id']}/reindex", params={"session_id": two}
+    ).status_code == 404
+    assert client.post(
+        f"/api/sources/{uuid.uuid4()}/reindex", params={"session_id": one}
+    ).status_code == 404
+    print("  re-indexing is scoped to the notebook the source belongs to: OK")
+
+
+
+def test_a_chunking_config_that_could_hang_cannot_hang(client: TestClient) -> None:
+    """`CHUNK_SIZE <= CHUNK_OVERLAP` looped backwards and appended forever.
+
+    Both come from `.env`, so this needs no code change to reach: set
+    `CHUNK_SIZE` and forget `CHUNK_OVERLAP` and the next upload hangs the
+    server - no request, no error, nothing to restart. Found by writing a test
+    that set CHUNK_SIZE without lowering the overlap, which is exactly how a
+    user would do it.
+    """
+    text = "word " * 400
+    for size, overlap in ((100, 400), (100, 100), (10, 60), (1, 0)):
+        out = parsers.chunk_text(text, size=size, overlap=overlap)
+        assert out, (size, overlap)
+        assert all(piece for piece in out), (size, overlap, out[:3])
+        # The signature of the old failure is more chunks than characters: a
+        # backwards cursor never reaches the end and keeps appending. Counting
+        # against len(text) rather than a fixed number keeps size=1 legal.
+        assert len(out) <= len(text), (size, overlap, len(out))
+        assert all(len(piece) <= max(1, size) for piece in out), (size, overlap)
+    # An overlap well past the window must not turn 2000 characters into
+    # thousands of near-identical chunks either - it is clamped, not honoured.
+    assert len(parsers.chunk_text(text, size=100, overlap=400)) < 100
+    # The shipped default must be untouched by any of that clamping.
+    assert len(parsers.chunk_text(text, size=900, overlap=150)) == 3
+    print("  a chunking config that could hang the server cannot: OK")
 
 
 
@@ -3225,6 +3352,10 @@ ORDER = [
     ("pdf headings from font size", test_pdf_headings_are_inferred_from_font_size),
     ("running header rejected", test_a_running_header_never_becomes_a_heading),
     ("prompt carries the section", test_the_prompt_names_the_section_and_not_only_the_page),
+    ("chunking cannot hang", test_a_chunking_config_that_could_hang_cannot_hang),
+    ("reindex in place", test_a_source_is_reindexed_in_place_without_a_reupload),
+    ("failed reindex keeps index", test_a_failed_reindex_leaves_the_existing_index_alone),
+    ("reindex scoped to session", test_a_source_in_another_notebook_cannot_be_reindexed),
     ("oversized upload refused", test_an_oversized_upload_is_refused_without_being_kept),
     ("chat history persists", test_chat_history_persists_and_is_isolated),
     ("deleting session removes data", test_deleting_a_session_removes_its_data),

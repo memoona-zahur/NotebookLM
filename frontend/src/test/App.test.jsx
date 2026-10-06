@@ -700,6 +700,37 @@ describe("chat-first layout", () => {
     expect(screen.getByText(/8\.5s/)).toBeInTheDocument();
   });
 
+  it("offers a re-index that rebuilds the source without a re-upload", async () => {
+    // The server keeps the original file precisely so this is possible; before
+    // the route existed the only way to pick up a changed CHUNK_SIZE or
+    // EMBED_MODEL was to delete the source and go find the file again.
+    on("GET", "/api/status", () => ({
+      provider: "groq",
+      model: "openai/gpt-oss-120b",
+      embed_model: "sentence-transformers/all-MiniLM-L6-v2",
+      min_score: 0.25,
+      sources: [{ id: "s1", name: "kepler.pdf", kind: "pdf", chunks: 2 }],
+      chunks: 2,
+    }));
+    on("POST", "/api/sources/s1/reindex", () => ({ chunks: 7 }));
+
+    const user = await boot();
+    await user.click(screen.getByRole("button", { name: /source/i }));
+    await screen.findByRole("dialog");
+
+    await user.click(screen.getByRole("button", { name: /re-index kepler\.pdf/i }));
+
+    await waitFor(() =>
+      expect(
+        requests().some(
+          (c) => c.method === "POST" && c.path === "/api/sources/s1/reindex",
+        ),
+      ).toBe(true),
+    );
+    // Re-indexing is not deletion: both controls stay.
+    expect(screen.getByRole("button", { name: /remove kepler\.pdf/i })).toBeInTheDocument();
+  });
+
   it("closes the drawer again and leaves the thread reachable", async () => {
     const user = await boot();
     await user.click(screen.getByRole("button", { name: /sources/i }));
