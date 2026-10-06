@@ -99,10 +99,18 @@ def validate_citations(text: str, passage_count: int) -> tuple[str, list[int], l
 def _format_context(hits: list[dict]) -> str:
     blocks = []
     for index, hit in enumerate(hits, start=1):
+        # Heading before page, and only when there is one: "page 7" alone tells
+        # the model which leaf the passage came from but not what it is about,
+        # which is the difference between locating a fact and understanding why
+        # it is there. Formats without a heading (logs, code, tables) simply
+        # omit it rather than printing an empty field.
+        where = ""
+        if hit.get("heading"):
+            where += f", section: {hit['heading']}"
+        if hit.get("page"):
+            where += f", page {hit['page']}"
         blocks.append(
-            f"[{index}] (source: {hit['source']}"
-            f"{', page ' + str(hit['page']) if hit.get('page') else ''})\n"
-            f"{_fence(hit['text'])}"
+            f"[{index}] (source: {hit['source']}{where})\n{_fence(hit['text'])}"
         )
     return "\n\n".join(blocks)
 

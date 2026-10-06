@@ -609,6 +609,149 @@ def _merge_by_page(typed: list[Block], recovered: list[Block]) -> list[Block]:
     return [merged[page] for page in sorted(merged)]
 
 
+def _pdf_lines(page) -> list[tuple[float, str, bool]]:
+    """`(size, text, in_margin)` for every line of a page's text layer.
+
+    PDF has no heading semantics - a heading is only ever bigger text - so font
+    size is the only signal there is. The margin flag exists because a running
+    header is set at heading size too, and a header repeated on every page would
+    otherwise become the document's heading.
+    """
+    out: list[tuple[float, str, bool]] = []
+    try:
+        info = page.get_text("dict")
+        height = float(page.rect.height) or 1.0
+        for block in info.get("blocks", ()):
+            if block.get("type", 0) != 0:
+                continue
+            for line in block.get("lines", ()):
+                spans = line.get("spans", ())
+                if not spans:
+                    continue
+                text = "".join(s.get("text", "") for s in spans)
+                text = " ".join(text.split())
+                if not text:
+                    continue
+                # The size of the span carrying the most characters: a line
+                # typeset with one large word and a small remainder belongs to
+                # whichever size actually sets it.
+                size = float(
+                    max(spans, key=lambda s: len(s.get("text", ""))).get("size", 0.0)
+                )
+                bbox = line.get("bbox") or (0.0, 0.0, 0.0, 0.0)
+                # Tight bands on purpose. A running header usually sits in the
+                # top half-inch, but a real section title sits at roughly one
+                # inch, and treating the latter as a header would lose headings
+                # from almost every report ever written.
+                in_margin = bbox[1] < height * 0.07 or bbox[3] > height * 0.92
+                out.append((size, text, in_margin))
+    except Exception:
+        # Optional enrichment. A page whose dict cannot be read still has its
+        # text; losing the heading is a smaller failure than losing the page.
+        return []
+    return out
+
+
+def _looks_like_heading(text: str) -> bool:
+    """Reject body text that happens to be set large.
+
+    Deliberately permissive about case and numbering - `METHODS`, `4.2 Results`
+    and `Why this matters` are all headings - and strict about the things body
+    text does: full stops, low letter density, and sentence length.
+    """
+    if not (1 <= len(text) <= 90):
+        return False
+    words = text.split()
+    if not (1 <= len(words) <= 12):
+        return False
+    if text[-1] in ".,;":
+        return False
+    letters = sum(1 for c in text if c.isalpha())
+    return letters >= 4 and letters / len(text) >= 0.45
+
+
+def _pdf_headings(
+    lines: dict[int, list[tuple[float, str, bool]]], total: int
+) -> dict[int, str]:
+    """Heading in force on each page, or nothing when none can be found.
+
+    Only the most prominent qualifying line per page is taken: a page's own
+    sub-headings do not describe the section the page belongs to. The stack then
+    behaves like Markdown's heading path - a larger size opens a section, an
+    equal size is a sibling and replaces the current one.
+
+    Returning `{}` when no candidate exists is the point. Guessing is worse than
+    the status quo, because a wrong heading reaches the model as context and
+    turns into a wrong citation, which is harder to spot than a missing one.
+    """
+    if not lines:
+        return {}
+
+    # Body size is the size carrying the most characters, not the most common
+    # size: a document whose cover is set at 48pt would otherwise read every
+    # other page as body text and every heading as ordinary text.
+    weight: dict[float, int] = {}
+    for page_lines in lines.values():
+        for size, text, _ in page_lines:
+            if size > 0:
+                weight[size] = weight.get(size, 0) + len(text)
+    if not weight:
+        return {}
+    body = max(weight, key=lambda s: weight[s])
+    if body <= 0:
+        return {}
+
+    # A section heading is typeset once, at the start of its section. A running
+    # header is typeset on every page it covers. Repetition therefore separates
+    # them far more reliably than position does, and it is the rule that stops a
+    # document titled "ACME CORP CONFIDENTIAL" from having that on page one as
+    # its only heading.
+    seen: dict[str, int] = {}
+    for page_lines in lines.values():
+        for _, text, _ in page_lines:
+            seen[text] = seen.get(text, 0) + 1
+    repeated = max(2, int(total * 0.3))
+
+    candidates: dict[int, list[tuple[float, str]]] = {}
+    for number, page_lines in lines.items():
+        # Largest first, so a page's own heading opens the section and the
+        # lines below it nest underneath rather than competing with it.
+        found = sorted(
+            {
+                (size, text)
+                for size, text, margin in page_lines
+                if not margin
+                and size >= body * 1.15
+                and seen.get(text, 0) < repeated
+                and _looks_like_heading(text)
+            },
+            key=lambda s: -s[0],
+        )
+        if found:
+            candidates[number] = found
+
+    if not candidates:
+        return {}
+
+    stack: list[tuple[float, str]] = []
+    out: dict[int, str] = {}
+    for number in range(1, total + 1):
+        for size, text in candidates.get(number, ()):
+            # A size at or below the new heading's level belongs to it: equal
+            # size is a sibling (replace), smaller size is a descendant (close).
+            # Everything larger is an ancestor and stays. Getting this backwards
+            # nests sections under their own children.
+            while stack and stack[-1][0] <= size:
+                stack.pop()
+            if not stack or stack[-1][1] != text:
+                stack.append((size, text))
+        if stack:
+            # Pages before the first heading are left out, so they read as ""
+            # rather than inheriting a section they predate.
+            out[number] = " > ".join(text for _, text in stack)
+    return out
+
+
 def _parse_pdf(path: Path) -> list[Block]:
     import pymupdf
 
@@ -620,59 +763,75 @@ def _parse_pdf(path: Path) -> list[Block]:
     # and a genuinely blank page look identical from the text alone, so the
     # distinction has to be made from the page's images.
     image_pages: list[int] = []
+    # Text-layer lines per page, kept so headings can be inferred from font
+    # size. Captured during the same pass rather than a second one, because
+    # parsing a PDF twice to read it once is the kind of cost nobody notices
+    # until a large upload.
+    lines: dict[int, list[tuple[float, str, bool]]] = {}
     total_pages = doc.page_count
     try:
         for number, page in enumerate(doc, start=1):
             content = _clean(page.get_text())
             if content:
                 blocks.append(Block(text=content, page=number))
+                lines[number] = _pdf_lines(page)
             elif page.get_images(full=True):
                 image_pages.append(number)
+        try:
+            headings = _pdf_headings(lines, total_pages)
+        except Exception:
+            # Never let a heading heuristic block ingestion of a readable file.
+            headings = {}
     finally:
         doc.close()
 
-    if not image_pages:
-        return blocks
+    if image_pages:
+        # The whole document is images. That is a scan, and the text is
+        # recoverable, so OCR runs whether or not OCR_ENABLED is set - refusing
+        # a readable document is worse than spending a second per page on one
+        # nobody expected to be a scan.
+        scanned_document = not blocks
+        reason = ""
+        if scanned_document or config.OCR_ENABLED:
+            recovered, unresolved, reason = _ocr_image_pages(
+                path, image_pages, scanned_document
+            )
+            blocks = _merge_by_page(blocks, recovered)
+            # An OCR'd page has no font sizes, but it is still inside whatever
+            # section the surrounding pages established, so it inherits.
+            image_pages = unresolved
+        elif image_pages:
+            reason = "OCR is disabled (OCR_ENABLED=0)"
 
-    # The whole document is images. That is a scan, and the text is recoverable,
-    # so OCR runs whether or not OCR_ENABLED is set - refusing a readable
-    # document is worse than spending a second per page on one nobody expected
-    # to be a scan.
-    scanned_document = not blocks
-    reason = ""
-    if scanned_document or config.OCR_ENABLED:
-        recovered, unresolved, reason = _ocr_image_pages(
-            path, image_pages, scanned_document
-        )
-        blocks = _merge_by_page(blocks, recovered)
-        if not unresolved:
-            return blocks
-        image_pages = unresolved
-    elif image_pages:
-        reason = "OCR is disabled (OCR_ENABLED=0)"
+        # Still nothing. Say what happened and what to do, rather than indexing
+        # an empty source: an empty source appears in Sources and the assistant
+        # later claims the file is not there, which is a wrong answer with
+        # nothing to point at.
+        #
+        # The reason from the OCR attempt is preferred over the generic status:
+        # a document that hit the page cap and one where OCR found nothing both
+        # end up here, and they need different sentences.
+        if not blocks:
+            pages = "page" if len(image_pages) == 1 else "pages"
+            verb = "contains" if len(image_pages) == 1 else "contain"
+            detail = reason or _ocr_status_for_user()
+            raise UnreadableDocument(
+                f"No text found on any page, but {_page_list(image_pages)} "
+                f"{pages} {verb} only images. This looks like a scanned document "
+                f"or a photo, and its text could not be recovered. {detail} "
+                f"Otherwise, re-save the file as a text-based PDF or a .txt/.md file."
+            )
+        # Mixed document: the text pages indexed normally. Recorded so the
+        # message can say what was missed rather than implying full coverage.
+        # The page count is read before close, since len() on a closed document
+        # raises.
+        if image_pages:
+            _warn_unreadable_pages(
+                image_pages, total_pages, reason or _ocr_status_for_user()
+            )
 
-    # Still nothing. Say what happened and what to do, rather than indexing an
-    # empty source: an empty source appears in Sources and the assistant later
-    # claims the file is not there, which is a wrong answer with nothing to
-    # point at.
-    #
-    # The reason from the OCR attempt is preferred over the generic status: a
-    # document that hit the page cap and one where OCR found nothing both end up
-    # here, and they need different sentences.
-    if not blocks:
-        pages = "page" if len(image_pages) == 1 else "pages"
-        verb = "contains" if len(image_pages) == 1 else "contain"
-        detail = reason or _ocr_status_for_user()
-        raise UnreadableDocument(
-            f"No text found on any page, but {_page_list(image_pages)} "
-            f"{pages} {verb} only images. This looks like a scanned document "
-            f"or a photo, and its text could not be recovered. {detail} "
-            f"Otherwise, re-save the file as a text-based PDF or a .txt/.md file."
-        )
-    # Mixed document: the text pages indexed normally. Recorded so the message
-    # can say what was missed rather than implying full coverage. The page
-    # count is read before close, since len() on a closed document raises.
-    _warn_unreadable_pages(image_pages, total_pages, reason or _ocr_status_for_user())
+    for block in blocks:
+        block.heading = headings.get(block.page, "")
 
     return blocks
 

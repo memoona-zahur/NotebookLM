@@ -68,10 +68,13 @@ export function Citation({ citation, index, cited }) {
         <span className="cite-caret" aria-hidden="true">
           ▸
         </span>
-        <span className="cite-src" title={citation.source}>
+        <span className="cite-src" title={citation.heading || citation.source}>
           {citation.source}
           {citation.page ? <span className="page"> · p.{citation.page}</span> : null}
         </span>
+        {citation.heading ? (
+          <span className="cite-heading">{citation.heading}</span>
+        ) : null}
         <span className="cite-score">{Math.round((citation.score || 0) * 100)}%</span>
         {wasCited ? <span className="cite-cited" title="Cited by the answer" /> : null}
       </button>

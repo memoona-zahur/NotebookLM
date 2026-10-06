@@ -55,7 +55,13 @@ const ANSWER = {
     },
   },
   citations: [
-    { source: "kepler.pdf", page: 3, score: 0.42, text: "The photometer has 42 CCDs." },
+    {
+      source: "kepler.pdf",
+      page: 3,
+      heading: "Photometer design",
+      score: 0.42,
+      text: "The photometer has 42 CCDs.",
+    },
     { source: "kepler.pdf", page: 4, score: 0.31, text: "Orbital period was 90 minutes." },
   ],
 };
@@ -370,6 +376,17 @@ describe("asking a question", () => {
     expect(await screen.findByText(/Escape velocity at the surface/)).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "[1]" })).toHaveAttribute("href", "#cite-1");
     expect(screen.getByText("high confidence")).toBeInTheDocument();
+  });
+
+  it("names the section a citation came from, not just its page", async () => {
+    // Before this, a citation was `kepler.pdf · p.3` - it says which leaf the
+    // passage sits on and nothing about what the passage is.
+    on("POST", "/api/ask", () => ANSWER);
+    const user = await boot();
+    await ask(user, "what is escape velocity?");
+
+    expect(await screen.findByText(/Escape velocity at the surface/)).toBeInTheDocument();
+    expect(screen.getByText("Photometer design")).toBeInTheDocument();
   });
 
   // Cost sits next to confidence on purpose: "should I believe this" and "was

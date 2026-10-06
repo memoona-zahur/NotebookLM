@@ -240,6 +240,17 @@ carries the reason, including the OCR-language hint when OCR is the cause.
 second per page, capped at 50 pages. A production version moves this to a queue.
 Stated in [section 11](#11-honest-limitations).
 
+**PDF headings, and why this is a heuristic.** PDF is the only supported format
+that declares no heading structure — a `#`, a DOCX style name and an `h1` are
+all explicit, whereas a PDF heading is only ever *bigger text*. So it was the
+only format where a citation read `page 7`, which locates a passage without
+saying what it is about. Headings are now inferred from font size: a line at
+least 15% larger than the body text, not sitting in the page margin, and not
+repeated across pages (a section title is typeset once; a running header is
+typeset on every page). **When no candidate exists, nothing is guessed.** A
+wrong heading is worse than none, because it reaches the model as context and
+comes back as a confident citation to the wrong section.
+
 **Where the article's ingestion checklist is met, and where it is not.** The
 article lists five ingestion concerns. Being explicit about which are handled
 prevents overclaiming:
@@ -536,7 +547,7 @@ quality would be the fastest way to lose the room.
 
 ### 8.3 Tests
 
-`./run_tests.sh` — 103 backend, 166 frontend. Includes: relevance floor,
+`./run_tests.sh` — 106 backend, 167 frontend. Includes: relevance floor,
 citation validation, injection defence, history injection attempts, upload
 ownership, citation persistence across reload, greeting behaviour, and web-source
 ingestion (a found page becomes a citable source, one unreachable page does not

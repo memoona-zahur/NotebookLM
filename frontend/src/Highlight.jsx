@@ -155,6 +155,9 @@ export function Occurrences({ onFind, onClose, autoSearch = null }) {
               <summary>
                 <span className="occ-src">{occurrence.source}</span>
                 {occurrence.page ? <span className="page"> · p.{occurrence.page}</span> : null}
+                {occurrence.heading ? (
+                  <span className="occ-heading"> · {occurrence.heading}</span>
+                ) : null}
                 <span className="occ-count">
                   {occurrence.count} {occurrence.count === 1 ? "time" : "times"}
                 </span>

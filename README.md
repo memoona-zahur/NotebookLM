@@ -215,7 +215,7 @@ all of them run.
 ```bash
 cd frontend
 npm install
-npm test           # 166 checks, jsdom, no database or API key needed
+npm test           # 167 checks, jsdom, no database or API key needed
 npm run test:watch # re-runs on save
 ```
 
@@ -543,7 +543,7 @@ documents use a word, with the exact character spans of each hit:
       "kind": "pdf",
       "position": 3,
       "page": 12,
-      "heading": "",
+      "heading": "Orbital mechanics > Escape velocity",
       "text": "Escape velocity at the surface is 11.2 km/s.",
       "matches": [[7, 15]],
       "count": 2
@@ -747,7 +747,7 @@ semantically flat:
 | Markdown | heading path tracked, pipe tables rendered as key/value rows |
 | DOCX | heading styles tracked, tables rendered with their header row |
 | YAML / TOML / INI | flattened to key paths: `$.database.pool_size: 40` |
-| PDF | per page, with table-like pages split on line boundaries |
+| PDF | per page, with table-like pages split on line boundaries. The heading is inferred: PDF declares nothing, so a line set at least 15% larger than the body text is treated as a section title, repeated running headers are rejected, and the result nests like a Markdown heading path |
 | hard-wrapped TXT | rejoined at the line break, so a phrase split by column wrapping stays searchable |
 
 Chunks that are still numeric-flat (a PDF table with no extractable headers) are **flagged,
@@ -1091,7 +1091,7 @@ retry a log line costs more than the line is worth.
 
 ## Tests
 
-103 checks covering upload, per-format parsing (including YAML/TOML/INI and hard-wrapped
+106 checks covering upload, per-format parsing (including YAML/TOML/INI and hard-wrapped
 text), OCR (a scanned page recovered and searchable, pages kept in order, both halves of a
 mixed PDF indexed, a blank scan refused with an actionable message, the missing-language
 message naming the install command, an over-cap document refused rather than indexed

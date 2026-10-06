@@ -179,6 +179,54 @@ def make_scanned_pdf(pages: int = 1, text_pages: int = 0, readable: bool = True)
     return data
 
 
+def make_heading_pdf() -> bytes:
+    """A PDF where the section titles are set larger than the body.
+
+    PDF carries no heading semantics - a heading is only ever bigger text - so
+    a fixture with one font size cannot test heading extraction at all. This is
+    the fixture that makes the claim testable: three pages, two levels, and a
+    page where the section changes back to the outer level.
+    """
+    doc = pymupdf.open()
+    body = (
+        "The inspection interval for the primary filter is twelve months. "
+        "Record the reading in the log before resetting the counter. "
+        "Replace the gasket if it shows any sign of deformation."
+    )
+    for size, title in ((24, "Maintenance Manual"), (18, "Oil Changes"), (24, "Safety")):
+        page = doc.new_page()
+        page.insert_text((72, 90), title, fontsize=size)
+        for line in range(3):
+            page.insert_text((72, 160 + line * 15), body, fontsize=11)
+    data = doc.tobytes()
+    doc.close()
+    return data
+
+
+def make_running_header_pdf(pages: int = 6) -> bytes:
+    """A PDF whose repeated header is set at heading size.
+
+    A running header is exactly what font size alone would misread: large,
+    short, sentence-free text near the top of the page. Treating it as the
+    heading would give every page the same wrong section, and that section
+    reaches the model as context - a wrong citation is harder to spot than a
+    missing one.
+    """
+    doc = pymupdf.open()
+    body = "Body text of the report, which repeats across pages. " * 6
+    for index in range(pages):
+        page = doc.new_page()
+        page.insert_text((72, 40), "ACME CORP CONFIDENTIAL", fontsize=14)
+        if index in (0, pages // 2):
+            title = "Introduction" if index == 0 else "Results"
+            page.insert_text((72, 110), title, fontsize=20)
+        page.insert_text((72, 150), body, fontsize=11)
+    data = doc.tobytes()
+    doc.close()
+    return data
+
+
+
 @contextlib.contextmanager
 def stubbed(answer: str, sink: list | None = None):
     """Force every provider to return `answer`, optionally recording prompts."""
@@ -1304,6 +1352,59 @@ def test_parsers_reads_a_normal_pdf_unchanged(client: TestClient) -> None:
     blocks = parsers.parse(path)
     assert len(blocks) == 2
     assert all("11.2" in block.text for block in blocks)
+
+
+def test_pdf_headings_are_inferred_from_font_size(client: TestClient) -> None:
+    """PDF is the only supported format that never set `Block.heading`.
+
+    Every other parser declares its headings (a `#`, a DOCX style name, an
+    `h1`). PDF has nothing to declare, so headings have to be inferred - and
+    before they were, a citation in the prompt was `handbook.pdf, page 7`, the
+    exact fallback this module's docstring says a heading exists to avoid.
+    """
+    path = Path(TMP) / "headed.pdf"
+    path.write_bytes(make_heading_pdf())
+
+    by_page = {block.page: block.heading for block in parsers.parse(path)}
+    assert by_page[1] == "Maintenance Manual", by_page
+    # A larger size opens a section, an equal size is a sibling and replaces
+    # it, a smaller size nests inside it.
+    assert by_page[2] == "Maintenance Manual > Oil Changes", by_page
+    assert by_page[3] == "Safety", by_page
+    print("  pdf headings read from font size, with a nested path: OK")
+
+
+def test_a_running_header_never_becomes_a_heading(client: TestClient) -> None:
+    """A header repeated on every page must not become the document's heading.
+
+    It would otherwise be a wrong section attached to every passage, which is
+    worse than no heading: the prompt would tell the model confidently that
+    everything came from `ACME CORP CONFIDENTIAL`.
+    """
+    path = Path(TMP) / "headered.pdf"
+    path.write_bytes(make_running_header_pdf())
+
+    headings = {block.heading for block in parsers.parse(path)}
+    assert "ACME CORP CONFIDENTIAL" not in headings, headings
+    assert "Introduction" in headings and "Results" in headings, headings
+    print("  a repeated running header is rejected, real sections are kept: OK")
+
+
+def test_the_prompt_names_the_section_and_not_only_the_page(client: TestClient) -> None:
+    """`page 7` locates a passage; the heading says what it is about."""
+    context = llm._format_context(
+        [
+            {"source": "handbook.pdf", "page": 7,
+             "heading": "Maintenance > Oil changes", "text": "first"},
+            {"source": "notes.md", "page": 0, "heading": "", "text": "second"},
+        ]
+    )
+    assert "(source: handbook.pdf, section: Maintenance > Oil changes, page 7)" in context
+    # Formats without headings must not print an empty field - `[1] (source: s,
+    # section: , page 3)` reads as a section called "," to the model.
+    assert "(source: notes.md)" in context, context
+    print("  the prompt carries the section when there is one: OK")
+
 
 
 def test_an_oversized_upload_is_refused_without_being_kept(client: TestClient) -> None:
@@ -3121,6 +3222,9 @@ ORDER = [
     ("ocr page cap refuses, not half-reads", test_a_scan_over_the_page_cap_is_refused_not_half_indexed),
     ("mixed pdf keeps text pages without ocr", test_a_mixed_pdf_indexes_its_text_pages),
     ("normal pdf unchanged by ocr", test_parsers_reads_a_normal_pdf_unchanged),
+    ("pdf headings from font size", test_pdf_headings_are_inferred_from_font_size),
+    ("running header rejected", test_a_running_header_never_becomes_a_heading),
+    ("prompt carries the section", test_the_prompt_names_the_section_and_not_only_the_page),
     ("oversized upload refused", test_an_oversized_upload_is_refused_without_being_kept),
     ("chat history persists", test_chat_history_persists_and_is_isolated),
     ("deleting session removes data", test_deleting_a_session_removes_its_data),
