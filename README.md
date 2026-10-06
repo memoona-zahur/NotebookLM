@@ -834,8 +834,16 @@ survives being cut into chunks and re-found, so there is a second harness:
 
 Each item blanks a value out of a real corpus document and asks for it back, so
 the gold answers are the documents' own text rather than anything invented.
-The set holds **124 items across all 27 corpus documents**: 33 field, 24
-record, 8 definition, 31 value, 21 multi-block, and 7 traps that must be refused.
+The set holds **122 items across all 27 corpus documents**: 30 field, 24
+record, 8 definition, 31 value, 22 multi-block, and 7 traps that must be refused.
+One mechanical check is worth naming, because it was written after the set had
+been wrong: a question of the form `_____ KEY:` reads to anyone as "the value of
+KEY", so the answer must be what the fact says KEY holds. Questions used to be
+cut on `': '` with the value from the line above, which produced
+`_____ $.runtime.cpu_limit:` labelled `2048` - memory_limit_mb's value. Every
+other check passed, because `2048 $.runtime.cpu_limit:` is verbatim text of the
+flattened fact, and the run scored a model wrong for answering `1500`. Seventeen
+items were mislabelled that way and are now correct.
 The multi-block items need two or three separate passages, which is what makes
 them able to fail - an earlier set of single-passage items could not tell a
 working ranker from a lucky one.
@@ -853,8 +861,8 @@ term was understood - and they are capped hard: no multi-word gerund phrases
 and the cue has to open the sentence's first clause so a subordinate clause is
 never mistaken for a name.
 
-Current result: recall@5 **0.956**, fact coverage **0.923**, MRR **0.962**,
-nDCG **0.935**, traps leaked **0**. Precision@5 is **0.226**, which is the
+Current result: recall@5 **0.955**, fact coverage **0.922**, MRR **0.961**,
+nDCG **0.934**, traps leaked **0**. Precision@5 is **0.226**, which is the
 point of the traps: the alternative to retrieving a sixth passage that happens
 to contain the word is retrieving five that do not.
 
@@ -881,7 +889,7 @@ out, using the same labels.
 .venv/bin/python -m experiments.eval_generation --limit 12 --dry-run --allow-machine
 ```
 
-Three numbers, each answering a different question:
+Six numbers, each answering a different question:
 
 | Metric | Question it answers |
 |---|---|
@@ -890,6 +898,34 @@ Three numbers, each answering a different question:
 | `substance` | Did the answer cover the labelled facts, tolerating rewording? |
 | `relevancy` | Did it land every labelled fact, word for word? |
 | `verbatim` | How much does the answer quote rather than paraphrase? |
+| `reference` | Did the answer contain the value the document actually holds? |
+
+### The answer key, and what it is worth
+
+Five of those compare the answer to passages the retriever chose, so they grade
+the system against itself. `reference` is the exception: on the cloze set the
+label is the text that was blanked out of the document, so the answer key comes
+from the document and nothing the retriever or the generator produced enters it.
+
+It is lexical containment on purpose - an embedding similarity or an LLM judge
+would put the model under test inside its own grading, which is the objection
+written above. The cost is that a correct paraphrase of a short value scores 0,
+so a low `reference` means *did not contain the words*, which is weaker than
+*did not know*. It is reported next to faithfulness rather than inside it.
+
+It only exists where the item has an answer key (`answers` on the cloze set;
+traps carry `null` deliberately) and the rate is taken over those items alone,
+because averaging in the keyless ones would pull the number down for a reason
+unrelated to the answers.
+
+Producing the number costs a full run - `eval_generation` calls a real model, and
+115 items is on the order of a day's free-tier quota - so it is a command you
+run, not a figure in CI:
+
+```bash
+.venv/bin/python -m experiments.eval_generation \
+  --gold experiments/gold/cloze_set.json --allow-machine --allow-unverified
+```
 
 ### No judge model, on purpose
 
@@ -1092,7 +1128,7 @@ retry a log line costs more than the line is worth.
 
 ## Tests
 
-110 checks covering upload, per-format parsing (including YAML/TOML/INI and hard-wrapped
+112 checks covering upload, per-format parsing (including YAML/TOML/INI and hard-wrapped
 text), OCR (a scanned page recovered and searchable, pages kept in order, both halves of a
 mixed PDF indexed, a blank scan refused with an actionable message, the missing-language
 message naming the install command, an over-cap document refused rather than indexed

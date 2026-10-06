@@ -2205,6 +2205,76 @@ def test_generation_metric_does_not_grade_its_own_model(client: TestClient = Non
     print("  generation metrics: run with no provider configured")
 
 
+def test_answer_correctness_is_scored_against_the_document(client: TestClient = None) -> None:
+    """The one correctness number that is not circular.
+
+    Every other generation metric compares the answer to passages the retriever
+    chose, so it grades the system against itself. The cloze set has an answer
+    key that was blanked out of the document: the label is the document's own
+    text, and nothing the retriever or the generator produced enters it.
+    """
+    from experiments import generation
+    from experiments.eval_generation import answer_key, with_reference
+
+    hit = generation.reference_score(
+        "The declaration number is this.declarationNumber = declarationNumber;",
+        ["declarationNumber;"],
+    )
+    assert hit["exact"] is True and hit["covered"] is True, hit
+
+    # Right words, wrong order: close, and reported as close, not as correct.
+    scattered = generation.reference_score("Grant it for months, 12 days at a time", ["12 months"])
+    assert scattered["exact"] is False and scattered["partial"] is True, scattered
+    assert scattered["covered"] is True, scattered
+
+    wrong = generation.reference_score("Thirty days from delivery", ["12 months"])
+    assert wrong["covered"] is False and wrong["matched"] is None, wrong
+
+    # A refusal must not borrow a pass from having said nothing at all.
+    refused = generation.reference_score("", ["12 months"])
+    assert refused["covered"] is False, refused
+
+    # Traps carry no key on purpose, so they are not scored against anything.
+    trap = {"kind": "trap", "answers": None, "answerable": False}
+    assert answer_key(trap) == []
+    assert "reference" not in with_reference({"relevancy": {}}, trap, "any answer")
+
+    # Only keyed items count. Averaging over the keyless ones would drag the
+    # rate down for a reason unrelated to whether answers were right.
+    from experiments.eval_generation import summarise
+
+    def row(rid: str, text: str, expected: list[str] | None) -> dict:
+        metrics = with_reference(
+            generation.score_answer(
+                text, [{"text": "the licence lasts twelve months at most"}], [], verdict="answered"
+            ),
+            {"answers": expected},
+            text,
+        )
+        return {
+            "id": rid,
+            "kind": "value_cloze",
+            "verdict": "answered",
+            "metrics": metrics,
+            "cost": {"total_tokens": 10},
+            "latency_ms": 1.0,
+        }
+
+    report = summarise(
+        [row("A", "It lasts 12 months", ["12 months"]), row("B", "No idea", ["12 months"])],
+        [],
+    )
+    ref = report["reference"]
+    assert ref["scored"] == 2 and ref["covered"] == 0.5, ref
+    assert ref["exact"] == 0.5 and ref["partial_only"] == 0.0, ref
+
+    keyed_only = summarise([row("C", "It lasts 12 months", None)], [])
+    assert keyed_only["reference"]["scored"] == 0
+    assert keyed_only["reference"]["covered"] is None, keyed_only["reference"]
+
+    print("  answer correctness: scored against the document's own answer key")
+
+
 def test_retrieval_metric_definitions(client: TestClient = None) -> None:
     from experiments import metrics
 
@@ -2464,6 +2534,56 @@ def test_cloze_labels_are_checked_mechanically(client: TestClient = None) -> Non
         assert item["verified_by_human"] is False
         assert item["label_provenance"].startswith("machine-")
     print("  cloze labels: values, not timestamps, addresses or filler words")
+
+
+def test_a_cloze_question_must_not_name_the_wrong_key(client: TestClient = None) -> None:
+    """The blank reads as "the value of that key", so it must be that key's.
+
+    Caught the real defect: questions were built as `_____ KEY:` with the value
+    taken from the *previous* line of a flattened config, so
+    `_____ $.runtime.cpu_limit:` was labelled `2048` - memory_limit_mb's value.
+    Every other check passed, because `2048 $.runtime.cpu_limit:` is verbatim
+    text of the fact. The eval then scored the model wrong for answering 1500.
+    """
+    from app.parsers import Block
+    from experiments import build_cloze_gold as cloze
+
+    fact = "$.runtime.memory_limit_mb: 2048\n$.runtime.cpu_limit: 1500"
+    blocks = {"app.yaml": [Block(text=fact)]}
+    base = {
+        "source": "app.yaml",
+        "answer": "2048",
+        "answers": ["2048"],
+        "required_facts": [fact],
+        "expected_positions": [0],
+        "label_provenance": "machine-value_cloze",
+    }
+
+    wrong_key = dict(
+        base,
+        question="_____ $.runtime.cpu_limit:",
+        windows=["2048 $.runtime.cpu_limit:"],
+    )
+    problems = cloze.check_item(wrong_key, blocks)
+    assert any("whose value is '1500'" in p for p in problems), problems
+
+    right_key = dict(
+        base,
+        question="$.runtime.memory_limit_mb: _____",
+        windows=["$.runtime.memory_limit_mb: 2048"],
+    )
+    assert cloze.check_item(right_key, blocks) == [], cloze.check_item(right_key, blocks)
+
+    # A bracket cannot be an answer: it is inside every reply there is.
+    assert cloze._field_value("const TIERS = [") is None
+    assert cloze._field_value("median = (") is None
+
+    # The question builder must itself keep the owning key and drop the next.
+    assert cloze._cloze_from_line(
+        "$.runtime.memory_limit_mb: 2048", "\n$.runtime.cpu_limit: 1500"
+    ) == ("value", "$.runtime.memory_limit_mb: _____", "2048")
+
+    print("  cloze: a blank names the key whose value it is")
 
 
 def test_machine_checked_labels_are_gated_not_trusted(client: TestClient = None) -> None:
@@ -3310,6 +3430,7 @@ ORDER = [
     ("metric definitions", test_retrieval_metric_definitions),
     ("generation metric definitions", test_generation_metric_definitions),
     ("generation metrics need no model", test_generation_metric_does_not_grade_its_own_model),
+    ("answer correctness vs the document", test_answer_correctness_is_scored_against_the_document),
     ("config formats as data", test_config_formats_parsed_as_data),
     ("hard-wrapped text rejoined", test_hard_wrapped_text_is_rejoined),
     ("hybrid tokenisation", test_hybrid_lexical_index),
@@ -3367,6 +3488,7 @@ ORDER = [
     ("rebuild leaves the corpus alone", test_rebuilding_the_corpus_does_not_dirty_the_checkout),
     ("a changed corpus file is rebuilt", test_corpus_build_still_replaces_a_changed_document),
     ("cloze labels are checked mechanically", test_cloze_labels_are_checked_mechanically),
+    ("cloze names the right key", test_a_cloze_question_must_not_name_the_wrong_key),
     ("labels can actually fail", test_labels_can_actually_fail),
     ("machine labels are gated not trusted", test_machine_checked_labels_are_gated_not_trusted),
     ("bakeoff resolves gold by text", test_bakeoff_resolves_gold_by_text_not_position),

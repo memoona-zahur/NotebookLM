@@ -173,6 +173,11 @@ def _field_value(line: str) -> str | None:
     # asks two questions at once and neither has one right answer.
     if len(value.split()) > 6 or ", " in value:
         return None
+    # A bracket or a parenthesis is not an answer. 'const TIERS = [' blanked to
+    # '[', and 'median = _____' to '(': no reply could be marked against
+    # either, because any of them contains them.
+    if not re.search(r"\w", value):
+        return None
     return value
 
 
@@ -209,6 +214,36 @@ def _blanks(line: str) -> list[tuple[int, int, str]]:
     return found
 
 
+KEYLIKE = re.compile(r"[$A-Za-z_][\w$\.\[\]]*")
+BARE_KEY = re.compile(r"[$A-Za-z_][\w$\.\[\]]*:\Z")
+
+
+def _owning_key(text: str, start: int) -> int | None:
+    """Offset where the key owning the value at `start` begins.
+
+    `key: value` puts the key first, so the key belongs in the question.
+    Bounding the sentence on `': '` alone cut it off *at* the key and kept the
+    *next* key instead, giving `_____ $.runtime.cpu_limit:` with `2048` as the
+    answer. That reads as "the value of cpu_limit" while labelling
+    memory_limit_mb's value, so a reader answers 1500 and is marked wrong.
+    Every config line the corpus produced was mislabelled in that direction.
+    """
+    i = start
+    while i > 0 and text[i - 1] in " \t":
+        i -= 1
+    if i == 0 or text[i - 1] not in ":=":
+        return None
+    i -= 1
+    while i > 0 and text[i - 1] in " \t":
+        i -= 1
+    j = i
+    while j > 0 and text[j - 1] not in " \t\n:":
+        j -= 1
+    if j == i or not KEYLIKE.fullmatch(text[j:i]):
+        return None
+    return j
+
+
 def _window(line: str, start: int, end: int, value: str) -> str | None:
     """The question: the one sentence around the blank, not the whole line.
 
@@ -235,7 +270,14 @@ def _window(line: str, start: int, end: int, value: str) -> str | None:
         right += 1
     while right < len(line) and line[right] in ".;:!?":
         right += 1
+    key_at = _owning_key(line, start)
+    if key_at is not None and key_at < left:
+        left = key_at
     before, after = line[left:start].strip(), line[end:right].strip()
+    # The next key must not ride along: a question ending in a key and no value
+    # names a key whose value the answer is not.
+    if BARE_KEY.fullmatch(after or ""):
+        after = ""
     # The blank always survives, even when the value sits at either end of its
     # sentence: dropping it when a side was empty turned '0.0.0.0:8443' into
     # the question '0.0.0.0:', which is not a question at all.
@@ -296,6 +338,34 @@ def _cloze_from_line(
         # - and _distinctive rejects the ones that do not.
         if len(question) >= MIN_FIELD_QUESTION_CHARS:
             return "field", question, value
+    return None
+
+
+def _question_key(question: str) -> str | None:
+    """The key the blank claims to ask about, when the question names one.
+
+    Both shapes exist - `KEY: _____` and `_____ KEY:` - and both read to a
+    person as "the value of KEY", so both have to agree with what the fact
+    says KEY holds.
+    """
+    text = question.strip()
+    if text.startswith("_____"):
+        text = text[5:].strip()
+    elif text.endswith("_____"):
+        text = text[:-5].strip()
+    else:
+        return None
+    text = text.strip().rstrip(":").strip()
+    return text if text and KEYLIKE.fullmatch(text) else None
+
+
+def _key_value(fact: str, key: str) -> str | None:
+    """What the fact states `key` holds, when the fact is a key/value listing."""
+    wanted = normalize(key)
+    for line in fact.splitlines():
+        match = KEY_VALUE.match(line.strip())
+        if match and normalize(match.group("key")) == wanted:
+            return match.group("value")
     return None
 
 
@@ -886,6 +956,19 @@ def check_item(item: dict, blocks: dict[str, list]) -> list[str]:
         # or the label was written by something other than the parser's output.
         if normalize(window) not in normalize(fact):
             problems.append("the window is not text from its fact")
+        # A blank standing in front of a key reads as "the value of that key",
+        # so the answer has to be that key's value. Without this the checks are
+        # blind to an off-by-one: '2048 $.runtime.cpu_limit:' is verbatim text
+        # of the flattened fact, so window, answer and question all pass while
+        # the item still labels the wrong line.
+        named = _question_key(item["question"])
+        if named is not None:
+            stated = _key_value(fact, named)
+            if stated is not None and normalize(stated) != normalize(answer):
+                problems.append(
+                    f"the question names {named!r}, whose value is {stated!r}, "
+                    f"not {answer!r}"
+                )
         blanked = _blank(window, answer)
         if blanked is None or normalize(blanked) not in haystack:
             problems.append("the window is not in the question")

@@ -505,6 +505,66 @@ def score_answer(
     }
 
 
+def _tokens(text: str) -> list[str]:
+    """Lowercased alphanumeric runs.
+
+    Camel case is left whole on purpose: the cloze answers are Java identifiers
+    like `declarationNumber`, and splitting them at the case boundary would let
+    any sentence containing both halves count as a match.
+    """
+    return re.findall(r"[a-z0-9]+", (text or "").lower())
+
+
+def _has_run(haystack: list[str], needle: list[str]) -> bool:
+    n = len(needle)
+    if n == 0 or n > len(haystack):
+        return False
+    return any(haystack[i : i + n] == needle for i in range(len(haystack) - n + 1))
+
+
+def reference_score(answer: str, expected: Sequence[str] | None) -> dict[str, object]:
+    """Did the answer contain the value the document actually holds?
+
+    The answer key, not the evidence: `expected` is the text that filled a gap
+    in the source document, so the label comes from the document and not from
+    anything the retriever or the generator produced. That is what makes this
+    the one non-circular correctness check available here, and why it is
+    reported beside faithfulness rather than folded into it.
+
+    Lexical for the same reason a judge model is refused at the top of this
+    file: embedding similarity or an LLM judge puts the model under test inside
+    its own grading. The cost of that choice is stated rather than hidden -- a
+    correct paraphrase of a short value scores 0, so a low number here means
+    "did not contain the words", which is weaker than "did not know".
+
+    `exact` is the expected value appearing as a contiguous run of words in the
+    answer. `partial` is every word of the expected value appearing somewhere,
+    in any order: that catches an answer that has the right parts but scatters
+    them, which is the usual shape of a hedged or rambling reply. A refusal
+    scores neither.
+    """
+    found = _tokens(answer)
+    exact: str | None = None
+    partial: str | None = None
+    for raw in expected or ():
+        want = _tokens(raw)
+        if not want:
+            continue
+        if exact is None and _has_run(found, want):
+            exact = str(raw)
+        elif exact is None and partial is None and all(w in found for w in want):
+            partial = str(raw)
+        if exact is not None:
+            break
+    return {
+        "exact": exact is not None,
+        "partial": partial is not None and exact is None,
+        "covered": exact is not None or partial is not None,
+        "matched": exact or partial,
+        "expected": [str(x) for x in (expected or ())],
+    }
+
+
 def _self_check() -> None:
     """Worked examples, so a wrong definition fails here and not in a report."""
     passages = [
@@ -538,6 +598,27 @@ def _self_check() -> None:
     faith = faithfulness("Standard returns are accepted within 30 days [9].", passages)
     assert faith["score"] == 0.0, faith
     assert faith["claims"][0]["dangling"] == [9], faith
+
+    # The answer key is matched as a run of words, case- and punctuation-blind.
+    ref = reference_score(
+        "The declaration number is this.declarationNumber = declarationNumber;",
+        ["declarationNumber;"],
+    )
+    assert ref["exact"] is True and ref["covered"] is True, ref
+
+    # Every word present but scattered is only partial -- close enough to see,
+    # not close enough to call correct.
+    ref = reference_score("Grant it for months, 12 days at a time", ["12 months"])
+    assert ref["exact"] is False and ref["partial"] is True, ref
+    assert ref["covered"] is True, ref
+
+    # A refusal is neither. It must not borrow a pass from an empty answer.
+    ref = reference_score("", ["12 months"])
+    assert ref["covered"] is False and ref["matched"] is None, ref
+
+    # No label, no claim: traps carry no answer key and must stay unscored.
+    assert reference_score("anything", None)["covered"] is False
+    assert reference_score("anything", ["", "  "])["covered"] is False
 
     # Fullwidth markers are the same citation, not a different one.
     assert extract_citations("30 days ［1］ and 【２】") == [1, 2]

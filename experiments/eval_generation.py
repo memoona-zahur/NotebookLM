@@ -54,20 +54,51 @@ HERE = Path(__file__).resolve().parent
 RESULTS_PATH = HERE / "results" / "generation_metrics.json"
 
 
-def index_all(store: VectorStore, names: list[str], tag: str) -> str:
-    """One session holding every document.
+def index_all(store: VectorStore, items: list[dict], tag: str) -> str:
+    """One session holding every document an answerable item points at.
 
     The shared condition rather than one session per document, because this
     harness measures the answer and a model handed six documents behaves
     differently from one handed one. That is the condition the product runs in.
+
+    Only answerable items contribute a source name. The trap questions name a
+    source that is deliberately not a file - they ask about something the
+    corpus never says - so indexing their `source` would fail on a value that
+    is meant to be missing. An answerable item whose file really is gone still
+    raises, because that one would silently drop coverage from the run.
     """
+    wanted = sorted({i["source"] for i in items if i["answerable"]})
+    missing = [name for name in wanted if not (CORPUS / name).exists()]
+    if missing:
+        raise FileNotFoundError(
+            f"{CORPUS / missing[0]} is referenced by an answerable item but missing"
+        )
     session = db.create_session(f"eval-gen:{tag}: all documents")
-    for name in names:
-        path = CORPUS / name
-        if not path.exists():
-            raise FileNotFoundError(f"{path} is referenced by the gold set but missing")
-        store.add(path, display_name=name, session_id=str(session.id))
+    for name in wanted:
+        store.add(CORPUS / name, display_name=name, session_id=str(session.id))
     return str(session.id)
+
+
+def answer_key(item: dict) -> list[str]:
+    """The value the document actually holds, when the item has one.
+
+    Cloze items carry `answers` (plural) because a line can be blanked more than
+    once; the older gold set has no answer key at all, only the passages a
+    correct answer must draw from. Traps carry `answers: null` on purpose, so an
+    unanswerable question is never scored against something it should not
+    contain.
+    """
+    if item.get("answers"):
+        return [str(a) for a in item["answers"]]
+    return [str(item["answer"])] if item.get("answer") else []
+
+
+def with_reference(metrics: dict, item: dict, answer: str) -> dict:
+    """Attach the answer-key score when this item has an answer key."""
+    expected = answer_key(item)
+    if expected:
+        metrics["reference"] = generation.reference_score(answer, expected)
+    return metrics
 
 
 def answer_one(store: VectorStore, item: dict, session_id: str, k: int) -> dict:
@@ -84,8 +115,15 @@ def answer_one(store: VectorStore, item: dict, session_id: str, k: int) -> dict:
             "source": item["source"],
             "question": item["question"],
             "verdict": "no_match",
-            "metrics": generation.score_answer(
-                llm.NO_MATCH, passages, item["required_facts"], verdict="no_match"
+            "metrics": with_reference(
+                generation.score_answer(
+                    llm.NO_MATCH,
+                    passages,
+                    item["required_facts"],
+                    verdict="no_match",
+                ),
+                item,
+                llm.NO_MATCH,
             ),
             "retrieval_best_score": search.best_score,
             "context_chars": sum(len(p) for p in passages),
@@ -108,8 +146,12 @@ def answer_one(store: VectorStore, item: dict, session_id: str, k: int) -> dict:
         }
     elapsed = (time.perf_counter() - started) * 1000
 
-    scored = generation.score_answer(
-        result.text, passages, item["required_facts"], verdict="answered"
+    scored = with_reference(
+        generation.score_answer(
+            result.text, passages, item["required_facts"], verdict="answered"
+        ),
+        item,
+        result.text,
     )
     return {
         "id": item["id"],
@@ -185,6 +227,21 @@ def summarise(rows: list[dict], traps: list[dict]) -> dict:
     for r in answered:
         kinds[r["metrics"]["relevancy"]["kind"]] += 1
 
+    # The answer key is only scored on items that have one, and is reported as
+    # a rate over those items rather than over every row. Averaging it across
+    # items with no key would push the number towards zero for a reason that has
+    # nothing to do with whether the answers were right.
+    keyed = [r["metrics"].get("reference") for r in answered]
+    keyed = [k for k in keyed if k is not None]
+    reference = {
+        "scored": len(keyed),
+        "covered": mean([1.0 if k["covered"] else 0.0 for k in keyed]),
+        "exact": mean([1.0 if k["exact"] else 0.0 for k in keyed]),
+        "partial_only": mean([1.0 if k["partial"] else 0.0 for k in keyed]),
+    }
+    if not keyed:
+        reference["covered"] = reference["exact"] = reference["partial_only"] = None
+
     latencies = [r["latency_ms"] for r in answered]
     tokens = [r["cost"]["total_tokens"] for r in answered if r.get("cost")]
 
@@ -204,6 +261,7 @@ def summarise(rows: list[dict], traps: list[dict]) -> dict:
         "unsupported_claims": sum(
             len(r["metrics"]["faithfulness"]["unsupported"]) for r in answered
         ),
+        "reference": reference,
         "latency_ms_mean": mean(latencies),
         "tokens_mean": mean([float(t) for t in tokens]),
         "trap_refusal_rate": (
@@ -326,7 +384,7 @@ def run(
     print()
 
     store = VectorStore()
-    session_id = index_all(store, sorted({i["source"] for i in items}), "run")
+    session_id = index_all(store, items, "run")
 
     rows: list[dict] = []
     for n, item in enumerate(scorable, start=1):
@@ -363,6 +421,27 @@ def run(
                  "verbatim", "latency_ms_mean", "tokens_mean"):
         value = report[name]
         print(f"  {name:20} {value:.3f}" if value is not None else f"  {name:20} (none)")
+    ref = report["reference"]
+    keyed_total = sum(1 for i in scorable if answer_key(i))
+    if ref["scored"]:
+        print(f"  {'answer key covered':20} {ref['covered']:.3f}"
+              f"   (exact {ref['exact']:.3f}, partial only {ref['partial_only']:.3f})")
+        # The denominator is shown because the rate is taken over answered items
+        # only: a refusal or a quota error removes one from it, and a rate with
+        # a hidden denominator cannot be compared between runs.
+        print(f"  {'answer key scored':20} {ref['scored']} of {keyed_total} items")
+        if ref["scored"] != keyed_total:
+            print(f"  {'  not scored':20} {keyed_total - ref['scored']}"
+                  " (refused by the floor, or the model was unavailable)")
+    else:
+        print(f"  {'answer key covered':20} (this gold set has no answer key)")
+    print()
+    print("  answer key is lexical containment of the value the document holds:")
+    print("  it is the answer-correctness number, and it is weaker than it looks.")
+    print("  A paraphrase of the value scores 0 here, so a low covered means")
+    print("  'did not contain the words', not 'did not know'. It is reported next")
+    print("  to faithfulness instead of inside it, because the label comes from")
+    print("  the document and the other three come from the passages.")
     print()
     print("  substance / relevancy / verbatim bracket the same answers from")
     print("  three strictnesses. substance is paraphrase-tolerant, relevancy")
@@ -385,6 +464,7 @@ def run(
         "support_threshold": generation.SUPPORT_THRESHOLD,
         "human_verified": any(i["verified_by_human"] for i in scorable),
         "gold_file": gold_path.name,
+        "answer_key_items": sum(1 for i in scorable if answer_key(i)),
         "summary": report,
         "rows": rows,
         "traps": trap_rows,

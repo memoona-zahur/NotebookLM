@@ -507,8 +507,8 @@ At `MIN_SCORE=0.25`, over the committed corpus: **79/79 relevant questions
 answered, 42/42 traps rejected**, across 17 formats. Relevant questions score at
 worst 0.126; the worst trap scores 0.000.
 
-Ranked metrics over the same corpus, `k=5`: **recall 0.956, MRR 0.962, nDCG
-0.935, precision 0.226, hit rate 1.000, fact coverage 0.923, trap leaks 0**.
+Ranked metrics over the same corpus, `k=5`: **recall 0.955, MRR 0.961, nDCG
+0.934, precision 0.226, hit rate 1.000, fact coverage 0.922, trap leaks 0**.
 Read what bounds them before quoting them
 ([8.4](#84-what-these-numbers-can-and-cannot-tell-you)).
 
@@ -547,7 +547,7 @@ quality would be the fastest way to lose the room.
 
 ### 8.3 Tests
 
-`./run_tests.sh` — 110 backend, 168 frontend. Includes: relevance floor,
+`./run_tests.sh` — 112 backend, 168 frontend. Includes: relevance floor,
 citation validation, injection defence, history injection attempts, upload
 ownership, citation persistence across reload, greeting behaviour, and web-source
 ingestion (a found page becomes a citable source, one unreachable page does not
@@ -582,22 +582,32 @@ that is what bounds the numbers.
 
 | Metric in the article | Status here | Current value |
 |---|---|---|
-| Recall@K | Implemented | `0.956` @5 |
-| MRR | Implemented | `0.962` @5 |
-| nDCG | Implemented | `0.935` @5 |
+| Recall@K | Implemented | `0.955` @5 |
+| MRR | Implemented | `0.961` @5 |
+| nDCG | Implemented | `0.934` @5 |
 | Precision@K | Implemented | `0.226` @5 |
 | Hit rate@K | Implemented | `1.000` @5 |
-| Fact coverage | Implemented | `0.923` |
+| Fact coverage | Implemented | `0.922` |
 | Trap leak rate | Implemented | `0.000` |
 | Faithfulness / groundedness | Implemented | `0.917` — fraction of answers with no unsupported claim |
 | Answer relevance | Implemented | `0.167`, explicitly reported as not fit for purpose |
 | Citation precision | Implemented | `1.000` |
 | Trap refusal | Implemented | `1.000` |
-| Answer correctness vs a reference answer | **Not implemented** | None |
+| Answer correctness vs a reference answer | Implemented | Not quoted: one full run is ~114K tokens, a free-tier day |
 | Per-format breakdown | Partial | 17 formats, aggregated |
 
-Source: `experiments/results/cloze_set_metrics.json` (124 items, 117 answerable,
+Source: `experiments/results/cloze_set_metrics.json` (122 items, 115 answerable,
 7 traps, `k=5`, `human_verified: false`).
+
+**Answer correctness is implemented and deliberately not quoted here.** On the
+cloze set the label is the value blanked out of the document, so unlike the
+other generation metrics it is graded against the document rather than against
+the retriever's own passages. The test is lexical containment, not an LLM judge,
+which means a correct paraphrase scores 0 - a low number would say *did not
+contain the words*, not *did not know*. It also needs a live model: 115 items is
+about a day's free-tier quota, so it is a command you run rather than a figure
+that sits in CI. The implementation exists and is tested; the number does not
+until someone spends the tokens.
 
 **What actually bounds these numbers: the labels, not the metrics.**
 `experiments/gold/cloze_set.json` is built by taking a line from a corpus
@@ -793,7 +803,7 @@ found out.
 | Highlight intent uses a heuristic | When no passage overlaps the highlight, a query is still derived. Better than doing nothing; not a substitute for a real selector |
 | Large documents block the server | Needs a job queue |
 | Re-uploading a file re-indexes it; no hash-based skip | No incremental ingestion or dedup, so the same document counted twice drags a source into every answer twice |
-| Answer correctness against a reference answer | Would need reference answers per question, which is a labelling exercise; see [8.4](#84-what-these-numbers-can-and-cannot-tell-you) |
+| Answer correctness is lexical, and only exists for the cloze set | The answer key is the blanked document value; containment is the test, so a paraphrase of it scores 0. `gold_set.json` has no answer key at all. See [8.4](#84-what-these-numbers-can-and-cannot-tell-you) |
 | Retrieval metrics graded on machine-checked labels | The metrics are implemented; the labels have never been read by a person. `gold_set.json` is 0/48 verified |
 | Ground-truth corpus is small | ~110 labels, so chunking numbers are directional for larger corpora |
 
@@ -821,7 +831,7 @@ Single-user, local, loopback-only by default. It is the honest scope for the
 project rather than a hidden omission, and adding it is documented. If it were
 deployed, auth would be the first change.
 
-**"Your Recall@K is 0.956. Isn't that suspiciously high?"**
+**"Your Recall@K is 0.955. Isn't that suspiciously high?"**
 It is high, and the reason is the label set, not the retriever. The labels come
 from blanking a value out of a document line, so the question literally contains
 the passage. The metric is implemented correctly and the run is reproducible
