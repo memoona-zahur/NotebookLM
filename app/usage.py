@@ -33,7 +33,12 @@ for code and for other languages, which is why it is labelled rather than hidden
 
 from __future__ import annotations
 
+import collections
+import math
+import threading
 from dataclasses import dataclass, field
+
+from . import config
 
 # OpenAI's documented approximation for English text. Only used when a provider
 # reports no usage at all; a real count always wins.
@@ -172,3 +177,90 @@ def estimate(model: str, messages: list[dict], latency_ms: float, output: str = 
         estimated=True,
         latency_ms=latency_ms,
     )
+
+# -- latency percentiles ---------------------------------------------------
+
+# A mean is the wrong shape for this. One provider hiccup on a 5 ms retrieval
+# window moves the average and says nothing about whether the ordinary request
+# was fine, while a P95 is exactly the claim a user makes: "it usually answers
+# quickly, and the slow ones are this slow".
+def _percentile(sorted_values: list[float], quantile: float) -> float:
+    """Nearest-rank percentile of an already-sorted, non-empty list.
+
+    Nearest-rank rather than interpolated: with a few hundred samples the
+    interpolated figure implies a precision the sample does not have, and
+    nearest-rank always returns a value that was actually observed.
+    """
+    if not sorted_values:
+        return 0.0
+    rank = max(1, math.ceil(quantile / 100 * len(sorted_values)))
+    return sorted_values[min(rank, len(sorted_values)) - 1]
+
+
+class LatencyWindow:
+    """The last N latency samples, for P50/P95 over the recent past.
+
+    A ring buffer rather than an accumulator because the question is always "is
+    it slow *now*". Percentiles over the process lifetime answer "was it slow
+    once in March", which is true, unactionable, and the reason most latency
+    dashboards get ignored.
+    """
+
+    def __init__(self, size: int) -> None:
+        self.size = max(1, size)
+        self._series: dict[str, collections.deque[float]] = {}
+        self._lock = threading.Lock()
+
+    def add(self, **samples: float) -> None:
+        """Record one or more stage latencies in milliseconds. Zeros are skipped.
+
+        A zero here is not "instant"; it is "this stage did not run" - a refusal
+        has no generation and a greeting has no retrieval. Mixing those into the
+        distribution would make generation look faster than it is, which is the
+        one direction this metric must not be wrong in.
+        """
+        with self._lock:
+            for name, value in samples.items():
+                if value is None or value <= 0:
+                    continue
+                series = self._series.setdefault(
+                    name, collections.deque(maxlen=self.size)
+                )
+                series.append(float(value))
+
+    def percentiles(self) -> dict:
+        with self._lock:
+            snapshot = {
+                name: sorted(series) for name, series in self._series.items()
+            }
+        out = {"window": self.size, "samples": {}}
+        for name, values in snapshot.items():
+            out["samples"][name] = {
+                "count": len(values),
+                "p50": round(_percentile(values, 50), 1),
+                "p95": round(_percentile(values, 95), 1),
+                "max": round(values[-1], 1) if values else 0.0,
+            }
+        return out
+
+
+window = LatencyWindow(config.LATENCY_WINDOW)
+
+
+def record(request: Request) -> None:
+    """Add one completed request to the latency window.
+
+    Called wherever a `Request` is built, so every path - answered, refused,
+    conversational - is measured the same way. Measuring only the happy path
+    would report a P95 built entirely from the requests that already worked.
+    """
+    window.add(
+        retrieval_ms=request.retrieval_ms,
+        generation_ms=request.generation_ms,
+        total_ms=request.total_ms,
+    )
+
+
+def latency_report() -> dict:
+    """P50/P95 per stage, for /api/status."""
+    return window.percentiles()

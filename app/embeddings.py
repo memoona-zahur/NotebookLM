@@ -25,6 +25,24 @@ def embed_query(text: str) -> list[float]:
     return embed_texts([text])[0]
 
 
+def token_count(text: str) -> int:
+    """Wordpieces of `text` under the embedding model's own tokenizer.
+
+    The real count, special tokens included, because that is what the model
+    actually sees and what it silently truncates at. An approximation cannot do
+    this job: on the eval corpus the 4-chars-per-token rule estimates 225 pieces
+    for a chunk that tokenises to 379, so it would report "fits" for a chunk
+    that loses a third of itself.
+
+    Counting an over-long input is exactly what this function is for, and
+    transformers' "longer than the maximum sequence length" warning would be
+    logging the problem instead of fixing it. `verbose=False` turns that
+    warning off, which is safe here and only here: no other caller of this
+    tokenizer wants an over-long input.
+    """
+    return len(get_model().tokenizer(text, truncation=False, verbose=False)["input_ids"])
+
+
 def score_against_query(query_vector: list[float], texts: list[str]) -> list[float]:
     """Cosine similarity of already-normalised query against new texts.
 

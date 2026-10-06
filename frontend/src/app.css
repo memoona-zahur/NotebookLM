@@ -1321,6 +1321,13 @@ mark.hit {
   background: #fce8e6;
   color: var(--warn);
 }
+/* Informational, not an error: the upload succeeded, it just did not do what
+   the spinner suggested. Red would say something went wrong when nothing did. */
+.toast.info {
+  border-color: var(--line-strong);
+  background: var(--surface-2, #f1f3f4);
+  color: var(--muted);
+}
 
 /* Narrow screens ---------------------------------------------------------- */
 

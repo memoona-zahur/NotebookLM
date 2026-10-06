@@ -215,7 +215,7 @@ all of them run.
 ```bash
 cd frontend
 npm install
-npm test           # 168 checks, jsdom, no database or API key needed
+npm test           # 171 checks, jsdom, no database or API key needed
 npm run test:watch # re-runs on save
 ```
 
@@ -760,6 +760,46 @@ Table-like text is also chunked on line boundaries. Splitting it on word boundar
 produce fragments like `003.52309 11.5 52 0`, which match nothing and read as gibberish when
 cited.
 
+## Ingest: the same file twice, and what it actually did
+
+Two things about ingestion used to be invisible, and both were the kind of
+invisible that looks fine until it does not.
+
+**A file you already have.** Re-uploading a PDF created a second source, indexed
+it a second time, and gave the answer a context containing the same passage
+twice. Nothing could say so. `POST /api/sources` now takes a SHA-256 of the
+bytes *before* parsing - the check exists precisely to skip the parse - and
+returns the source you already had with `duplicate: true`. The UI says
+`"<file> is already in this notebook. Nothing was re-indexed."` rather than
+looking like a successful upload that quietly changed no counts.
+
+The comparison is scoped to the session. Two notebooks may both hold the same
+public document, and a global uniqueness rule would tell the second person they
+cannot index their own file. Rows created before this migration have a NULL
+hash, which never matches - the safe direction, since a missed duplicate costs a
+little storage and a false one costs an upload.
+
+**The second ceiling.** `CHUNK_SIZE` is a character ceiling. The embedding model
+enforces a wordpiece ceiling, and `sentence-transformers` truncates silently at
+it: on the eval corpus a 900-character chunk tokenises to **379** pieces against
+MiniLM's **256**, and the last 123 were never embedded. Nothing said so. Chunks
+are now counted with the model's own tokenizer at ingest and split again if they
+do not fit, so a stored chunk is always a chunk the vector actually describes.
+`EMBED_MAX_TOKENS` sets the window (0 disables the check).
+
+What ingest reports, in `GET /api/status` as `ingest` and per source:
+
+| field | meaning |
+|---|---|
+| `avg_chars` / `max_chars` | chunk length in characters - is `CHUNK_SIZE` doing what was assumed |
+| `token_max` / `token_window` | worst chunk's wordpieces against what the model keeps |
+| `fit_splits` | extra cuts made only to satisfy the window - not a defect, a document whose characters do not map onto wordpieces the way `CHUNK_SIZE` assumes |
+| `numeric_pct` | how much of the index is bare tables, which retrieval damps |
+| `unmeasured` | sources indexed before any of this was recorded, whose zeros mean "unknown" |
+
+That last field is the honest one. A source that predates the report has
+`token_max` 0, and 0 here is not "everything fit", it is "nobody checked".
+
 ## Retrieval: hybrid dense + BM25
 
 `app/lexical.py` implements Okapi BM25 with a tokenizer built for code, and the two rankings
@@ -786,6 +826,43 @@ is what makes the two directions work, measured on the eval corpus below:
 
 A caller that passes a floor stricter than `MIN_SCORE` disables the `lexical` route entirely,
 and a floor of `0` disables relevance gating altogether.
+
+### Re-ranking the shortlist
+
+Reciprocal rank fusion scores the query and the chunk *separately* and combines
+two numbers, so it cannot notice a chunk that shares every keyword with the
+question while answering a different one. A cross-encoder reads them jointly and
+can, at roughly two orders of magnitude the cost per pair - so it runs on the
+fused shortlist rather than the corpus: recall from the cheap pass, precision
+from the expensive one.
+
+`app/rerank.py` gates it. The model (`cross-encoder/ms-marco-MiniLM-L-6-v2` by
+default) downloads on first use, so every failure path - no network, missing
+package, a `predict` that raises - degrades to "leave the order alone". It is
+observability's rule applied to ranking: a feature that can block the request is
+worse than the feature being absent. `/api/status` reports `configured` and
+`loaded` separately, so "the flag is on but the model never arrived" is
+distinguishable from "off".
+
+Two things deliberately do **not** change. Each hit keeps its dense cosine in
+`score`, because that is the scale `MIN_SCORE` was calibrated against and the
+number the floor already used; the cross-encoder's own score sits alongside in
+`rerank`. And re-ranking happens only after the floor, because the floor reads
+`score` - reranking before it would cost the same and change no decision.
+
+Measured on the cloze set, `k=5`, everything else fixed:
+
+| | without | with |
+|---|---|---|
+| MRR@5 | 0.952 | **0.974** |
+| nDCG@5 | 0.928 | **0.943** |
+| recall@5 | 0.955 | 0.955 |
+| precision@5 | 0.226 | 0.226 |
+| fact coverage | 0.922 | 0.922 |
+| trap leaks | 0 | 0 |
+
+The order improved and nothing else moved. A re-ranker that had pushed recall up
+by dragging traps in would have been a reason to turn it off.
 
 ## Evaluating retrieval
 
@@ -861,8 +938,11 @@ term was understood - and they are capped hard: no multi-word gerund phrases
 and the cue has to open the sentence's first clause so a subordinate clause is
 never mistaken for a name.
 
-Current result: recall@5 **0.955**, fact coverage **0.922**, MRR **0.961**,
-nDCG **0.934**, traps leaked **0**. Precision@5 is **0.226**, which is the
+Current result: recall@5 **0.955**, fact coverage **0.922**, MRR **0.974**,
+nDCG **0.943**, traps leaked **0**. The two rank-order numbers moved when
+re-ranking was added and measured (see below); recall, coverage and the trap
+leak did not move at all, which is the shape a second-stage ranker should have.
+ Precision@5 is **0.226**, which is the
 point of the traps: the alternative to retrieving a sixth passage that happens
 to contain the word is retrieving five that do not.
 
@@ -1004,8 +1084,9 @@ changing it.
 - **Entity-overlap traps leak.** Asked a pharmacology document "which antibiotics treat
   tuberculosis", it scores 0.54 and answers. The document genuinely is about antibiotics,
   so the shared entity is real and both dense and BM25 score it highly. 4 of 10 such traps
-  are caught. This is the one gap a cross-encoder reranker is designed for, and it is the
-  only evidence that would justify adding one.
+  are caught. A cross-encoder is the standard fix for exactly this, and one was added -
+  but on the evidence of MRR and nDCG above, not on this. This gap was **not** re-measured
+  afterwards, so it is still open and the reranker should not be credited with closing it.
 - `MIN_SCORE` is a single global value. Relevant and unanswerable scores overlap, so it is
   a conservative default rather than a guarantee; callers needing stricter behaviour pass a
   higher `min_score` per query.
@@ -1041,6 +1122,27 @@ network call. They fail for unrelated reasons, and a single `total_ms` hides whi
 was slow: a slow answer from disk needs better retrieval, a slow answer from the
 network needs a different provider or a smaller context. One number cannot tell them
 apart, so there are two.
+
+The same two numbers are also reported as percentiles, in `GET /api/status`:
+
+```json
+"latency": {
+  "window": 200,
+  "samples": {
+    "retrieval_ms": {"count": 41, "p50": 6.2, "p95": 18.9, "max": 24.0},
+    "generation_ms": {"count": 33, "p50": 812.4, "p95": 2140.7, "max": 3021.1},
+    "total_ms": {"count": 33, "p50": 818.6, "p95": 2146.0, "max": 3027.4}
+  }
+}
+```
+
+A mean is the wrong shape for this - one provider hiccup moves it and says nothing
+about the ordinary request - and percentiles over the whole process lifetime answer
+"was it slow once in March", which is true and unactionable. So it is a ring buffer
+of the last `LATENCY_WINDOW` samples, and the claim is "is it slow now". Stages that
+did not run are skipped rather than recorded as 0: a refusal has no generation and a
+greeting has no retrieval, and counting those would make generation look faster than
+it is, which is the one direction this number must not be wrong in.
 
 **A refusal reports zero tokens as a measurement, not as an absence.** When the
 relevance floor rejects a question the model is never called, and `called: false` with
@@ -1128,7 +1230,7 @@ retry a log line costs more than the line is worth.
 
 ## Tests
 
-112 checks covering upload, per-format parsing (including YAML/TOML/INI and hard-wrapped
+118 checks covering upload, per-format parsing (including YAML/TOML/INI and hard-wrapped
 text), OCR (a scanned page recovered and searchable, pages kept in order, both halves of a
 mixed PDF indexed, a blank scan refused with an actionable message, the missing-language
 message naming the install command, an over-cap document refused rather than indexed
@@ -1165,8 +1267,11 @@ non-zero if any failed.
   runtime rather than at migrate time.
 - Uploads are kept on disk so a source can be re-indexed without re-uploading: `POST /api/sources/{id}/reindex` re-reads the original and rebuilds its chunks under the current `CHUNK_SIZE` and `EMBED_MODEL`. Each delete
   path cleans up its own files; a hard crash mid-session can still leave an orphan.
-- No reranking. Fused dense + BM25 order goes straight to the prompt. See the entity-overlap
-  note above for the one case that measurably needs a cross-encoder.
+- Re-ranking is on by default and can be turned off with `RERANK_ENABLED=0`. It improves
+  rank order (MRR 0.952 -> 0.974) and leaves recall, precision and the trap leak untouched;
+  it does not fix the entity-overlap case noted above, which is a labelling problem rather
+  than an ordering one. The model downloads on first use, so the first query after a fresh
+  install pays for it.
 - PDF tables are **not reconstructed**. Every other table format is parsed with its header row
   attached (`.csv`/`.tsv`, Markdown pipe tables, DOCX), but a PDF only yields positioned text
   runs, so a table there stays numeric-flat. Those chunks are flagged rather than dropped, and

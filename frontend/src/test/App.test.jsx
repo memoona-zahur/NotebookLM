@@ -1,6 +1,6 @@
 import React from "react";
 import { describe, expect, it, vi } from "vitest";
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import App from "../App.jsx";
 import { deferred, on, requests, response, seed } from "./harness.js";
@@ -851,5 +851,102 @@ describe("highlight commands from the chat", () => {
 
     const drawer = await screen.findByRole("dialog");
     expect(await within(drawer).findByText(/not in any of these documents/i)).toBeInTheDocument();
+  });
+});
+describe("what ingest actually did", () => {
+  const STATUS = {
+    provider: "groq",
+    model: "openai/gpt-oss-120b",
+    embed_model: "sentence-transformers/all-MiniLM-L6-v2",
+    min_score: 0.25,
+    sources: [{ id: "s1", name: "handbook.pdf", kind: "pdf", chunks: 12, numeric: 1 }],
+    chunks: 12,
+    numeric: 1,
+    // The report the drawer shows. `token_max` sitting at the window is the
+    // case that matters: it says the worst chunk exactly fills the embedding
+    // model's input rather than quietly losing its tail.
+    ingest: {
+      chunks: 12,
+      numeric: 1,
+      numeric_pct: 8.3,
+      avg_chars: 233,
+      max_chars: 898,
+      token_max: 256,
+      token_window: 256,
+      fit_splits: 3,
+      unmeasured: 0,
+    },
+  };
+
+  it("shows the wordpiece ceiling, not just how many chunks there are", async () => {
+    on("GET", "/api/status", () => STATUS);
+
+    const user = await boot();
+    await user.click(screen.getByRole("button", { name: /source/i }));
+    await screen.findByRole("dialog");
+
+    // "Indexed" is two claims: characters, and wordpieces. Both have to be on
+    // screen or the second one is implied rather than shown.
+    expect(screen.getByText(/256\/256/)).toBeInTheDocument();
+    expect(screen.getByText(/3 split to fit/)).toBeInTheDocument();
+    expect(screen.getByText(/233 avg · 898 max/)).toBeInTheDocument();
+    expect(screen.getByText(/8\.3% numeric/)).toBeInTheDocument();
+  });
+
+  it("says the report was never taken rather than showing a confident zero", async () => {
+    on("GET", "/api/status", () => ({
+      ...STATUS,
+      ingest: {
+        chunks: 12,
+        numeric: 0,
+        numeric_pct: 0,
+        avg_chars: 233,
+        max_chars: 898,
+        // Sources indexed before this was recorded. A bare 0/256 here would
+        // read as "everything fit", which was never checked.
+        token_max: 0,
+        token_window: 256,
+        fit_splits: 0,
+        unmeasured: 4,
+      },
+    }));
+
+    const user = await boot();
+    await user.click(screen.getByRole("button", { name: /source/i }));
+    await screen.findByRole("dialog");
+
+    expect(screen.getByText("not measured")).toBeInTheDocument();
+    expect(screen.getByTitle(/4 source\(s\) indexed before this was measured/)).toBeInTheDocument();
+  });
+
+  it("says when an upload matched one already in the notebook", async () => {
+    on("GET", "/api/status", () => STATUS);
+    // The store recognised the bytes and indexed nothing. Without this the
+    // upload would look successful and the source count would not move, with
+    // no explanation of either.
+    on("POST", "/api/sources", () => ({
+      source: { id: "s1", name: "handbook.pdf", kind: "pdf", duplicate: true },
+      duplicate: true,
+      sources: STATUS.sources,
+      chunks: 12,
+      numeric: 1,
+      ingest: STATUS.ingest,
+    }));
+
+    const user = await boot();
+    await user.click(screen.getByRole("button", { name: /source/i }));
+    await screen.findByRole("dialog");
+
+    const input = document.querySelector('input[type="file"]');
+    fireEvent.change(input, {
+      target: { files: [new File(["%PDF-1.4"], "handbook.pdf", { type: "application/pdf" })] },
+    });
+
+    expect(
+      await screen.findByText(/handbook\.pdf is already in this notebook/i),
+    ).toBeInTheDocument();
+    // A no-op, and labelled as one rather than as an error.
+    expect(document.querySelector(".toast.info")).toBeInTheDocument();
+    expect(document.querySelector(".toast.error")).not.toBeInTheDocument();
   });
 });

@@ -81,6 +81,88 @@ def default_chunk_overlap() -> int:
     return config.CHUNK_OVERLAP
 
 
+@dataclass
+class IngestStats:
+    """What chunking did to one document, reported rather than guessed.
+
+    Filled in by `parse` when a caller passes one. It exists because two
+    different ceilings apply to the same chunk - `CHUNK_SIZE` in characters,
+    `EMBED_MAX_TOKENS` in wordpieces - and neither number tells you what
+    happened, while this one says: how many chunks were produced, how many had
+    to be cut again to fit the model's window, and what the worst chunk tokenised
+    to. That is the difference between "indexed" and "indexed without silently
+    losing the tail of some chunks".
+    """
+
+    chunks: int = 0
+    numeric: int = 0
+    # Extra cuts made purely to satisfy EMBED_MAX_TOKENS. Zero on a document
+    # whose chunks were already inside the window.
+    fit_splits: int = 0
+    # Largest wordpiece count of any chunk after fitting, so a caller can show
+    # "341 / 512" against whatever the window is.
+    token_max: int = 0
+    max_chars: int = 0
+    total_chars: int = 0
+
+    @property
+    def avg_chars(self) -> int:
+        return int(self.total_chars / self.chunks) if self.chunks else 0
+
+
+def _token_limit() -> int:
+    from . import config
+
+    return config.EMBED_MAX_TOKENS
+
+
+def _count(text: str) -> int:
+    """Wordpieces of `text`, using the real tokenizer when it is loadable.
+
+    Imported lazily: `sentence_transformers` is a heavy import and parsing a CSV
+    should not be the thing that starts a model download. When the tokenizer is
+    unavailable the documented 4-chars-per-token approximation stands in - it is
+    coarse, and it is still far better than assuming 900 characters fit.
+    """
+    try:
+        from .embeddings import token_count
+
+        return token_count(text)
+    except Exception:  # noqa: BLE001
+        return max(1, (len(text) + 3) // 4)
+
+
+def _fit_to_tokens(text: str, limit: int) -> tuple[list[str], bool]:
+    """Cut one piece down until every fragment fits `limit` wordpieces.
+
+    Returns the fragments and whether any cut was needed. The starting budget is
+    derived from this text's own characters-per-wordpiece ratio rather than a
+    guess, so the normal case is one pass; from there the budget is halved until
+    every piece fits, which terminates because `chunk_text` with a budget of 1
+    emits one character per chunk. Halving rather than binary search because
+    `chunk_text`'s boundary rules are not monotonic in the budget, and a search
+    over a non-monotonic predicate can land on a budget that does not fit.
+    """
+    if limit <= 0 or not text:
+        return [text] if text else [], False
+
+    measured = _count(text)
+    if measured <= limit:
+        return [text], False
+
+    budget = max(1, (len(text) * limit) // measured)
+    while budget > 1:
+        # A little overlap so a fragment does not end mid-sentence with its
+        # continuation starting the next one. Scaled to the budget rather than
+        # taken from CHUNK_OVERLAP, which is sized for a 900-char window and
+        # would be a third of a fragment this small.
+        pieces = chunk_text(text, budget, budget // 8)
+        if pieces and all(_count(piece) <= limit for piece in pieces):
+            return pieces, True
+        budget = max(1, budget // 2)
+    return [text], True
+
+
 _HEADING_RE = re.compile(r"^(#{1,6})\s+(.*\S)\s*$")
 _MD_ROW_RE = re.compile(r"^\s*\|.*\|\s*$")
 _MD_SEP_RE = re.compile(r"^\s*\|[\s:|-]+\|\s*$")
@@ -1011,14 +1093,19 @@ def parse(
     path: Path,
     chunk_size: int | None = None,
     chunk_overlap: int | None = None,
+    stats: IngestStats | None = None,
 ) -> list[Block]:
-    """Extract indexable blocks from any supported file."""
+    """Extract indexable blocks from any supported file.
+
+    `stats`, when given, is filled with what chunking actually did. Callers that
+    only need the blocks pass nothing and pay no extra tokenization.
+    """
     size = chunk_size or default_chunk_size()
     overlap = chunk_overlap if chunk_overlap is not None else default_chunk_overlap()
     suffix = path.suffix.lower()
 
     if suffix == ".pdf":
-        return _split_long(_parse_pdf(path), size, overlap)
+        return _split_long(_parse_pdf(path), size, overlap, stats)
     if suffix == ".docx":
         blocks = _parse_docx(path, size)
     elif suffix in {".html", ".htm"}:
@@ -1038,7 +1125,7 @@ def parse(
     else:
         raise ValueError(f"Unsupported file type: {suffix or path.name}")
 
-    return _split_long(blocks, size, overlap)
+    return _split_long(blocks, size, overlap, stats)
 
 
 def chunk_text(text: str, size: int, overlap: int) -> list[str]:
@@ -1100,12 +1187,57 @@ def chunk_text(text: str, size: int, overlap: int) -> list[str]:
     return chunks
 
 
-def _split_long(blocks: list[Block], size: int, overlap: int) -> list[Block]:
+def _split_long(
+    blocks: list[Block],
+    size: int,
+    overlap: int,
+    stats: IngestStats | None = None,
+) -> list[Block]:
+    """Apply both ceilings - characters, then wordpieces - to every block.
+
+    Order matters. A block is cut to `CHUNK_SIZE` characters first, which is the
+    cheap check and the one that keeps chunks readable; only then is each
+    fragment checked against the model's wordpiece window, because the token
+    count of a block is not a simple function of its length (a table of part
+    numbers and the same number of English words tokenize very differently).
+    """
+    limit = _token_limit()
     out: list[Block] = []
     for block in blocks:
+        # The common case: inside both ceilings. Keeps the original Block
+        # (page, heading and all) rather than rebuilding an equivalent one.
         if len(block.text) <= size:
-            out.append(block)
-            continue
-        for piece in chunk_text(block.text, size, overlap):
-            out.append(Block(text=piece, page=block.page, heading=block.heading))
+            tokens = _count(block.text) if limit > 0 else 0
+            if limit <= 0 or tokens <= limit:
+                out.append(block)
+                if stats is not None:
+                    _tally(stats, block.text, tokens)
+                continue
+
+        pieces = (
+            [block.text]
+            if len(block.text) <= size
+            else chunk_text(block.text, size, overlap)
+        )
+        for piece in pieces:
+            fitted, split = _fit_to_tokens(piece, limit)
+            if stats is not None and split:
+                stats.fit_splits += len(fitted) - 1
+            for fragment in fitted:
+                if not fragment.strip():
+                    continue
+                out.append(Block(text=fragment, page=block.page, heading=block.heading))
+                if stats is not None:
+                    _tally(stats, fragment, _count(fragment) if limit > 0 else 0)
     return out
+
+
+def _tally(stats: IngestStats, text: str, tokens: int) -> None:
+    stats.chunks += 1
+    stats.total_chars += len(text)
+    stats.max_chars = max(stats.max_chars, len(text))
+    if is_numeric_heavy(text):
+        stats.numeric += 1
+    stats.token_max = max(stats.token_max, tokens)
+
+

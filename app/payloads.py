@@ -85,6 +85,11 @@ def evidence(
     }
     if cost is not None:
         summary["cost"] = cost.as_dict()
+        # Latency is recorded here, at the one place every retrieval-bearing
+        # path builds its evidence, so answered and refused requests land in the
+        # same window. Measuring only the answers that came back would report a
+        # P95 over exactly the requests that already succeeded.
+        usage.record(cost)
     return summary
 
 

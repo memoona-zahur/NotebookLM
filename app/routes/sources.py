@@ -93,7 +93,15 @@ async def add_source(
         target.unlink(missing_ok=True)
         raise HTTPException(400, f"Could not read file: {exc}") from exc
 
-    return {"source": vars(source), **store.stats(str(session.id))}
+    # `duplicate` is surfaced at the top level as well as on the source, because
+    # it is the one field that changes what this response *means*: not "a source
+    # was added" but "your file matched one you already had, nothing changed".
+    # A client that only read `chunks` would otherwise report a new upload.
+    return {
+        "source": vars(source),
+        "duplicate": source.duplicate,
+        **store.stats(str(session.id)),
+    }
 
 
 @router.post("/sources/web")

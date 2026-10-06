@@ -71,6 +71,32 @@ OCR_MAX_PAGES = int(os.getenv("OCR_MAX_PAGES", "50"))
 
 EMBED_MODEL = os.getenv("EMBED_MODEL", "sentence-transformers/all-MiniLM-L6-v2")
 EMBED_DIM = 384
+# The embedding model's own window, in its own wordpieces. Sentence-transformers
+# truncates anything longer, silently: a 900-character chunk that tokenises to
+# 379 pieces loses 123 of them before the vector is computed, and the store has
+# no idea it happened. CHUNK_SIZE is a character ceiling and stays one - it is
+# the knob the docs describe - but a character ceiling is not a token ceiling,
+# and only the second one the model enforces. Chunks are split to fit this at
+# ingest so the vector is of the whole chunk. Set 0 to disable the check.
+EMBED_MAX_TOKENS = int(os.getenv("EMBED_MAX_TOKENS", "256"))
+
+# Second-stage re-ranking. The dense/BM25/RRF pass above is cheap and recall
+# oriented; a cross-encoder reads the query and the chunk together and is far
+# more accurate, and far more expensive, which is why it runs on the shortlist
+# rather than the corpus. Off by default until it is measured - a re-ranker that
+# moves metrics in the wrong direction is worse than no re-ranker.
+RERANK_ENABLED = os.getenv("RERANK_ENABLED", "1") not in {"0", "false", "no"}
+RERANK_MODEL = os.getenv("RERANK_MODEL", "cross-encoder/ms-marco-MiniLM-L-6-v2")
+# How many fused candidates are handed to the cross-encoder. Above TOP_K so the
+# re-ranker has something to choose between, well below "everything", because it
+# scores one pair at a time.
+RERANK_POOL = int(os.getenv("RERANK_POOL", "20"))
+RERANK_TOP_K = int(os.getenv("RERANK_TOP_K", "10"))
+
+# How many latency samples /api/status reports percentiles over. A ring buffer
+# rather than an accumulation: P95 over the process's whole life answers "was
+# this slow once", P95 over the last N answers "is it slow now".
+LATENCY_WINDOW = int(os.getenv("LATENCY_WINDOW", "200"))
 
 # Postgres holds everything persistent: sources, chunk text, chunk vectors
 # (pgvector), sessions and chat history. The compose default points at the

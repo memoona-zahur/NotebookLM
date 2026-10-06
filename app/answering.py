@@ -182,6 +182,10 @@ def _conversational(
     db.add_message(session_id, "user", question)
     db.add_message(session_id, "assistant", reply, evidence=summary)
     db.touch_session(session_id)
+    # A greeting still costs a network round trip when the model is up, and a
+    # P95 built only from retrieval-bearing questions would silently omit the
+    # slowest thing an idle session does.
+    usage.record(cost)
     return {"answer": reply, "citations": [], "evidence": summary}
 
 

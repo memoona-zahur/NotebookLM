@@ -158,8 +158,19 @@ export default function App() {
     if (!id) return;
     setUploading(true);
     try {
-      await api.upload(id, file);
+      const result = await api.upload(id, file);
       await refreshStatus(id);
+      // A byte-identical re-upload is recognised and refused by the store, so
+      // nothing was indexed. Saying nothing would let the toast-less success
+      // imply a source was added, and the count in the drawer would not move -
+      // an unexplained non-event. The user is told which file matched and that
+      // the index is unchanged.
+      if (result && result.duplicate) {
+        toast(
+          `${file.name} is already in this notebook. Nothing was re-indexed.`,
+          "info",
+        );
+      }
     } catch (err) {
       toast(`${file.name}: ${err.message}`);
     } finally {

@@ -635,6 +635,61 @@ def review(
     return gold
 
 
+def reanchor(path: Path) -> dict:
+    """Recompute `expected_positions` against the parser as it is now.
+
+    A parser change - a chunking rule, a new token-window split, a heading
+    heuristic - moves a fact from one block to another without changing the fact.
+    The positions are the only thing that goes stale, and they are machine
+    derived, so they are re-derived here rather than the whole set being
+    regenerated: the questions, the required facts and every `verified_by_human`
+    flag are left exactly as they are, because none of those stopped being true.
+
+    A fact the parser no longer renders at all is an error, not a silent
+    re-anchor to nothing. That is the case where the document itself changed and
+    a person has to look, and quietly dropping the position would turn a
+    verification into an unverified item that still claims to be verified.
+    """
+    parsed: dict[str, list] = {}
+    moved: list[tuple[str, list[int]]] = []
+    gold = _load_existing(path)
+    for item in gold["items"]:
+        facts = item.get("required_facts") or []
+        if not facts:
+            continue
+        source = item["source"]
+        if source not in parsed:
+            parsed[source] = parsers.parse(CORPUS / source)
+        holders: set[int] = set()
+        for fact in facts:
+            needle = normalize(fact)
+            found = [
+                index
+                for index, block in enumerate(parsed[source])
+                if needle in normalize(block.text)
+            ]
+            if not found:
+                raise ValueError(
+                    f"{item['id']}: {fact!r} is no longer in {source} as the "
+                    "parser renders it. The document or the parser changed; "
+                    "this item needs a person, not a re-anchor."
+                )
+            holders.update(found)
+        positions = sorted(holders)
+        if positions != item.get("expected_positions"):
+            item["expected_positions"] = positions
+            moved.append((item["id"], positions))
+
+    for item_id, positions in moved:
+        print(f"  {item_id} -> {positions}")
+    path.write_text(json.dumps(gold, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    print(
+        f"{len(moved)} item(s) re-anchored in {path}. Questions, facts and "
+        "verification flags are untouched."
+    )
+    return gold
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--out", type=Path, default=DEFAULT_OUT)
@@ -657,7 +712,17 @@ def main() -> int:
         metavar=("ID", "TEXT"),
         help="attach a hand-written fact to an item; checked against the document",
     )
+    parser.add_argument(
+        "--reanchor",
+        action="store_true",
+        help="follow the required facts to where the current parser puts them, "
+        "changing nothing else (run this after any chunking change)",
+    )
     args = parser.parse_args()
+
+    if args.reanchor:
+        reanchor(args.out)
+        return 0
 
     if args.review:
         review_sheet(_load_existing(args.out), args.review)

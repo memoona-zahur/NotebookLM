@@ -305,7 +305,12 @@ def test_migrated_schema_matches_what_the_app_uses(client: TestClient) -> None:
                     # Added by 0003. Without it a page found by web search is
                     # indistinguishable from an upload once it is stored, and
                     # there is no way to link back to the page it came from.
-                    "url"},
+                    "url",
+                    # Added by 0005. The hash is what makes re-uploading a file
+                    # you already have a no-op, and the two numbers are the
+                    # ingestion report - without them the store cannot say
+                    # whether the embedding window truncated anything.
+                    "content_hash", "token_max", "fit_splits"},
         "chunks": {"id", "source_id", "position", "page", "heading", "text",
                    "numeric_heavy", "embedding"},
         "messages": {
@@ -3378,6 +3383,219 @@ def test_urls_with_parentheses_survive_extraction(client: TestClient) -> None:
     print("  URLs containing parentheses are extracted whole: OK")
 
 
+# --------------------------------------------------------------------------
+# Ingest: a file you already have, and what chunking actually did
+# --------------------------------------------------------------------------
+
+
+def test_an_upload_the_session_already_has_is_not_indexed_twice(client: TestClient) -> None:
+    """Re-uploading the same bytes used to create a second, identical source.
+
+    Three copies of one PDF means three sources, three indexes, and an answer
+    whose context is the same passage three times over - with nothing able to
+    say so. The check is a SHA-256 of the bytes taken before parsing, because
+    parsing and embedding is the part worth skipping.
+    """
+    sid = client.post("/api/sessions", json={"name": "dedup"}).json()["id"]
+    body = b"Escape velocity at the surface is 11.2 km/s. " * 40
+
+    first = upload(client, "handbook.txt", body, session_id=sid)
+
+    res = client.post(
+        "/api/sources",
+        files={"file": ("copy.txt", body, "application/octet-stream")},
+        params={"session_id": sid},
+    )
+    assert res.status_code == 200, res.text
+    payload = res.json()
+    assert payload["duplicate"] is True, payload
+    assert payload["source"]["duplicate"] is True, payload["source"]
+    # The *existing* source comes back, not a new id. Answers already cite the
+    # original id, and two ids for one document reads as two documents.
+    assert payload["source"]["id"] == first["id"], (first, payload["source"])
+    assert len(payload["sources"]) == 1, payload["sources"]
+    assert payload["chunks"] > 0, payload
+
+    # Different bytes are not a duplicate, even under a different name.
+    other = upload(client, "other.txt", b"The orbital period was 90 minutes.", session_id=sid)
+    assert other["id"] != first["id"]
+    listed = client.get("/api/status", params={"session_id": sid}).json()["sources"]
+    assert len(listed) == 2, listed
+
+    # Scoped to the session. Two notebooks may both hold the same file, and a
+    # cross-session rule would tell the second person they cannot index their
+    # own document.
+    sid2 = client.post("/api/sessions", json={"name": "other notebook"}).json()["id"]
+    again = upload(client, "handbook.txt", body, session_id=sid2)
+    assert again["id"] != first["id"], "the same bytes in another session is a fresh source"
+    print("  a re-uploaded file is recognised and not indexed twice: OK")
+
+
+def test_no_chunk_is_longer_than_the_embedding_model_keeps(client: TestClient) -> None:
+    """CHUNK_SIZE is a character ceiling; the model enforces a wordpiece one.
+
+    900 characters of number-heavy prose tokenises past MiniLM's 256-piece
+    window, and sentence-transformers truncates silently - the tail of the chunk
+    is never embedded, and nothing said so. Chunks are now split to fit.
+    """
+    from app import embeddings
+
+    sid = client.post("/api/sessions", json={"name": "window"}).json()["id"]
+    # Chosen because it overflows: measured at 290 wordpieces for one chunk
+    # under the old chunker, against a 256 window.
+    body = ("The spacecraft mass was 1467.35 kg and the delta-v budget was "
+            "1204.77 m/s. ") * 14
+    source = upload(client, "long.txt", body, session_id=sid)
+
+    assert source["fit_splits"] > 0, source
+    assert 0 < source["token_max"] <= cfg.EMBED_MAX_TOKENS, (source, cfg.EMBED_MAX_TOKENS)
+
+    with db.connection() as conn:
+        texts = [
+            row[0]
+            for row in conn.execute(
+                "SELECT c.text FROM chunks c WHERE c.source_id = %s",
+                (source["id"],),
+            ).fetchall()
+        ]
+    assert texts, "the source produced no chunks"
+    worst = max(embeddings.token_count(text) for text in texts)
+    assert worst <= cfg.EMBED_MAX_TOKENS, (worst, cfg.EMBED_MAX_TOKENS, len(texts))
+    print(f"  every chunk fits the embedding window ({worst} <= {cfg.EMBED_MAX_TOKENS}): OK")
+
+
+def test_the_ingestion_report_says_what_chunking_did(client: TestClient) -> None:
+    """"Indexed" is two claims, and only one of them used to be reported.
+
+    A notebook can be fully indexed and still hold chunks the embedding model
+    truncated, or hold a third numeric tables that damp to nothing on retrieval.
+    Neither is visible from a chunk count.
+    """
+    sid = client.post("/api/sessions", json={"name": "report"}).json()["id"]
+    upload(client, "notes.txt", b"The orbital period was 90 minutes. " * 60, session_id=sid)
+
+    status = client.get("/api/status", params={"session_id": sid}).json()
+    report = status["ingest"]
+    assert report["chunks"] == status["chunks"], (report, status["chunks"])
+    assert report["token_window"] == cfg.EMBED_MAX_TOKENS, report
+    assert 0 < report["token_max"] <= report["token_window"], report
+    assert report["avg_chars"] > 0, report
+    assert report["avg_chars"] <= report["max_chars"], report
+    assert report["numeric_pct"] == round(
+        100 * report["numeric"] / report["chunks"], 1
+    ), report
+    # Nothing here predates the report, so nothing may claim "unknown".
+    assert report["unmeasured"] == 0, report
+
+    source = status["sources"][0]
+    assert source["token_max"] == report["token_max"], (source, report)
+    assert source["fit_splits"] == report["fit_splits"], (source, report)
+    assert source["max_chars"] == report["max_chars"], (source, report)
+    print("  the ingestion report covers characters, wordpieces and numeric share: OK")
+
+
+def test_a_re_ranker_that_cannot_run_leaves_the_order_alone(client: TestClient = None) -> None:
+    """The feature must not be able to break the request it improves.
+
+    The model downloads on first use and a machine may have no network. A
+    re-ranker that raises is worse than no re-ranker, so a prediction failure
+    degrades to "leave the order exactly as the cheap pass had it".
+    """
+    from app import rerank as rerank_mod
+
+    class Broken:
+        def predict(self, pairs):
+            raise RuntimeError("no network")
+
+    hits = [{"text": "a", "score": 0.5}, {"text": "b", "score": 0.4}, {"text": "c", "score": 0.3}]
+    original = [dict(hit) for hit in hits]
+
+    monkey_model = rerank_mod._model
+    monkey_checked = rerank_mod._checked
+    try:
+        rerank_mod._model, rerank_mod._checked = Broken(), True
+        assert rerank_mod.rerank("what is this", list(hits)) == original
+    finally:
+        rerank_mod._model, rerank_mod._checked = monkey_model, monkey_checked
+
+    # And the normal case still works: the shortlist is reordered and says so.
+    class Agreeing:
+        def predict(self, pairs):
+            # Ascending, so the last candidate must come first once scored.
+            return [float(i) for i in range(len(pairs))]
+
+    try:
+        rerank_mod._model, rerank_mod._checked = Agreeing(), True
+        out = rerank_mod.rerank("what is this", [dict(hit) for hit in hits])
+        assert [hit["text"] for hit in out] == ["c", "b", "a"], out
+        assert all("rerank" in hit for hit in out), out
+    finally:
+        rerank_mod._model, rerank_mod._checked = monkey_model, monkey_checked
+    print("  a re-ranker that fails leaves the order alone; one that runs reorders: OK")
+
+
+def test_reranking_runs_on_the_shortlist_and_is_reported(client: TestClient) -> None:
+    """Wiring, not quality: the model is real, the scores are its own.
+
+    Quality is measured in experiments/ (MRR and nDCG both rose on the cloze
+    set); this only checks the pipeline actually calls it, keeps the dense score
+    on the hit, and says in /api/status that reranking is live.
+    """
+    from app.store import store
+
+    sid = client.post("/api/sessions", json={"name": "rerank"}).json()["id"]
+    upload(client, "a.txt", "Escape velocity at the surface is 11.2 km/s. " * 40, session_id=sid)
+    upload(client, "b.txt", "The orbital period was 90 minutes. " * 40, session_id=sid)
+
+    search = store.search_detailed("What is the escape velocity?", session_id=sid)
+    assert search.hits, "the shortlist must be non-empty to be re-ranked"
+    assert "rerank" in search.mode, search.mode
+    assert search.mode.endswith("+rerank"), search.mode
+    # The dense score stays the dense score. Swapping in a cross-encoder logit
+    # would make the reported number mean two things depending on the mode.
+    assert all("score" in hit and "rerank" in hit for hit in search.hits), search.hits
+
+    status = client.get("/api/status", params={"session_id": sid}).json()["rerank"]
+    assert status["configured"] is True, status
+    assert status["enabled"] is True and status["loaded"] is True, status
+    assert status["model"] == cfg.RERANK_MODEL, status
+    assert status["reason"] is None, status
+    print("  the shortlist is re-ranked and /api/status says so: OK")
+
+
+def test_latency_percentiles_are_reported_over_recent_requests(client: TestClient) -> None:
+    """A mean hides one hiccup; a P95 over a window is the claim a user makes."""
+    from app import usage as usage_mod
+
+    # The window itself: zeros are "this stage did not run", not "instant", and
+    # a window over the process lifetime would answer "was it slow once in
+    # March". Both are properties the report depends on.
+    window = usage_mod.LatencyWindow(4)
+    window.add(retrieval_ms=0, generation_ms=50)
+    assert "retrieval_ms" not in window.percentiles()["samples"], window.percentiles()
+    for value in (10.0, 20.0, 30.0, 40.0, 50.0, 60.0):
+        window.add(retrieval_ms=value)
+    snapshot = window.percentiles()["samples"]["retrieval_ms"]
+    assert snapshot["count"] == 4, snapshot  # ring buffer keeps the last 4
+    assert snapshot["max"] == 60.0, snapshot
+    assert snapshot["p50"] <= snapshot["p95"], snapshot
+
+    for value in (10.0, 20.0, 30.0, 40.0, 1000.0):
+        usage_mod.record(
+            usage_mod.Request(model="m", retrieval_ms=value, generation_ms=value * 2)
+        )
+    status = client.get("/api/status").json()["latency"]
+    assert status["window"] == cfg.LATENCY_WINDOW, status
+    retrieval = status["samples"]["retrieval_ms"]
+    generation = status["samples"]["generation_ms"]
+    assert retrieval["count"] >= 5 and generation["count"] >= 5, status
+    assert retrieval["max"] >= 1000.0, retrieval
+    assert generation["max"] >= retrieval["max"], (generation, retrieval)
+    assert retrieval["p50"] <= retrieval["p95"] <= retrieval["max"], retrieval
+    print("  P50/P95 are reported per stage over the recent window: OK")
+
+
+
 ORDER = [
     ("status and indexing", test_status_and_indexing),
     ("retrieval quality", test_retrieval_quality),
@@ -3477,6 +3695,12 @@ ORDER = [
     ("reindex in place", test_a_source_is_reindexed_in_place_without_a_reupload),
     ("failed reindex keeps index", test_a_failed_reindex_leaves_the_existing_index_alone),
     ("reindex scoped to session", test_a_source_in_another_notebook_cannot_be_reindexed),
+    ("duplicate upload not indexed twice", test_an_upload_the_session_already_has_is_not_indexed_twice),
+    ("chunks fit the embedding window", test_no_chunk_is_longer_than_the_embedding_model_keeps),
+    ("ingestion report", test_the_ingestion_report_says_what_chunking_did),
+    ("re-ranker cannot break a request", test_a_re_ranker_that_cannot_run_leaves_the_order_alone),
+    ("re-ranking runs and is reported", test_reranking_runs_on_the_shortlist_and_is_reported),
+    ("latency percentiles", test_latency_percentiles_are_reported_over_recent_requests),
     ("oversized upload refused", test_an_oversized_upload_is_refused_without_being_kept),
     ("chat history persists", test_chat_history_persists_and_is_isolated),
     ("deleting session removes data", test_deleting_a_session_removes_its_data),

@@ -351,7 +351,7 @@
       "answerable": true,
       "difficulty": "medium",
       "expected_positions": [
-        1
+        2
       ],
       "required_facts": [
         "item: Burr Grinder\nregion: AMER\ncategory: Equipment\nunits_sold: 88\nunit_price: 289.00\nrevenue: 25432.00\nreturn_rate_pct: 2.2"

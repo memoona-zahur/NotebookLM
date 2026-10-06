@@ -3,10 +3,10 @@
     "chunk_overlap": 150,
     "chunk_size": 900
   },
-  "documents": 24,
+  "documents": 27,
   "gold_file": "experiments/gold/cloze_set.json",
   "human_verified": false,
-  "items": 110,
+  "items": 115,
   "k": 5,
   "label_basis": "machine-checked",
   "mode": "shared",
@@ -15,98 +15,98 @@
     {
       "chunk_overlap": 50,
       "chunk_size": 300,
-      "chunks_stored": 161,
-      "fact_coverage": 0.45588235294117646,
-      "gold_intact": 0.4818181818181818,
+      "chunks_stored": 177,
+      "fact_coverage": 0.46808510638297873,
+      "gold_intact": 0.5043478260869565,
       "means": {
         "hit_rate@5": 1.0,
-        "mrr@5": 0.9622641509433962,
-        "ndcg@5": 0.8852690389530756,
-        "precision@5": 0.23396226415094318,
-        "recall@5": 0.8899371069182391
+        "mrr@5": 0.9410919540229885,
+        "ndcg@5": 0.870549878199112,
+        "precision@5": 0.22758620689655146,
+        "recall@5": 0.8908045977011495
       },
-      "scored": 53,
+      "scored": 58,
       "unresolvable": 57
     },
     {
       "chunk_overlap": 75,
       "chunk_size": 450,
-      "chunks_stored": 137,
-      "fact_coverage": 0.5294117647058824,
-      "gold_intact": 0.5636363636363636,
+      "chunks_stored": 151,
+      "fact_coverage": 0.5390070921985816,
+      "gold_intact": 0.5739130434782609,
       "means": {
         "hit_rate@5": 1.0,
-        "mrr@5": 0.9717741935483871,
-        "ndcg@5": 0.904646388958766,
-        "precision@5": 0.22903225806451585,
-        "recall@5": 0.9059139784946237
+        "mrr@5": 0.9457070707070708,
+        "ndcg@5": 0.8851879656050231,
+        "precision@5": 0.22424242424242397,
+        "recall@5": 0.9040404040404041
       },
-      "scored": 62,
-      "unresolvable": 48
+      "scored": 66,
+      "unresolvable": 49
     },
     {
       "chunk_overlap": 100,
       "chunk_size": 600,
-      "chunks_stored": 128,
-      "fact_coverage": 0.625,
-      "gold_intact": 0.6272727272727273,
+      "chunks_stored": 142,
+      "fact_coverage": 0.6312056737588653,
+      "gold_intact": 0.6260869565217392,
       "means": {
         "hit_rate@5": 1.0,
-        "mrr@5": 0.9528985507246377,
-        "ndcg@5": 0.8982734112486647,
-        "precision@5": 0.22608695652173882,
-        "recall@5": 0.9154589371980677
+        "mrr@5": 0.9537037037037037,
+        "ndcg@5": 0.8979887630825059,
+        "precision@5": 0.2222222222222219,
+        "recall@5": 0.9120370370370371
       },
-      "scored": 69,
-      "unresolvable": 41
+      "scored": 72,
+      "unresolvable": 43
     },
     {
       "chunk_overlap": 150,
       "chunk_size": 900,
-      "chunks_stored": 117,
-      "fact_coverage": 0.8897058823529411,
+      "chunks_stored": 135,
+      "fact_coverage": 0.8865248226950354,
       "gold_intact": 1.0,
       "means": {
-        "hit_rate@5": 0.990909090909091,
-        "mrr@5": 0.9098484848484849,
-        "ndcg@5": 0.8854846373148894,
-        "precision@5": 0.21999999999999964,
-        "recall@5": 0.9333333333333332
+        "hit_rate@5": 0.991304347826087,
+        "mrr@5": 0.9456521739130435,
+        "ndcg@5": 0.9117709866142305,
+        "precision@5": 0.2173913043478257,
+        "recall@5": 0.9318840579710144
       },
-      "scored": 110,
+      "scored": 115,
       "unresolvable": 0
     },
     {
       "chunk_overlap": 200,
       "chunk_size": 1200,
-      "chunks_stored": 113,
-      "fact_coverage": 0.8897058823529411,
-      "gold_intact": 1.0,
+      "chunks_stored": 133,
+      "fact_coverage": 0.8156028368794326,
+      "gold_intact": 0.9130434782608695,
       "means": {
-        "hit_rate@5": 0.990909090909091,
-        "mrr@5": 0.9371212121212122,
-        "ndcg@5": 0.9056157416655375,
-        "precision@5": 0.21999999999999964,
-        "recall@5": 0.9333333333333332
+        "hit_rate@5": 0.9904761904761905,
+        "mrr@5": 0.9365079365079365,
+        "ndcg@5": 0.9005134919631868,
+        "precision@5": 0.21904761904761869,
+        "recall@5": 0.9253968253968253
       },
-      "scored": 110,
-      "unresolvable": 0
+      "scored": 105,
+      "unresolvable": 10
     },
     {
       "chunk_overlap": 266,
       "chunk_size": 1600,
-      "chunks_stored": 113,
-      "fact_coverage": 0.8897058823529411,
-      "gold_intact": 1.0,
+      "chunks_stored": 139,
+      "fact_coverage": 0.8156028368794326,
+      "gold_intact": 0.9130434782608695,
       "means": {
-        "hit_rate@5": 0.990909090909091,
-        "mrr@5": 0.9325757575757576,
-        "ndcg@5": 0.9022605576070962,
-        "precision@5": 0.21999999999999964,
-        "recall@5": 0.9333333333333332
+        "hit_rate@5": 0.9904761904761905,
+        "mrr@5": 0.9412698412698413,
+        "ndcg@5": 0.9040284466910775,
+        "precision@5": 0.21904761904761869,
+        "recall@5": 0.9253968253968253
       },
-      "scored": 110,
-      "unresolvable": 0
+      "scored": 105,
+      "unresolvable": 10
     }
   ]
 }

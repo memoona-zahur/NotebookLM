@@ -11,7 +11,7 @@ by reading `.env`.
 from fastapi import APIRouter, Request
 from fastapi.responses import FileResponse
 
-from .. import config, db, tracing
+from .. import config, db, rerank, tracing, usage
 from ..parsers import SUPPORTED
 from ..payloads import base_url, resolve_session
 from ..store import store
@@ -33,6 +33,13 @@ def status(request: Request, session_id: str | None = None) -> dict:
         "max_per_source": config.MAX_PER_SOURCE,
         "hybrid": config.HYBRID_ENABLED,
         "numeric_damping": config.NUMERIC_DAMPING,
+        # Both are reported rather than assumed. `mode` distinguishes "off" from
+        # "on but the model never arrived", which look identical from outside.
+        "rerank": rerank.status(),
+        # P50/P95 over the last LATENCY_WINDOW requests, split by stage, because
+        # retrieval is local CPU and generation is a network call and one number
+        # cannot say which of them to fix.
+        "latency": usage.latency_report(),
         "tracing": tracing.status(),
         # Whether the web-search card is live, and why not when it is not. The UI
         # shows the reason rather than a dead control, for the same reason this

@@ -1,3 +1,4 @@
+import hashlib
 import re
 from dataclasses import dataclass
 from pathlib import Path
@@ -7,6 +8,7 @@ from . import db
 from . import parsers
 from .embeddings import embed_query, embed_texts, score_against_query
 from .lexical import BM25, fuse
+from .rerank import rerank
 
 # How much of a highlight response one request may return. A common word can
 # appear in every chunk of every document, and the browser is worse off for
@@ -67,6 +69,22 @@ def _discard(storage_path) -> None:
         path.unlink(missing_ok=True)
 
 
+def _content_hash(path: Path) -> str:
+    """SHA-256 of a file's bytes, read in pieces so a 100 MB PDF is not slurped.
+
+    Byte-exact rather than "the text we parsed", because the check has to run
+    before parsing - it is the check that decides whether to parse at all.
+    """
+    digest = hashlib.sha256()
+    try:
+        with Path(path).open("rb") as handle:
+            for piece in iter(lambda: handle.read(1024 * 1024), b""):
+                digest.update(piece)
+    except OSError:
+        return ""
+    return digest.hexdigest()
+
+
 @dataclass
 class Source:
     id: str
@@ -78,6 +96,17 @@ class Source:
     # Empty for an uploaded file, which has no address; set when the source came
     # from a web search, so the page can be identified and linked later.
     url: str = ""
+    # The ingestion report. Largest wordpiece count of any chunk, and how many
+    # extra cuts were made to fit the embedding model's window - the two numbers
+    # that say whether the index lost anything on the way in. 0 means "not
+    # measured" for a source indexed before this was recorded.
+    token_max: int = 0
+    fit_splits: int = 0
+    avg_chars: int = 0
+    max_chars: int = 0
+    # True only on the return value of an `add` that recognised content the
+    # session already had. Never stored; false for every source in a listing.
+    duplicate: bool = False
 
 
 @dataclass
@@ -151,7 +180,29 @@ class VectorStore:
     # -- writes ------------------------------------------------------------
 
     def add(self, path: Path, display_name: str, session_id: str, url: str = "") -> Source:
-        blocks = parsers.parse(path)
+        """Index a file into a session, unless the session already has it.
+
+        The content hash is taken and checked *before* parsing, because parsing
+        and embedding is the expensive part and "you already uploaded this" is
+        the one outcome that makes it pointless. The duplicate check is scoped to
+        the session: two notebooks may both legitimately hold the same file, and
+        a cross-session rule would tell the second user they cannot index their
+        own document.
+
+        On a match the stored file is discarded (it is a second copy of a file
+        the store already owns) and the *existing* source is returned, flagged
+        `duplicate`, so the caller reports it as a no-op rather than as a new
+        source with a new id that answers would then cite inconsistently.
+        """
+        digest = _content_hash(path)
+        if digest:
+            existing = self._find_duplicate(session_id, digest)
+            if existing is not None:
+                _discard(path)
+                return existing
+
+        stats = parsers.IngestStats()
+        blocks = parsers.parse(path, stats=stats)
         name = display_name or path.name
 
         keep: list[tuple] = []
@@ -166,12 +217,14 @@ class VectorStore:
 
         chunk_count = 0
         source_id = None
+        kind = path.suffix.lower().lstrip(".")
         with db.connection() as conn:
             source = conn.execute(
-                "INSERT INTO sources (session_id, name, kind, pages, storage_path, url) "
-                "VALUES (%s, %s, %s, %s, %s, %s) RETURNING id",
-                (session_id, name, path.suffix.lower().lstrip("."),
-                 len(blocks), str(path), url or ""),
+                "INSERT INTO sources (session_id, name, kind, pages, storage_path, url, "
+                "content_hash, token_max, fit_splits) "
+                "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s) RETURNING id",
+                (session_id, name, kind, len(blocks), str(path), url or "",
+                 digest or None, stats.token_max, stats.fit_splits),
             ).fetchone()
             source_id = source[0]
             if keep:
@@ -195,12 +248,47 @@ class VectorStore:
         return Source(
             id=str(source_id),
             name=name,
-            kind=path.suffix.lower().lstrip("."),
+            kind=kind,
             pages=len(blocks),
             chunks=chunk_count,
             numeric=numeric,
             url=url or "",
+            token_max=stats.token_max,
+            fit_splits=stats.fit_splits,
+            avg_chars=stats.avg_chars,
+            max_chars=stats.max_chars,
         )
+
+    def _find_duplicate(self, session_id: str, digest: str) -> Source | None:
+        """The source in this session whose bytes hash to `digest`, if any.
+
+        Any parse failure on the existing row falls through to None rather than
+        aborting the upload: a row that cannot be read should not become a wall
+        that stops the user indexing their file, so they get a fresh copy.
+        """
+        try:
+            with db.connection() as conn:
+                row = conn.execute(
+                    """
+                    SELECT s.id::text, s.name, s.kind, s.pages, s.chunk_count,
+                           s.numeric_count, s.url, s.token_max, s.fit_splits,
+                           COALESCE(c.avg_chars, 0)::int, COALESCE(c.max_chars, 0)::int
+                    FROM sources s
+                    LEFT JOIN LATERAL (
+                        SELECT AVG(LENGTH(text)) AS avg_chars,
+                               MAX(LENGTH(text)) AS max_chars
+                        FROM chunks WHERE source_id = s.id
+                    ) c ON TRUE
+                    WHERE s.session_id = %s AND s.content_hash = %s
+                    ORDER BY s.created_at LIMIT 1
+                    """,
+                    (session_id, digest),
+                ).fetchone()
+        except Exception:  # noqa: BLE001
+            return None
+        if row is None:
+            return None
+        return Source(*row, duplicate=True)
 
     def reindex(self, source_id: str, session_id: str) -> Source | None:
         """Re-parse and re-embed a source in place, from the copy on disk.
@@ -237,7 +325,9 @@ class VectorStore:
                 "cannot be re-read. Upload it again to index it."
             )
 
-        blocks = parsers.parse(path)
+        stats = parsers.IngestStats()
+        blocks = parsers.parse(path, stats=stats)
+        digest = _content_hash(path)
         keep: list[tuple] = []
         numeric = 0
         for position, block in enumerate(blocks):
@@ -263,9 +353,11 @@ class VectorStore:
                         ],
                     )
             conn.execute(
-                "UPDATE sources SET chunk_count = %s, numeric_count = %s, pages = %s "
+                "UPDATE sources SET chunk_count = %s, numeric_count = %s, pages = %s, "
+                "content_hash = %s, token_max = %s, fit_splits = %s "
                 "WHERE id = %s",
-                (len(keep), numeric, len(blocks), source_id),
+                (len(keep), numeric, len(blocks), digest or None,
+                 stats.token_max, stats.fit_splits, source_id),
             )
 
         self._invalidate(session_id)
@@ -277,6 +369,10 @@ class VectorStore:
             chunks=len(keep),
             numeric=numeric,
             url=url or "",
+            token_max=stats.token_max,
+            fit_splits=stats.fit_splits,
+            avg_chars=stats.avg_chars,
+            max_chars=stats.max_chars,
         )
 
     def remove(self, source_id: str, session_id: str) -> bool:
@@ -325,20 +421,69 @@ class VectorStore:
     # -- reads -------------------------------------------------------------
 
     def sources(self, session_id: str) -> list[Source]:
+        """The session's sources, each with the ingestion report attached.
+
+        `avg_chars` and `max_chars` are computed from the stored chunks rather
+        than kept as columns: they are a function of `chunks`, so a column would
+        be a second copy of a fact that could drift from the first.
+        """
         with db.connection() as conn:
             rows = conn.execute(
-                "SELECT id::text, name, kind, pages, chunk_count, numeric_count, url "
-                "FROM sources WHERE session_id = %s ORDER BY created_at",
+                """
+                SELECT s.id::text, s.name, s.kind, s.pages, s.chunk_count,
+                       s.numeric_count, s.url, s.token_max, s.fit_splits,
+                       COALESCE(c.avg_chars, 0)::int, COALESCE(c.max_chars, 0)::int
+                FROM sources s
+                LEFT JOIN LATERAL (
+                    SELECT AVG(LENGTH(text)) AS avg_chars,
+                           MAX(LENGTH(text)) AS max_chars
+                    FROM chunks WHERE source_id = s.id
+                ) c ON TRUE
+                WHERE s.session_id = %s
+                ORDER BY s.created_at
+                """,
                 (session_id,),
             ).fetchall()
         return [Source(*row) for row in rows]
 
     def stats(self, session_id: str) -> dict:
+        """Session totals plus the ingestion report.
+
+        The report exists because "indexed" is not one claim. A notebook can be
+        fully indexed and still contain chunks the embedding model truncated, or
+        contain a third numeric tables that damp to nothing on retrieval; those
+        are different problems with different fixes, and neither is visible from
+        a chunk count.
+        """
         records = self.sources(session_id)
+        chunks = sum(s.chunks for s in records)
+        numeric = sum(s.numeric for s in records)
+        measured = [s for s in records if s.token_max > 0]
+        weighted = sum(s.avg_chars * s.chunks for s in records)
         return {
             "sources": [vars(s) for s in records],
-            "chunks": sum(s.chunks for s in records),
-            "numeric": sum(s.numeric for s in records),
+            "chunks": chunks,
+            "numeric": numeric,
+            "ingest": {
+                "chunks": chunks,
+                "numeric": numeric,
+                "numeric_pct": round(100 * numeric / chunks, 1) if chunks else 0.0,
+                "avg_chars": int(weighted / chunks) if chunks else 0,
+                "max_chars": max((s.max_chars for s in records), default=0),
+                # Largest wordpiece count seen, against the window the model
+                # enforces. Reported as a ratio rather than a bare number so the
+                # reader can see how close the ceiling is without knowing what
+                # the ceiling is.
+                "token_max": max((s.token_max for s in records), default=0),
+                "token_window": config.EMBED_MAX_TOKENS,
+                # Cuts made only to satisfy the token window. A non-zero figure
+                # is not a defect; it is a document whose characters do not map
+                # onto wordpieces the way CHUNK_SIZE assumes.
+                "fit_splits": sum(s.fit_splits for s in records),
+                # Sources indexed before this was recorded. Their figures are
+                # 0, and 0 here means "unknown", so they are counted apart.
+                "unmeasured": len(records) - len(measured),
+            },
         }
 
     def find_occurrences(
@@ -597,6 +742,27 @@ class VectorStore:
                 min_score=floor, floor_applied=effective_floor,
                 numeric_share=round(numeric_share, 4), damped=damped, mode=mode,
             )
+
+        # Re-rank only what survived the floor, and only the head of it. The
+        # floor is the dense model's calibrated decision and reranking before it
+        # would not change any of those decisions - the floor still reads
+        # `score` - so it would pay the cost and buy nothing. After it, the only
+        # thing that changes is order, which is the whole point.
+        #
+        # Only the top RERANK_TOP_K of the pool are taken in cross-encoder order;
+        # the rest keep their fused order. The cross-encoder is more accurate on
+        # the head, where the difference matters, and deferring to the cheap
+        # pass deeper in costs nothing because nothing past that point is
+        # usually read.
+        if config.RERANK_ENABLED and len(hits) > 1:
+            pool = hits[: max(2, config.RERANK_POOL)]
+            reranked = rerank(query, pool)
+            head = reranked[: max(1, config.RERANK_TOP_K)]
+            promoted = {id(hit) for hit in head}
+            rest = [hit for hit in pool if id(hit) not in promoted]
+            hits = head + rest + hits[len(pool):]
+            if any("rerank" in hit for hit in head):
+                mode = f"{mode}+rerank"
 
         kept: list[dict] = []
         taken: set[int] = set()

@@ -276,9 +276,9 @@ pattern used on answers.
 
 **Decision.** ~900 characters, 150 overlap.
 
-**Why.** Not guessed - it was chosen by measurement over a 110-label corpus
-(`experiments/eval_gold.py`). 900 characters preserves all 110 labels
-(`fact_coverage=0.890`) while keeping passages small enough that 6 of them fit
+**Why.** Not guessed - it was chosen by measurement over a 115-label corpus
+(`experiments/chunker_bakeoff.py`). 900 characters preserves all 115 labels
+(`fact_coverage=0.887`) while keeping passages small enough that 6 of them fit
 the context without crowding out each other. See [section 8](#8-evidence-that-the-numbers-are-real).
 
 **Trade-off.** Larger chunks would fit more context but dilute retrieval; smaller
@@ -498,7 +498,7 @@ Claims without numbers are marketing. These are reproducible.
 
 ### 8.1 Chunking (`experiments/eval_gold.py`)
 
-900 characters preserves all 110 gold labels, `fact_coverage=0.890`. Bakeoff
+900 characters preserves all 115 gold labels, `fact_coverage=0.887`. Bakeoff
 results: `experiments/results/chunker_bakeoff.json`.
 
 ### 8.1b Retrieval accuracy
@@ -507,8 +507,12 @@ At `MIN_SCORE=0.25`, over the committed corpus: **79/79 relevant questions
 answered, 42/42 traps rejected**, across 17 formats. Relevant questions score at
 worst 0.126; the worst trap scores 0.000.
 
-Ranked metrics over the same corpus, `k=5`: **recall 0.955, MRR 0.961, nDCG
-0.934, precision 0.226, hit rate 1.000, fact coverage 0.922, trap leaks 0**.
+Ranked metrics over the same corpus, `k=5`: **recall 0.955, MRR 0.974, nDCG
+0.943, precision 0.226, hit rate 1.000, fact coverage 0.922, trap leaks 0**.
+MRR and nDCG are measured with the cross-encoder re-ranker on; without it they
+are 0.952 and 0.928, and recall / precision / coverage / trap leaks are
+identical either way. That shape - order improves, nothing else moves - is the
+argument for keeping it on.
 Read what bounds them before quoting them
 ([8.4](#84-what-these-numbers-can-and-cannot-tell-you)).
 
@@ -547,12 +551,16 @@ quality would be the fastest way to lose the room.
 
 ### 8.3 Tests
 
-`./run_tests.sh` — 112 backend, 168 frontend. Includes: relevance floor,
+`./run_tests.sh` — 118 backend, 171 frontend. Includes: relevance floor,
 citation validation, injection defence, history injection attempts, upload
 ownership, citation persistence across reload, greeting behaviour, and web-source
 ingestion (a found page becomes a citable source, one unreachable page does not
 discard the rest, and a redirect into private address space is refused *before*
-it is requested).
+it is requested). Also: a re-uploaded file is recognised and not indexed twice,
+no chunk exceeds the embedding model's wordpiece window, the ingestion report
+covers characters / wordpieces / numeric share, a re-ranker that cannot run
+leaves the order alone, re-ranking actually runs and is reported in
+`/api/status`, and P50/P95 latency is reported per stage over a window.
 
 That last one is worth mentioning unprompted, because it is the check that would
 have caught the obvious bug: letting `httpx` follow redirects means the request
@@ -583,8 +591,8 @@ that is what bounds the numbers.
 | Metric in the article | Status here | Current value |
 |---|---|---|
 | Recall@K | Implemented | `0.955` @5 |
-| MRR | Implemented | `0.961` @5 |
-| nDCG | Implemented | `0.934` @5 |
+| MRR | Implemented | `0.974` @5 (`0.952` without re-ranking) |
+| nDCG | Implemented | `0.943` @5 (`0.928` without re-ranking) |
 | Precision@K | Implemented | `0.226` @5 |
 | Hit rate@K | Implemented | `1.000` @5 |
 | Fact coverage | Implemented | `0.922` |

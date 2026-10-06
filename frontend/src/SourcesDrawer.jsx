@@ -224,6 +224,44 @@ export function SourcesDrawer({
               <dd>
                 {status.chunks} chunk{status.chunks === 1 ? "" : "s"}
               </dd>
+              {/* The ingestion report: what chunking did, not just how much of
+                  it there is. Two ceilings apply to a chunk - characters here,
+                  wordpieces for the embedding model - and only the second one
+                  can silently truncate. Reported so "indexed" can be checked
+                  rather than assumed; `unmeasured` counts sources indexed
+                  before this was recorded, whose zeros mean "unknown". */}
+              {status.ingest && status.ingest.chunks ? (
+                <>
+                  <dt>Chunk sizes</dt>
+                  <dd
+                    title={`average ${status.ingest.avg_chars} characters, longest ${
+                      status.ingest.max_chars
+                    }; ${status.ingest.numeric_pct}% are numeric tables, which retrieval damps`}
+                  >
+                    {status.ingest.avg_chars} avg · {status.ingest.max_chars} max ·{" "}
+                    {status.ingest.numeric_pct}% numeric
+                  </dd>
+                  <dt>Wordpieces</dt>
+                  <dd
+                    title={
+                      status.ingest.token_max
+                        ? `worst chunk tokenises to ${status.ingest.token_max} of the ${status.ingest.token_window} the embedding model keeps${
+                            status.ingest.fit_splits
+                              ? `; ${status.ingest.fit_splits} chunk(s) were cut again to fit`
+                              : "; nothing was cut to fit"
+                          }${status.ingest.unmeasured ? `; ${status.ingest.unmeasured} source(s) indexed before this was measured` : ""}`
+                        : `${status.ingest.unmeasured} source(s) indexed before this was measured`
+                    }
+                  >
+                    {status.ingest.token_max
+                      ? `${status.ingest.token_max}/${status.ingest.token_window}`
+                      : "not measured"}
+                    {status.ingest.fit_splits > 0
+                      ? ` · ${status.ingest.fit_splits} split to fit`
+                      : ""}
+                  </dd>
+                </>
+              ) : null}
               <dt>Relevance floor</dt>
               <dd>{Math.round(status.min_score * 100)}%</dd>
               {/* Tokens, not dollars: a price table goes stale, and tokens plus
