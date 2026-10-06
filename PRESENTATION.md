@@ -523,7 +523,7 @@ quality would be the fastest way to lose the room.
 
 ### 8.3 Tests
 
-`./run_tests.sh` — 102 backend, 165 frontend. Includes: relevance floor,
+`./run_tests.sh` — 103 backend, 166 frontend. Includes: relevance floor,
 citation validation, injection defence, history injection attempts, upload
 ownership, citation persistence across reload, greeting behaviour, and web-source
 ingestion (a found page becomes a citable source, one unreachable page does not
@@ -660,6 +660,45 @@ which is currently undetectable: the document looks indexed, and questions about
 it simply find nothing. That is the gap the article calls "retrieval degradation
 going undetected", and it is the honest limit of what the current monitoring
 claims.
+
+### Cost, and what is recorded
+
+**Cost = tokens x price, and tokens come from the API response, not an estimate.**
+`usage.py` prefers the provider's own count and only falls back to a
+character-length approximation, flagged `estimated: true` when it does. An
+estimate shown as a measurement is a claim about precision the system does not
+have.
+
+Two events cost money, and they are recorded in two places because they are
+different shapes:
+
+| event | where recorded | why |
+|---|---|---|
+| answer / greeting / summary | `messages.evidence` | belongs to the turn, reads back with the transcript |
+| web search | `usage_events` (migration `0004`) | not a turn - no message appears in chat when a page is fetched |
+
+`/api/status` returns a `usage` object that sums both. Before `0004`, search
+cost was computed, returned in the response, and dropped - so any total was
+short by every search ever run, and short in a way that *looked* complete.
+
+**Tokens, not dollars.** A price table goes stale, and a dollar figure implies
+tokens mean the same across Groq, OpenAI and local Ollama. Tokens plus model
+name stays true when prices change. If a dollar figure is wanted, compute it
+offline from the persisted tokens rather than baking it into the app.
+
+**Verified prices (Oct 2026):** `gpt-oss-120b` $0.15 in / $0.60 out per 1M;
+`gpt-oss-20b` (web search) $0.075 / $0.30; MiniLM embeddings $0 - local.
+
+**The two numbers to report:**
+
+```
+cost per question    = total tokens spent / questions asked
+cost per 100 pages   = $0   (MiniLM is local)
+```
+
+**Honest caveat to state first:** this runs on Groq's free tier (200K
+tokens/day), so real spend is **$0**. Any dollar figure is a list-price
+equivalent, not a bill.
 
 ## 10. Security posture, including what is missing
 

@@ -210,6 +210,29 @@ export function SourcesDrawer({
               </dd>
               <dt>Relevance floor</dt>
               <dd>{Math.round(status.min_score * 100)}%</dd>
+              {/* Tokens, not dollars: a price table goes stale, and tokens plus
+                  model stays true when prices change. Searches are broken out
+                  because they are the spend the response used to throw away. */}
+              {status.usage ? (
+                <>
+                  <dt>Tokens spent</dt>
+                  <dd
+                    title={`${status.usage.llm_prompt_tokens.toLocaleString()} in / ${status.usage.llm_completion_tokens.toLocaleString()} out from answers, ${
+                      status.usage.web_prompt_tokens
+                    } in / ${status.usage.web_completion_tokens} out from web search`}
+                  >
+                    {status.usage.prompt_tokens.toLocaleString()} in,{" "}
+                    {status.usage.completion_tokens.toLocaleString()} out
+                  </dd>
+                  <dt>Web searches</dt>
+                  <dd>
+                    {status.usage.searches} recorded
+                    {status.usage.web_search_ms > 0
+                      ? ` · ${(status.usage.web_search_ms / 1000).toFixed(1)}s`
+                      : ""}
+                  </dd>
+                </>
+              ) : null}
             </dl>
           </div>
         ) : null}

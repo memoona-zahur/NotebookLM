@@ -215,7 +215,7 @@ all of them run.
 ```bash
 cd frontend
 npm install
-npm test           # 165 checks, jsdom, no database or API key needed
+npm test           # 166 checks, jsdom, no database or API key needed
 npm run test:watch # re-runs on save
 ```
 
@@ -263,7 +263,8 @@ application uses, so a migration cannot be pointed at a different database than
 the app by accident.
 
 The chain is `0001_baseline` → `0002_message_evidence` (citations and evidence on
-messages) → `0003_source_url` (where a source came from). `0003` exists for one
+messages) → `0003_source_url` (where a source came from) → `0004_usage_events`
+(the tokens a web search spent). `0003` exists for one
 reason: once a web page is indexed, nothing in the row says whether it was
 uploaded or found, so the source list could not link back to the page it came
 from. `sources.url` is `NOT NULL DEFAULT ''` rather than nullable, so the
@@ -1029,6 +1030,27 @@ need a price table that goes stale, and would imply the number means the same th
 across Groq, OpenAI and a local Ollama. Tokens plus the model name stays true when
 prices change.
 
+### Where the two kinds of spend are recorded
+
+Cost is recorded in two places, because the two events are different shapes:
+
+| kind | recorded in | why there |
+|---|---|---|
+| answer, greeting, summary | `messages.evidence` | it belongs to the turn, and reads back with the transcript |
+| web search | `usage_events` (migration `0004`) | it is not a turn - nothing appears in the chat when a page is fetched |
+
+`/api/status` returns a `usage` object summing both, so a total can never be
+short by one of them. A total covering only chat turns looks complete while
+quietly missing every search, which is worse than no total.
+
+The ledger's `session_id` is nullable and uses `ON DELETE SET NULL` rather than
+`CASCADE`: the spend happened whether or not the notebook still exists. A cost
+record that erases itself when the session is deleted is not a record.
+
+Recording is best-effort. An exception there is swallowed rather than failing
+the request - the user's pages are already indexed, and re-fetching them to
+retry a log line costs more than the line is worth.
+
 ## How grounding works
 
 1. Files are parsed per format by `app/parsers.py` (39 suffixes, see above) into blocks that
@@ -1066,7 +1088,7 @@ prices change.
 
 ## Tests
 
-102 checks covering upload, per-format parsing (including YAML/TOML/INI and hard-wrapped
+103 checks covering upload, per-format parsing (including YAML/TOML/INI and hard-wrapped
 text), OCR (a scanned page recovered and searchable, pages kept in order, both halves of a
 mixed PDF indexed, a blank scan refused with an actionable message, the missing-language
 message naming the install command, an over-cap document refused rather than indexed

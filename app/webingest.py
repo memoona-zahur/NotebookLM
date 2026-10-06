@@ -27,7 +27,7 @@ from dataclasses import dataclass, field
 
 from fastapi import HTTPException
 
-from . import config, websearch
+from . import config, db, websearch
 from .parsers import UnreadableDocument
 from .store import store
 
@@ -92,6 +92,18 @@ def ingest(query: str, session_id: str, limit: int) -> WebIngest:
         query=query.strip(),
         search_ms=cost.pop("search_ms", 0.0),
         cost=cost,
+    )
+
+    # Recorded before the candidate check on purpose: a search that returned
+    # nothing still consumed the tokens that asked for it, and a ledger that
+    # only counts successful searches overstates how cheap the feature is.
+    db.record_usage_event(
+        kind="web_search",
+        model=str(cost.get("model", "")),
+        session_id=session_id,
+        prompt_tokens=int(cost.get("prompt_tokens", 0) or 0),
+        completion_tokens=int(cost.get("completion_tokens", 0) or 0),
+        latency_ms=result.search_ms,
     )
 
     if not candidates:

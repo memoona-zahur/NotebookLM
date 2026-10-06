@@ -11,7 +11,7 @@ by reading `.env`.
 from fastapi import APIRouter, Request
 from fastapi.responses import FileResponse
 
-from .. import config, tracing
+from .. import config, db, tracing
 from ..parsers import SUPPORTED
 from ..payloads import base_url, resolve_session
 from ..store import store
@@ -46,6 +46,10 @@ def status(request: Request, session_id: str | None = None) -> dict:
         },
         "supported_types": sorted(SUPPORTED),
         "session": {"id": str(session.id), "name": session.name},
+        # Totals span both places cost is recorded - chat turns (messages.evidence)
+        # and web searches (usage_events) - because a total covering only one of
+        # them reads as complete while being quietly wrong.
+        "usage": db.usage_totals(str(session.id)),
         "api_base": base_url(request),
         **store.stats(str(session.id)),
     }

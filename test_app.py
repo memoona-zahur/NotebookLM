@@ -61,7 +61,6 @@ from fastapi.testclient import TestClient
 from app.main import app
 from app import config as cfg
 from app import db, llm, ocr, parsers, usage, websearch
-from app.webingest import ingest
 from app.websearch import Candidate, FetchedPage
 from app.store import SearchResult
 
@@ -270,6 +269,18 @@ def test_migrated_schema_matches_what_the_app_uses(client: TestClient) -> None:
             # HTTP response and are gone the moment the tab is closed.
             "citations",
             "evidence",
+        },
+        # Added by 0004. Web-search spend is not a chat turn, so messages.evidence
+        # had nowhere to hold it and any total was short by every search.
+        "usage_events": {
+            "id",
+            "session_id",
+            "kind",
+            "model",
+            "prompt_tokens",
+            "completion_tokens",
+            "latency_ms",
+            "created_at",
         },
     }
     with db.connection() as conn:
@@ -2903,6 +2914,56 @@ def test_private_addresses_are_never_fetched(client: TestClient) -> None:
             raise AssertionError(f"{host} should have been refused")
 
 
+def test_web_search_cost_is_recorded_and_survives_deletion(
+    client: TestClient, monkeypatch
+) -> None:
+    """The tokens a search spends must outlive the HTTP response.
+
+    Web search cost was computed, returned, and dropped - it is not a chat turn,
+    so `messages.evidence` had nowhere to put it. The effect was that any total
+    spend figure was short by every search ever run, and short in a way that
+    looked complete. Also checks the no-results case: a search that found
+    nothing still paid for the ask.
+    """
+    sid = client.post("/api/sessions", json={"name": "ledger"}).json()["id"]
+    cost = {"model": "openai/gpt-oss-20b", "prompt_tokens": 9000,
+            "completion_tokens": 40, "search_ms": 5.0}
+
+    monkeypatch.setattr(websearch, "find", lambda q, l: ([], dict(cost, search_ms=5.0)))
+
+    with provider("groq", GROQ_API_KEY="stub-key"):
+        res = client.post(
+            "/api/sources/web", params={"session_id": sid}, json={"query": "nothing"}
+        )
+    assert res.status_code == 200, res.text
+    assert res.json()["web_search"]["added_count"] == 0, res.json()
+
+    totals = db.usage_totals(sid)
+    assert totals["searches"] == 1, totals
+    assert totals["web_prompt_tokens"] == 9000, totals
+    assert totals["web_completion_tokens"] == 40, totals
+    assert totals["web_search_ms"] == 5.0, totals
+
+    # The tokens are reported, not just stored: /api/status is what a reviewer
+    # hits, so a total they cannot see is a total they will not believe.
+    status = client.get("/api/status", params={"session_id": sid}).json()
+    assert status["usage"]["web_prompt_tokens"] == 9000, status["usage"]
+    assert status["usage"]["prompt_tokens"] >= 9000, status["usage"]
+
+    # Deleting the notebook must not delete the record of what it cost. The
+    # foreign key is SET NULL for exactly this reason: a ledger that erases
+    # itself on delete is not a ledger.
+    assert client.delete(f"/api/sessions/{sid}").status_code == 200
+    kept = db.usage_totals()
+    assert kept["searches"] >= 1, kept
+    assert kept["web_prompt_tokens"] >= 9000, kept
+    with db.connection() as conn, conn.cursor() as cur:
+        cur.execute("SELECT count(*) FROM usage_events WHERE session_id IS NULL")
+        orphans = cur.fetchone()[0]
+    assert orphans >= 1, "a spent-cost row must survive its session's deletion"
+    print("  web-search spend is recorded, reported, and outlives the session: OK")
+
+
 def test_a_redirect_cannot_smuggle_the_app_onto_a_private_address(
     client: TestClient, monkeypatch
 ) -> None:
@@ -3035,6 +3096,7 @@ ORDER = [
     ("web search bounds", test_web_search_query_is_bounded),
     ("ssrf guard", test_private_addresses_are_never_fetched),
     ("paren urls survive", test_urls_with_parentheses_survive_extraction),
+    ("web search cost is recorded", test_web_search_cost_is_recorded_and_survives_deletion),
     ("redirect ssrf guard", test_a_redirect_cannot_smuggle_the_app_onto_a_private_address),
     # Sessions: run before source deletion so each has its own documents.
     # Migrations: the schema has to be at head and still behave.

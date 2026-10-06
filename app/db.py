@@ -273,5 +273,91 @@ def clear_messages(session_id: str) -> None:
         conn.execute("DELETE FROM messages WHERE session_id = %s", (session_id,))
 
 
+# ---------------------------------------------------------------------------
+# Usage ledger
+# ---------------------------------------------------------------------------
+
+
+def record_usage_event(
+    kind: str,
+    model: str,
+    session_id: str | None = None,
+    prompt_tokens: int = 0,
+    completion_tokens: int = 0,
+    latency_ms: float = 0.0,
+) -> None:
+    """Write one billable call to the ledger.
+
+    Best effort by design: this records what a call cost, it is not the call
+    itself. An exception here must never turn a successful web search into a
+    failed request, so it is swallowed rather than propagated - the cost would be
+    missing, but the user's pages are already indexed and re-fetching them to
+    retry a log line would cost more than the line is worth.
+    """
+    try:
+        with connection() as conn:
+            conn.execute(
+                "INSERT INTO usage_events "
+                "(session_id, kind, model, prompt_tokens, completion_tokens, latency_ms) "
+                "VALUES (%s, %s, %s, %s, %s, %s)",
+                (session_id, kind, model, prompt_tokens, completion_tokens, latency_ms),
+            )
+    except Exception:  # noqa: BLE001 - a ledger failure must not fail the work
+        return
+
+
+def usage_totals(session_id: str | None = None) -> dict:
+    """Total tokens spent, across both places cost is recorded.
+
+    Chat turns keep their cost in `messages.evidence` so it reads back with the
+    transcript; web searches keep theirs in `usage_events` because they are not
+    turns. Summing only one of the two would report a total that is missing
+    either every conversation or every search, which is worse than no total
+    because it looks complete.
+
+    Two queries rather than one union: the shapes differ (one side is a JSONB
+    blob, the other a table), and readable beats clever for a number that has to
+    survive being questioned.
+    """
+    where = "WHERE m.session_id = %s" if session_id else ""
+    params = (session_id,) if session_id else ()
+    with connection() as conn:
+        row = conn.execute(
+            f"""
+            SELECT coalesce(sum((m.evidence->'cost'->>'prompt_tokens')::bigint), 0),
+                   coalesce(sum((m.evidence->'cost'->>'completion_tokens')::bigint), 0),
+                   count(*)
+            FROM messages m
+            {where}
+            """,
+            params,
+        ).fetchone()
+        llm_in, llm_out, turns = row
+
+        row = conn.execute(
+            """
+            SELECT coalesce(sum(prompt_tokens), 0)::bigint,
+                   coalesce(sum(completion_tokens), 0)::bigint,
+                   count(*)::bigint,
+                   coalesce(sum(latency_ms), 0)::float
+            FROM usage_events
+            """ + ("WHERE session_id = %s" if session_id else ""),
+            params,
+        ).fetchone()
+        web_in, web_out, searches, web_ms = row
+
+    return {
+        "prompt_tokens": int(llm_in) + int(web_in),
+        "completion_tokens": int(llm_out) + int(web_out),
+        "llm_prompt_tokens": int(llm_in),
+        "llm_completion_tokens": int(llm_out),
+        "web_prompt_tokens": int(web_in),
+        "web_completion_tokens": int(web_out),
+        "turns": int(turns),
+        "searches": int(searches),
+        "web_search_ms": round(float(web_ms), 1),
+    }
+
+
 def now() -> datetime:
     return datetime.now(timezone.utc)

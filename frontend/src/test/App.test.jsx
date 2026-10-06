@@ -644,6 +644,45 @@ describe("chat-first layout", () => {
     expect(await screen.findByText("kepler.pdf")).toBeInTheDocument();
   });
 
+  it("shows total spend, including the searches the response used to drop", async () => {
+    // Web-search cost was computed, returned in the HTTP response, and thrown
+    // away - it is not a chat turn, so messages.evidence had nowhere to hold
+    // it. This is the visible half of that fix.
+    on("GET", "/api/status", () => ({
+      provider: "groq",
+      model: "openai/gpt-oss-120b",
+      embed_model: "sentence-transformers/all-MiniLM-L6-v2",
+      min_score: 0.25,
+      sources: [{ id: "s1", name: "kepler.pdf", kind: "pdf", chunks: 2 }],
+      chunks: 2,
+      usage: {
+        prompt_tokens: 9500,
+        completion_tokens: 440,
+        llm_prompt_tokens: 500,
+        llm_completion_tokens: 40,
+        web_prompt_tokens: 9000,
+        web_completion_tokens: 400,
+        turns: 5,
+        searches: 2,
+        web_search_ms: 8500,
+      },
+    }));
+
+    const user = await boot();
+    // /source/ not /sources/: with one document the toggle reads "1 source",
+    // and a plural-only selector fails exactly when the fixture is smallest.
+    await user.click(screen.getByRole("button", { name: /source/i }));
+    await screen.findByRole("dialog");
+
+    // Numbers, not dollars: a price table goes stale, and tokens plus model
+    // stays true when prices change.
+    await waitFor(() =>
+      expect(screen.getByText("9,500 in, 440 out")).toBeInTheDocument(),
+    );
+    expect(screen.getByText(/2 recorded/)).toBeInTheDocument();
+    expect(screen.getByText(/8\.5s/)).toBeInTheDocument();
+  });
+
   it("closes the drawer again and leaves the thread reachable", async () => {
     const user = await boot();
     await user.click(screen.getByRole("button", { name: /sources/i }));
