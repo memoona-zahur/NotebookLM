@@ -279,9 +279,10 @@ compromise that the measurement supported, not a round number.
 **Decision.** `all-MiniLM-L6-v2`, 384 dimensions, running locally in pgvector.
 
 **Why.** No API key, no cost, no document text leaves the machine, and 384
-dimensions keep the whole vector corpus small enough to search exactly rather
-than approximately. For a single-user notebook, exact search beats a vector
-index: recall is not the bottleneck.
+dimensions keep the whole vector corpus small enough that a full exact scan is
+measurable in milliseconds rather than needing an approximate index. For a
+single-user notebook, exact search beats a vector index: recall is not the
+bottleneck.
 
 **Trade-off.** MiniLM is weaker than a hosted embedding model on long or technical
 text. The relevance floor is calibrated to its scores (~0.30-0.45 relevant vs
@@ -291,11 +292,16 @@ text. The relevance floor is calibrated to its scores (~0.30-0.45 relevant vs
 **On vector database choice.** The article frames this as build / buy / extend,
 with the real decision being the ANN index. This project extends Postgres with
 pgvector, and the honest answer is that **the index choice has not been forced
-yet**: at this corpus size, exact search is used, which is correct for a
-single-user notebook where recall — not latency — is the constraint. Exact search
-is O(N) and becomes infeasible at millions of vectors; HNSW would be the next
-step, and IVF-PQ only beyond what fits in memory. Stating this as a decision that
-has not yet been made is more accurate than claiming a scale the corpus does not
+yet**. An HNSW index exists, but at this corpus size Postgres does not reliably
+use it: it picks HNSW on a cold plan and a sequential scan once the plan is
+warm, because at ~1,000 rows both cost about the same (measured: ~1.0 ms
+sequential vs ~1.3 ms through the index). So "exact search is used" would be
+too strong - what is true is that **the exact path is available and costs
+nothing to take**. For a single-user notebook that is the right trade: recall
+and legibility, not latency, are the constraint. Exact search is O(N) and
+becomes infeasible at millions of vectors; forcing HNSW would be the next step,
+and IVF-PQ only beyond what fits in memory. Stating this as a decision that has
+not yet been made is more accurate than claiming a scale the corpus does not
 require.
 
 ### 6.4 Retrieval
@@ -365,10 +371,12 @@ dilutes the dense query and adds noise to BM25.
 **Why no model-based rewriting.** It costs an extra inference call on every
 question, it can be talked out of its own instruction, and it introduces
 semantic drift — the failure mode where the rewrite changes what was asked. The
-article's own advice applies: measure first, then introduce, then re-measure. The
-measurement that would justify a re-ranker or an expander does not exist yet
-([section 8.4](#84-what-this-project-does-not-measure-and-why)), so adding one
-would be an unmeasured cost.
+article's own advice applies: measure first, then introduce, then re-measure. No
+end-to-end quality gain from either has been measured here: `rerank_eval.py`
+shows a cross-encoder separating relevant from trap queries on a hand-built set,
+but nothing ties that separation to a better answer, and [section
+8.4](#84-what-these-numbers-can-and-cannot-tell-you) is where the limits of the
+measurements that do exist are stated. Adding one would be an unmeasured cost.
 
 **The parser is conservative on purpose.** It only accepts a message that is
 *entirely* a highlight request. "How do I highlight a word?" is a question about
@@ -488,6 +496,11 @@ At `MIN_SCORE=0.25`, over the committed corpus: **79/79 relevant questions
 answered, 42/42 traps rejected**, across 17 formats. Relevant questions score at
 worst 0.126; the worst trap scores 0.000.
 
+Ranked metrics over the same corpus, `k=5`: **recall 0.956, MRR 0.962, nDCG
+0.935, precision 0.226, hit rate 1.000, fact coverage 0.923, trap leaks 0**.
+Read what bounds them before quoting them
+([8.4](#84-what-these-numbers-can-and-cannot-tell-you)).
+
 Two honest notes about this number:
 
 - **It is 79/79, not 84/84.** An earlier run reported five failures. They were not
@@ -548,45 +561,58 @@ another document's questions and reported five retrieval failures. The lesson is
 the same as the upload bug: tests and evaluations are code, and they fail
 silently when they are wrong.
 
-### 8.4 What this project does not measure, and why
+### 8.4 What these numbers can and cannot tell you
 
-The article asks for Recall@K, MRR and nDCG. This project measures none of
-them, and that is a gap worth naming rather than a gap to hide. Here is what it
-has instead, and what each number actually tells you.
+Recall@K, MRR, nDCG and Precision@K — the four the article asks for — are
+implemented in `experiments/metrics.py`, run by `experiments/eval_gold.py`, and
+reported below. The honest caveat is not that they are missing. It is that the
+labels they grade against are machine-checked rather than read by a person, and
+that is what bounds the numbers.
 
-| Metric in the article | Status here | What the project has instead |
+| Metric in the article | Status here | Current value |
 |---|---|---|
-| Recall@K | Not implemented | `considered` vs `returned`, plus trap rejection |
-| MRR | Not implemented | None |
-| nDCG | Not implemented | None |
-| Precision@K | Not implemented | `evidence.cited` vs `citations` |
+| Recall@K | Implemented | `0.956` @5 |
+| MRR | Implemented | `0.962` @5 |
+| nDCG | Implemented | `0.935` @5 |
+| Precision@K | Implemented | `0.226` @5 |
+| Hit rate@K | Implemented | `1.000` @5 |
+| Fact coverage | Implemented | `0.923` |
+| Trap leak rate | Implemented | `0.000` |
 | Faithfulness / groundedness | Implemented | `0.917` — fraction of answers with no unsupported claim |
 | Answer relevance | Implemented | `0.167`, explicitly reported as not fit for purpose |
 | Citation precision | Implemented | `1.000` |
 | Trap refusal | Implemented | `1.000` |
-| Answer correctness vs ground truth | Not implemented | None |
+| Answer correctness vs a reference answer | **Not implemented** | None |
 | Per-format breakdown | Partial | 17 formats, aggregated |
 
-**Why Recall@K is not implemented, concretely.** It needs a ground-truth chunk
-id per question. The corpus here is 21 synthetic documents written to exercise
-parsers, not a labelled retrieval benchmark, so there is no defensible mapping
-from a question to "the one chunk that should have been retrieved". Inventing
-one — by asking a model to label its own top-k — is exactly the circularity that
-makes such numbers look precise and mean nothing. See [section 8.5](#85-why-recallk-is-hard-here-and-where-the-work-is).
+Source: `experiments/results/cloze_set_metrics.json` (124 items, 117 answerable,
+7 traps, `k=5`, `human_verified: false`).
 
-**Why the trap number is not a substitute.** "Was this off-topic question
-refused?" is a different question from "was the right passage retrieved". A
-system that refuses everything scores perfectly on traps and is useless; a
-system that retrieves everything passes traps and invents freely. Both
-directions need measuring, and only the first is measured here.
+**What actually bounds these numbers: the labels, not the metrics.**
+`experiments/gold/cloze_set.json` is built by taking a line from a corpus
+document, blanking the value, and using the filled value as the answer.
+Correctness is decidable without domain knowledge, which is exactly why no
+expert review is required — and exactly the limitation: the gold answer is the
+document's own text. These numbers prove a value survives chunking attached to
+its key and can be found again. They do not prove the system understands
+questions. Both committed result files say so themselves, in a field nobody
+edited: `"human_verified": false`.
 
-**What to add first, if there is time.** A `gold.json` mapping each of the 79
-relevant questions to the chunk(s) that answer it, hand-written once. That
-single file unlocks Recall@K, MRR and nDCG, because all three need nothing but
-an id to compare against. It is roughly a day of work and it would convert the
+**Why the hand-written gold set has never been scored.**
+`experiments/gold/gold_set.json` holds 48 items with hand-written questions and
+proposed evidence. Every one is still `verified_by_human: false`, and
+`eval_gold.py` refuses to write a results file for an unverified set. The gate
+is deliberate: the evidence in that file was proposed by lexical overlap, and
+quoting a number computed from it would be the same circularity called out in
+[8.5](#85-why-recallk-is-hard-here-and-where-the-work-is).
+
+**What to add first, if there is time.** Read those 48 items against their
+source documents and flip `verified_by_human`. One review pass converts the
 retrieval claims in [8.1b](#81b-retrieval-accuracy) from "nothing above the
-floor was rejected" into "the right passage was in the top 6, and here is the
-rank".
+floor was rejected" into "the right passage was in the top K, at this rank",
+graded against labels a reader checked. Reference answers per question would
+then close the last row of the table above — that one is a labelling exercise,
+and it is still not done.
 
 ### 8.5 Why Recall@K is hard here, and where the work is
 
@@ -756,8 +782,8 @@ found out.
 | Highlight intent uses a heuristic | When no passage overlaps the highlight, a query is still derived. Better than doing nothing; not a substitute for a real selector |
 | Large documents block the server | Needs a job queue |
 | Re-uploading a file re-indexes it; no hash-based skip | No incremental ingestion or dedup, so the same document counted twice drags a source into every answer twice |
-| No MRR, nDCG or Recall@K | Needs a chunk-level gold set; see [8.4](#84-what-this-project-does-not-measure-and-why) |
-| No answer correctness against ground truth | Would need reference answers per question, which is a labelling exercise |
+| Answer correctness against a reference answer | Would need reference answers per question, which is a labelling exercise; see [8.4](#84-what-these-numbers-can-and-cannot-tell-you) |
+| Retrieval metrics graded on machine-checked labels | The metrics are implemented; the labels have never been read by a person. `gold_set.json` is 0/48 verified |
 | Ground-truth corpus is small | ~110 labels, so chunking numbers are directional for larger corpora |
 
 ## 12. Questions you will be asked
@@ -784,14 +810,21 @@ Single-user, local, loopback-only by default. It is the honest scope for the
 project rather than a hidden omission, and adding it is documented. If it were
 deployed, auth would be the first change.
 
-**"You don't have Recall@K or MRR. Isn't that the basic stuff?"**
-Agreed, and it is the most valuable thing to add next ([8.4](#84-what-this-project-does-not-measure-and-why)).
-They need a mapping from each question to the chunk that answers it, which does
-not exist for a synthetic corpus written to exercise parsers. I would rather
-report the metric I can define than ship a Recall@K computed against labels a
-model produced from its own top-k — which measures the judge's approval rate, not
-retrieval. Concretely: writing `gold.json` is about a day, and it unlocks all
-three.
+**"Your Recall@K is 0.956. Isn't that suspiciously high?"**
+It is high, and the reason is the label set, not the retriever. The labels come
+from blanking a value out of a document line, so the question literally contains
+the passage. The metric is implemented correctly and the run is reproducible
+([8.4](#84-what-these-numbers-can-and-cannot-tell-you)) — what it does not
+measure is whether a person would find the answer useful. The check that would
+settle it is the 48 hand-written questions in `gold_set.json`, none of which has
+been verified yet, so I do not quote a number from them.
+
+**"Isn't computing Recall@K from your own top-k circular?"**
+Yes, and this project does not do it. The failure mode is described in
+[8.5](#85-why-recallk-is-hard-here-and-where-the-work-is): if ground truth is
+selected from what the retriever already returned, a miss is undetectable by
+construction. Here the gold set is derived from the *documents*, independent of
+what was retrieved, so a miss can and does score zero.
 
 **"Your relevancy score is 0.167. Isn't that bad?"**
 That is a lexical metric being used outside its competence, and the honest answer

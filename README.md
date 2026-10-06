@@ -1058,7 +1058,10 @@ retry a log line costs more than the line is worth.
    sentence, line or word boundaries depending on content.
 2. Numeric-flat chunks are flagged `numeric_heavy`. **Nothing is discarded.**
 3. Each chunk is embedded with MiniLM and inserted into `chunks` with its text, page,
-   heading, and a `vector(384)` column searched through an HNSW cosine index. A BM25
+   heading, and a `vector(384)` column with an HNSW cosine index beside it. At this
+   corpus size the planner often prefers a sequential scan anyway (~1.0 ms exact vs
+   ~1.3 ms through the index), so the index is a path that exists rather than one
+   that is always taken. A BM25
    index over the same chunks is built on demand and cached in memory per session,
    rebuilt only when that session's chunk count changes.
 4. A question is embedded and cosine-searched, and separately scored by BM25. The candidate
