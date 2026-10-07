@@ -11,37 +11,73 @@ import { api } from "./api.js";
  * that file is the list, and this is commentary on it.
  */
 
-const STEPS = [
-  {
-    title: "1 · Written and hashed",
-    body:
-      "The bytes are stored under a generated name and hashed (SHA-256). If this notebook already holds that hash the file is not indexed again - you get the source you already had.",
-  },
-  {
-    title: "2 · Read by its own format",
-    body:
-      "PDF, DOCX, Markdown, HTML, CSV, JSON, config, logs, code and prose each have their own reader. Structure is read as structure: heading paths, page numbers, function names, column headers, timestamp groups.",
-  },
-  {
-    title: "3 · Split on structure first",
-    body:
-      "A chunk is a whole structural unit whenever the document gave you one. Only a block larger than the size ceiling is cut - on paragraph, then sentence, then word - and tables on line boundaries so a row is never sliced in half.",
-  },
-  {
-    title: "4 · Both ceilings enforced",
-    body:
-      "First the character ceiling, then the embedding model's wordpiece window, counted with the model's own tokenizer rather than estimated. Anything over is re-cut, so no stored chunk is longer than the model can actually see. Which of the two fired, and by how much, is per file in the row above.",
-  },
-  {
-    title: "5 · Embedded on this machine",
-    body:
-      "all-MiniLM-L6-v2 turns each chunk into 384 numbers, locally. The vectors are never uploaded and never leave the machine.",
-  },
-  {
-    title: "6 · Stored for retrieval",
-    body:
-      "Text, heading, page number and vector go into Postgres with pgvector, where dense cosine and BM25 are fused for every question you ask.",
-  },
+/**
+ * The pipeline as a diagram: six nodes on a rail, one short line of text each.
+ *
+ * Written as a diagram on purpose. The steps were paragraphs first and nobody
+ * read past the second one - what a reader wants from a pipeline is the shape
+ * of it and where the document currently is, which is what a rail of icons
+ * gives at a glance and prose does not. Anything worth more than a line lives
+ * in the source's own detail panel, where it is a number attached to a file
+ * rather than a claim about all of them.
+ */
+const ICONS = {
+  // Written under a generated name, then hashed for the duplicate check.
+  upload: (
+    <>
+      <path d="M9 11.5V3M9 3 6.2 5.8M9 3l2.8 2.8" />
+      <path d="M3 11v3a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-3" />
+    </>
+  ),
+  // A document whose lines keep their order.
+  document: (
+    <>
+      <path d="M4 2.5h5.5L14 7v8.5a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-11a1 1 0 0 1 1-1Z" />
+      <path d="M9.5 2.5V7H14M5.5 10h6M5.5 12.5h4" />
+    </>
+  ),
+  // One block, divided only where it must be.
+  split: (
+    <>
+      <rect x="2.5" y="4.5" width="13" height="9" rx="1.5" />
+      <path d="M9 2.5v13" strokeDasharray="2 2.2" />
+    </>
+  ),
+  // Two ceilings pressing down from above.
+  ceilings: (
+    <>
+      <path d="M2.5 4h13" />
+      <path d="M6 7.5v5M6 12.5 4.6 11.1M6 12.5l1.4-1.4" />
+      <path d="M12 7.5v5M12 12.5l-1.4-1.4M12 12.5l1.4-1.4" />
+    </>
+  ),
+  // A grid of numbers, which is what a vector is.
+  vector: (
+    <>
+      <path
+        d="M4.5 4.5h.01M9 4.5h.01M13.5 4.5h.01M4.5 9h.01M9 9h.01M13.5 9h.01M4.5 13.5h.01M9 13.5h.01M13.5 13.5h.01"
+        strokeWidth="2.4"
+        strokeLinecap="round"
+      />
+    </>
+  ),
+  // The database cylinder.
+  store: (
+    <>
+      <ellipse cx="9" cy="4.6" rx="5.5" ry="2.1" />
+      <path d="M3.5 4.6v8.8c0 1.16 2.46 2.1 5.5 2.1s5.5-.94 5.5-2.1V4.6" />
+      <path d="M3.5 9c0 1.16 2.46 2.1 5.5 2.1s5.5-.94 5.5-2.1" />
+    </>
+  ),
+};
+
+const STAGES = [
+  { icon: "upload", title: "Upload and hash", tag: "SHA-256 · skipped if already here" },
+  { icon: "document", title: "Read by format", tag: "structure read as structure" },
+  { icon: "split", title: "Split by structure", tag: "whole units, cut only if too big" },
+  { icon: "ceilings", title: "Fit both ceilings", tag: "characters, then wordpieces" },
+  { icon: "vector", title: "Embed locally", tag: "MiniLM-L6-v2 · 384 dimensions" },
+  { icon: "store", title: "Store for retrieval", tag: "Postgres + pgvector" },
 ];
 
 function kilobytes(bytes) {
@@ -168,9 +204,9 @@ export function SourceDetail({ source, sessionId, tokenWindow = 256, duplicate =
 }
 
 /**
- * The explainer, closed by default and opened on demand.
+ * The diagram, closed by default and opened on demand.
  *
- * Deliberately the same six steps for every document and deliberately not
+ * Deliberately the same six stages for every document and deliberately not
  * attached to a source: the pipeline is what the app does, and a per-file view
  * of it would imply the steps differ when only the format parser does. The
  * counts live in `SourceDetail` where they are checkable against one file.
@@ -190,10 +226,26 @@ export function PipelinePanel() {
       </button>
       {open ? (
         <ol className="pipeline">
-          {STEPS.map((step) => (
-            <li key={step.title}>
-              <strong>{step.title}</strong>
-              <p>{step.body}</p>
+          {STAGES.map((stage) => (
+            <li className="stage" key={stage.title}>
+              <span className="stage-node" aria-hidden="true">
+                <svg
+                  viewBox="0 0 18 18"
+                  width="17"
+                  height="17"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  {ICONS[stage.icon]}
+                </svg>
+              </span>
+              <span className="stage-body">
+                <strong>{stage.title}</strong>
+                <span className="stage-tag">{stage.tag}</span>
+              </span>
             </li>
           ))}
         </ol>

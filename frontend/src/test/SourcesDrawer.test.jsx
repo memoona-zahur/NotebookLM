@@ -246,19 +246,28 @@ describe("SourcesDrawer", () => {
     });
   });
 
-  describe("the pipeline explainer", () => {
-    it("is closed by default and lists every step once opened", async () => {
+  describe("the pipeline diagram", () => {
+    it("is closed by default and draws all six stages once opened", async () => {
       const { user } = setup();
 
       const toggle = screen.getByRole("button", { name: /how indexing works/i });
       expect(toggle).toHaveAttribute("aria-expanded", "false");
+      expect(screen.queryByText("Upload and hash")).not.toBeInTheDocument();
 
       await user.click(toggle);
 
       expect(toggle).toHaveAttribute("aria-expanded", "true");
-      for (const heading of ["1 \u00b7 Written and hashed", "6 \u00b7 Stored for retrieval"]) {
-        expect(screen.getByText(heading)).toBeInTheDocument();
+      const stages = document.querySelectorAll(".pipeline .stage");
+      expect(stages).toHaveLength(6);
+      // One icon per stage, and one short line of text at most. A diagram with
+      // no pictures in it is the prose this replaced, wearing a list.
+      for (const stage of stages) {
+        expect(stage.querySelector("svg")).not.toBeNull();
+        const tag = stage.querySelector(".stage-tag");
+        expect((tag && tag.textContent.trim()) || "").not.toBe("");
       }
+      expect(screen.getByText("Upload and hash")).toBeInTheDocument();
+      expect(screen.getByText("Store for retrieval")).toBeInTheDocument();
       expect(screen.getByText(/SHA-256/)).toBeInTheDocument();
     });
 
@@ -268,7 +277,7 @@ describe("SourcesDrawer", () => {
       await user.click(screen.getByRole("button", { name: /how indexing works/i }));
       await user.click(screen.getByRole("button", { name: /hide how indexing works/i }));
 
-      expect(screen.queryByText("1 \u00b7 Written and hashed")).not.toBeInTheDocument();
+      expect(screen.queryByText("Upload and hash")).not.toBeInTheDocument();
     });
   });
 });

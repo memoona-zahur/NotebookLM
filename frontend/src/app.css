@@ -563,35 +563,119 @@
   color: var(--text-2);
 }
 
-/* The explainer, at the foot of the drawer ---------------------------------- */
+/* The pipeline diagram, at the foot of the drawer --------------------------- */
 
 .pipeline-holder {
   margin-top: 14px;
 }
+
 .pipeline {
+  position: relative;
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  margin: 11px 0 0;
-  padding: 0 0 0 2px;
+  margin: 12px 0 0;
+  padding: 0;
   list-style: none;
 }
-.pipeline li {
-  padding-left: 11px;
-  border-left: 2px solid var(--accent-line);
+
+/* Each stage draws its own length of rail rather than the list drawing one
+   continuous line, so the rail stops at the last node instead of running on
+   into the padding below it. */
+.stage {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 11px;
+  padding-bottom: 13px;
+  animation: stage-in 0.28s var(--ease) both;
 }
-.pipeline strong {
-  display: block;
+.stage:last-child {
+  padding-bottom: 0;
+}
+.stage:not(:last-child)::before {
+  content: "";
+  position: absolute;
+  left: 15px;
+  top: 32px;
+  bottom: 0;
+  width: 2px;
+  background: var(--line-strong);
+}
+.stage:nth-child(2) { animation-delay: 0.05s; }
+.stage:nth-child(3) { animation-delay: 0.1s; }
+.stage:nth-child(4) { animation-delay: 0.15s; }
+.stage:nth-child(5) { animation-delay: 0.2s; }
+.stage:nth-child(6) { animation-delay: 0.25s; }
+
+.stage-node {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  background: var(--surface-2);
+  color: var(--accent-text);
+}
+
+.stage-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  padding-top: 2px;
+}
+.stage-body strong {
   font-family: var(--font-ui);
-  font-size: 12px;
+  font-size: 12.5px;
   font-weight: 600;
   color: var(--text-1);
 }
-.pipeline p {
-  margin: 2px 0 0;
-  font-size: 12px;
-  line-height: 1.55;
+.stage-tag {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  line-height: 1.5;
   color: var(--muted);
+}
+
+/* One pulse travelling the rail, so the direction of the flow is shown rather
+   than left to be inferred from the order of the icons. */
+@keyframes pipeline-flow {
+  0% { top: 14px; opacity: 0; }
+  8% { opacity: 1; }
+  92% { opacity: 1; }
+  100% { top: calc(100% - 22px); opacity: 0; }
+}
+.pipeline::after {
+  content: "";
+  position: absolute;
+  left: 13px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 6px var(--accent);
+  animation: pipeline-flow 2.4s linear infinite;
+}
+
+@keyframes stage-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: none; }
+}
+
+/* The diagram is decoration on top of a static list of stages, so it is the
+   first thing to go when motion is not wanted - nothing is lost but the
+   sense of travel. */
+@media (prefers-reduced-motion: reduce) {
+  .stage {
+    animation: none;
+  }
+  .pipeline::after {
+    display: none;
+  }
 }
 
 .sources-empty {
