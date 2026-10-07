@@ -93,6 +93,17 @@ export const api = {
       method: "POST",
       sessionId,
     }),
+  // A URL to open in a new tab rather than a fetch. The original document is
+  // meant to be looked at, and fetching it would mean re-implementing the PDF
+  // viewer, the text renderer and the download prompt the browser already has.
+  sourceFileUrl: (sessionId, sourceId) => {
+    const url = new URL(
+      baseUrl + `/api/sources/${encodeURIComponent(sourceId)}/file`,
+      window.location.origin
+    );
+    if (sessionId) url.searchParams.set("session_id", sessionId);
+    return url.toString();
+  },
   deleteSource: (sessionId, sourceId) =>
     request(`/api/sources/${encodeURIComponent(sourceId)}`, { method: "DELETE", sessionId }),
   clearSources: (sessionId) => request("/api/sources", { method: "DELETE", sessionId }),

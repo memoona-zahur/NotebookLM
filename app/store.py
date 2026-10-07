@@ -85,6 +85,20 @@ def _content_hash(path: Path) -> str:
     return digest.hexdigest()
 
 
+def _file_bytes(path: Path) -> int | None:
+    """Size of the stored upload, or None if it is not there to measure.
+
+    None rather than 0 because 0 bytes is a claim about a file and this is the
+    absence of one. The distinction survives into the UI, which shows "size not
+    recorded" for None and would otherwise have to print "0 KB" for a source
+    whose file it never measured.
+    """
+    try:
+        return Path(path).stat().st_size
+    except OSError:
+        return None
+
+
 @dataclass
 class Source:
     id: str
@@ -104,9 +118,38 @@ class Source:
     fit_splits: int = 0
     avg_chars: int = 0
     max_chars: int = 0
+    # Cuts forced by the character ceiling, the companion to `fit_splits`.
+    # Recorded per source so the expanded row can say which ceiling fired on
+    # *this* file rather than on the whole notebook. None, not 0: a source
+    # indexed before this was recorded has no answer, and "no cuts" is a real
+    # and common answer that must not be confused with no answer at all.
+    size_splits: int | None = None
+    # Size of the stored upload in bytes, taken once at ingest. Feeding the
+    # "View" control and the file facts row without stat-ing on every listing.
+    file_bytes: int | None = None
+    created_at: str = ""
     # True only on the return value of an `add` that recognised content the
     # session already had. Never stored; false for every source in a listing.
     duplicate: bool = False
+
+
+# Every list-returning query builds its row with `Source(*row)`, so the column
+# order here *is* the field order above. Two queries used to spell this out
+# separately, which is one accidental reordering away from silently reading
+# `token_max` into `fit_splits` - both are ints, so nothing would raise.
+_SOURCE_SELECT = """
+    SELECT s.id::text, s.name, s.kind, s.pages, s.chunk_count,
+           s.numeric_count, s.url, s.token_max, s.fit_splits,
+           COALESCE(c.avg_chars, 0)::int, COALESCE(c.max_chars, 0)::int,
+           s.size_splits, s.file_bytes,
+           to_char(s.created_at AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI:SS')
+    FROM sources s
+    LEFT JOIN LATERAL (
+        SELECT AVG(LENGTH(text)) AS avg_chars,
+               MAX(LENGTH(text)) AS max_chars
+        FROM chunks WHERE source_id = s.id
+    ) c ON TRUE
+"""
 
 
 @dataclass
@@ -221,12 +264,16 @@ class VectorStore:
         with db.connection() as conn:
             source = conn.execute(
                 "INSERT INTO sources (session_id, name, kind, pages, storage_path, url, "
-                "content_hash, token_max, fit_splits) "
-                "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s) RETURNING id",
+                "content_hash, token_max, fit_splits, size_splits, file_bytes) "
+                "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) "
+                "RETURNING id, to_char(created_at AT TIME ZONE 'UTC', "
+                "'YYYY-MM-DD HH24:MI:SS')",
                 (session_id, name, kind, len(blocks), str(path), url or "",
-                 digest or None, stats.token_max, stats.fit_splits),
+                 digest or None, stats.token_max, stats.fit_splits,
+                 stats.size_splits, _file_bytes(path)),
             ).fetchone()
             source_id = source[0]
+            created_at = source[1]
             if keep:
                 vectors = embed_texts([row[3] for row in keep])
                 with conn.cursor() as cur:
@@ -257,6 +304,9 @@ class VectorStore:
             fit_splits=stats.fit_splits,
             avg_chars=stats.avg_chars,
             max_chars=stats.max_chars,
+            size_splits=stats.size_splits,
+            file_bytes=_file_bytes(path),
+            created_at=created_at,
         )
 
     def _find_duplicate(self, session_id: str, digest: str) -> Source | None:
@@ -269,19 +319,9 @@ class VectorStore:
         try:
             with db.connection() as conn:
                 row = conn.execute(
-                    """
-                    SELECT s.id::text, s.name, s.kind, s.pages, s.chunk_count,
-                           s.numeric_count, s.url, s.token_max, s.fit_splits,
-                           COALESCE(c.avg_chars, 0)::int, COALESCE(c.max_chars, 0)::int
-                    FROM sources s
-                    LEFT JOIN LATERAL (
-                        SELECT AVG(LENGTH(text)) AS avg_chars,
-                               MAX(LENGTH(text)) AS max_chars
-                        FROM chunks WHERE source_id = s.id
-                    ) c ON TRUE
-                    WHERE s.session_id = %s AND s.content_hash = %s
-                    ORDER BY s.created_at LIMIT 1
-                    """,
+                    _SOURCE_SELECT
+                    + "WHERE s.session_id = %s AND s.content_hash = %s "
+                    "ORDER BY s.created_at LIMIT 1",
                     (session_id, digest),
                 ).fetchone()
         except Exception:  # noqa: BLE001
@@ -311,13 +351,14 @@ class VectorStore:
         """
         with db.connection() as conn:
             row = conn.execute(
-                "SELECT name, storage_path, url FROM sources "
-                "WHERE id = %s AND session_id = %s",
+                "SELECT name, storage_path, url, "
+                "to_char(created_at AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI:SS') "
+                "FROM sources WHERE id = %s AND session_id = %s",
                 (source_id, session_id),
             ).fetchone()
         if row is None:
             return None
-        name, stored, url = row
+        name, stored, url, created_at = row
         path = Path(stored)
         if not stored or not path.exists():
             raise parsers.UnreadableDocument(
@@ -354,10 +395,12 @@ class VectorStore:
                     )
             conn.execute(
                 "UPDATE sources SET chunk_count = %s, numeric_count = %s, pages = %s, "
-                "content_hash = %s, token_max = %s, fit_splits = %s "
+                "content_hash = %s, token_max = %s, fit_splits = %s, "
+                "size_splits = %s, file_bytes = %s "
                 "WHERE id = %s",
                 (len(keep), numeric, len(blocks), digest or None,
-                 stats.token_max, stats.fit_splits, source_id),
+                 stats.token_max, stats.fit_splits, stats.size_splits,
+                 _file_bytes(path), source_id),
             )
 
         self._invalidate(session_id)
@@ -373,6 +416,9 @@ class VectorStore:
             fit_splits=stats.fit_splits,
             avg_chars=stats.avg_chars,
             max_chars=stats.max_chars,
+            size_splits=stats.size_splits,
+            file_bytes=_file_bytes(path),
+            created_at=created_at,
         )
 
     def remove(self, source_id: str, session_id: str) -> bool:
@@ -418,6 +464,24 @@ class VectorStore:
             ).fetchone()
         return Path(row[0]) if row and row[0] else None
 
+    def original_file(self, source_id: str, session_id: str) -> tuple[str, Path] | None:
+        """The display name and stored path of a source's original, or None.
+
+        Separate from `storage_path` because serving a file needs the name the
+        user knows it by, and the name is a user-visible string while the path is
+        not. Both are scoped to the session: owning a source id is not the same
+        as owning the source, and every other source route works that way.
+        """
+        with db.connection() as conn:
+            row = conn.execute(
+                "SELECT name, storage_path FROM sources "
+                "WHERE id = %s AND session_id = %s",
+                (source_id, session_id),
+            ).fetchone()
+        if not row or not row[1]:
+            return None
+        return row[0], Path(row[1])
+
     # -- reads -------------------------------------------------------------
 
     def sources(self, session_id: str) -> list[Source]:
@@ -425,23 +489,13 @@ class VectorStore:
 
         `avg_chars` and `max_chars` are computed from the stored chunks rather
         than kept as columns: they are a function of `chunks`, so a column would
-        be a second copy of a fact that could drift from the first.
+        be a second copy of a fact that could drift from the first. `file_bytes`
+        is the opposite - it is a property of a file that may since have been
+        deleted, so it has to be captured when the file is there.
         """
         with db.connection() as conn:
             rows = conn.execute(
-                """
-                SELECT s.id::text, s.name, s.kind, s.pages, s.chunk_count,
-                       s.numeric_count, s.url, s.token_max, s.fit_splits,
-                       COALESCE(c.avg_chars, 0)::int, COALESCE(c.max_chars, 0)::int
-                FROM sources s
-                LEFT JOIN LATERAL (
-                    SELECT AVG(LENGTH(text)) AS avg_chars,
-                           MAX(LENGTH(text)) AS max_chars
-                    FROM chunks WHERE source_id = s.id
-                ) c ON TRUE
-                WHERE s.session_id = %s
-                ORDER BY s.created_at
-                """,
+                _SOURCE_SELECT + "WHERE s.session_id = %s ORDER BY s.created_at",
                 (session_id,),
             ).fetchall()
         return [Source(*row) for row in rows]

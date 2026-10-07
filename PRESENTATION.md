@@ -551,7 +551,7 @@ quality would be the fastest way to lose the room.
 
 ### 8.3 Tests
 
-`./run_tests.sh` — 118 backend, 171 frontend. Includes: relevance floor,
+`./run_tests.sh` — 123 backend, 178 frontend. Includes: relevance floor,
 citation validation, injection defence, history injection attempts, upload
 ownership, citation persistence across reload, greeting behaviour, and web-source
 ingestion (a found page becomes a citable source, one unreachable page does not
@@ -560,7 +560,11 @@ it is requested). Also: a re-uploaded file is recognised and not indexed twice,
 no chunk exceeds the embedding model's wordpiece window, the ingestion report
 covers characters / wordpieces / numeric share, a re-ranker that cannot run
 leaves the order alone, re-ranking actually runs and is reported in
-`/api/status`, and P50/P95 latency is reported per stage over a window.
+`/api/status`, and P50/P95 latency is reported per stage over a window. The
+original document behind a source is served for the View control, byte for byte
+and only inside its own notebook: an uploaded page is handed over as text rather
+than as something this origin would run, a path outside the upload directory is
+refused, and a file that is no longer on disk is a 404 that says so.
 
 That last one is worth mentioning unprompted, because it is the check that would
 have caught the obvious bug: letting `httpx` follow redirects means the request

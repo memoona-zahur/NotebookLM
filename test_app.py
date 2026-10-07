@@ -310,7 +310,12 @@ def test_migrated_schema_matches_what_the_app_uses(client: TestClient) -> None:
                     # you already have a no-op, and the two numbers are the
                     # ingestion report - without them the store cannot say
                     # whether the embedding window truncated anything.
-                    "content_hash", "token_max", "fit_splits"},
+                    "content_hash", "token_max", "fit_splits",
+                    # Added by 0006. `file_bytes` feeds the per-source file
+                    # facts, `size_splits` is the character ceiling's count
+                    # against the wordpiece ceiling's - reporting only one of
+                    # the two ceilings would answer half the question.
+                    "file_bytes", "size_splits"},
         "chunks": {"id", "source_id", "position", "page", "heading", "text",
                    "numeric_heavy", "embedding"},
         "messages": {
@@ -349,7 +354,9 @@ def test_migrated_schema_matches_what_the_app_uses(client: TestClient) -> None:
     print("  every table matches the columns the app uses: OK")
 
 
-def test_deleting_a_session_cannot_delete_a_file_the_store_does_not_own() -> None:
+def test_deleting_a_session_cannot_delete_a_file_the_store_does_not_own(
+    client: TestClient,
+) -> None:
     """Regression, and the reason this is not theoretical.
 
     `store.add` records whatever path it is handed, which is what lets a session
@@ -1509,6 +1516,113 @@ def test_a_source_in_another_notebook_cannot_be_reindexed(
     ).status_code == 404
     print("  re-indexing is scoped to the notebook the source belongs to: OK")
 
+
+
+def test_the_original_file_is_served_from_its_own_notebook(client: TestClient) -> None:
+    """The "View original" control on a source row.
+
+    "Indexed" is a claim and this is the evidence, so the bytes have to come
+    back exactly as they went in - a re-rendered or re-encoded copy would be a
+    different document, and checking the index against it would be checking it
+    against nothing.
+    """
+    sid = client.post("/api/sessions", json={"name": "viewable"}).json()["id"]
+    body = "First line\nSecond line\n".encode()
+    source = upload(client, "notes.txt", body, session_id=sid)
+
+    res = client.get(f"/api/sources/{source['id']}/file", params={"session_id": sid})
+    assert res.status_code == 200, res.text
+    assert res.content == body, "the file must come back byte for byte"
+    # Inline so a PDF opens in the viewer instead of downloading: the point of a
+    # View button is to look at the thing. nosniff so nothing is ever invited to
+    # re-guess a type we did not state.
+    assert res.headers["content-disposition"].startswith("inline")
+    assert "notes.txt" in res.headers["content-disposition"]
+    assert res.headers["x-content-type-options"] == "nosniff"
+    assert res.headers["content-type"].startswith("text/plain")
+
+    # The scoping every other source route already has. The default session is
+    # what an omitted session_id resolves to, and it owns none of this.
+    other = client.post("/api/sessions", json={"name": "not yours"}).json()["id"]
+    assert client.get(
+        f"/api/sources/{source['id']}/file", params={"session_id": other}
+    ).status_code == 404
+    assert client.get(
+        f"/api/sources/{uuid.uuid4()}/file", params={"session_id": sid}
+    ).status_code == 404
+    assert client.get(f"/api/sources/{source['id']}/file").status_code == 404
+    print("  the original file is served only inside its own notebook: OK")
+
+
+def test_an_uploaded_page_is_served_as_text_never_as_something_that_runs(
+    client: TestClient,
+) -> None:
+    """A source is user content. On this origin it must not be executable.
+
+    Served as its own content type, a page someone indexed would hold this
+    app's origin and could call the API as whoever is looking at it. Displayed
+    as plain text instead, which is what "show me what you indexed" asks for.
+    """
+    sid = client.post("/api/sessions", json={"name": "untrusted"}).json()["id"]
+    page = b"<html><script>fetch('/api/sources')</script></html>"
+    html = upload(client, "page.html", page, session_id=sid)
+    pdf = upload(client, "doc.pdf", make_pdf(), session_id=sid)
+
+    res = client.get(f"/api/sources/{html['id']}/file", params={"session_id": sid})
+    assert res.status_code == 200, res.text
+    assert res.content == page
+    assert res.headers["content-type"].startswith("text/plain"), res.headers["content-type"]
+
+    # A real PDF still has to arrive as a PDF, or the control opens a download
+    # instead of the browser's viewer and the whole feature is pointless.
+    res = client.get(f"/api/sources/{pdf['id']}/file", params={"session_id": sid})
+    assert res.status_code == 200, res.text
+    assert res.headers["content-type"].startswith("application/pdf"), res.headers["content-type"]
+    print("  an uploaded page is served as text, never as something a browser runs: OK")
+
+
+def test_a_source_pointing_outside_the_upload_directory_is_refused(
+    client: TestClient,
+) -> None:
+    """The path comes from the row rather than the request.
+
+    So there is nothing to traverse, but the store is handed paths by its
+    callers and a row can therefore name anything. The boundary check is what
+    keeps that from becoming a read of the machine.
+    """
+    from app.store import store
+
+    sid = client.post("/api/sessions", json={"name": "outside"}).json()["id"]
+    source = upload(client, "mine.txt", b"mine", session_id=sid)
+    stray = Path(tempfile.gettempdir()) / "notebooklm-not-owned.txt"
+    with db.connection() as conn:
+        conn.execute(
+            "UPDATE sources SET storage_path = %s WHERE id = %s",
+            (str(stray), source["id"]),
+        )
+
+    res = client.get(f"/api/sources/{source['id']}/file", params={"session_id": sid})
+    assert res.status_code == 404, res.text
+    assert store.storage_path(source["id"], sid) is not None, (
+        "the row still points at a file it may own; only serving is refused"
+    )
+    print("  a path outside the upload directory is never served: OK")
+
+
+def test_a_source_whose_file_is_gone_says_so(client: TestClient) -> None:
+    """Not an empty body and not a 200: the file is the thing being asked for."""
+    from app.store import store
+
+    sid = client.post("/api/sessions", json={"name": "deleted file"}).json()["id"]
+    source = upload(client, "gone.txt", b"present", session_id=sid)
+    path = store.storage_path(source["id"], sid)
+    assert path is not None
+    path.unlink()
+
+    res = client.get(f"/api/sources/{source['id']}/file", params={"session_id": sid})
+    assert res.status_code == 404, res.text
+    assert "no longer on disk" in res.json()["detail"]
+    print("  a missing original is a 404 that says so: OK")
 
 
 def test_a_chunking_config_that_could_hang_cannot_hang(client: TestClient) -> None:
@@ -3695,6 +3809,10 @@ ORDER = [
     ("reindex in place", test_a_source_is_reindexed_in_place_without_a_reupload),
     ("failed reindex keeps index", test_a_failed_reindex_leaves_the_existing_index_alone),
     ("reindex scoped to session", test_a_source_in_another_notebook_cannot_be_reindexed),
+    ("original file served", test_the_original_file_is_served_from_its_own_notebook),
+    ("uploaded page served as text", test_an_uploaded_page_is_served_as_text_never_as_something_that_runs),
+    ("path outside uploads refused", test_a_source_pointing_outside_the_upload_directory_is_refused),
+    ("missing original is 404", test_a_source_whose_file_is_gone_says_so),
     ("duplicate upload not indexed twice", test_an_upload_the_session_already_has_is_not_indexed_twice),
     ("chunks fit the embedding window", test_no_chunk_is_longer_than_the_embedding_model_keeps),
     ("ingestion report", test_the_ingestion_report_says_what_chunking_did),
@@ -3703,6 +3821,10 @@ ORDER = [
     ("latency percentiles", test_latency_percentiles_are_reported_over_recent_requests),
     ("oversized upload refused", test_an_oversized_upload_is_refused_without_being_kept),
     ("chat history persists", test_chat_history_persists_and_is_isolated),
+    # Not defined to need `client`, but the runner passes it to every test, so
+    # it has always taken one. Left out of this list without a reason, which
+    # meant the ownership guard ran in no suite at all.
+    ("file ownership before delete", test_deleting_a_session_cannot_delete_a_file_the_store_does_not_own),
     ("deleting session removes data", test_deleting_a_session_removes_its_data),
     ("clear history keeps sources", test_clear_history_keeps_sources),
     ("index survives a restart", test_sources_survive_a_store_restart),

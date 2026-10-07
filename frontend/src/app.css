@@ -434,6 +434,166 @@
   color: var(--faint);
 }
 
+/* Per-source ingestion detail ------------------------------------------------ */
+
+/* `wrap` because the detail is a full-width child: without it the panel would
+   be squeezed into whatever the name's flex-basis leaves behind. */
+.source {
+  flex-wrap: wrap;
+}
+.source.open {
+  background: var(--surface-2);
+}
+
+.source-expand {
+  flex: 0 0 auto;
+  width: 16px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--faint);
+  font-size: 11px;
+  line-height: 1;
+  cursor: pointer;
+}
+.source-expand:hover,
+.source-expand:focus-visible {
+  color: var(--accent-text);
+}
+/* Stated rather than left to the UA: this button has no box of its own, so a
+   default outline would sit on whatever the chevron happens to be over. */
+.source-expand:focus-visible,
+.detail-view:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+  border-radius: 4px;
+}
+
+.source-detail-wrap {
+  flex: 1 0 100%;
+}
+
+.source-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  margin: 8px 0 4px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--surface);
+}
+
+.detail-actions {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+.detail-view {
+  padding: 5px 10px;
+  border: 1px solid var(--accent-line);
+  border-radius: 6px;
+  background: var(--accent-soft);
+  color: var(--accent-text);
+  font-family: var(--font-ui);
+  font-size: 12px;
+  font-weight: 500;
+  text-decoration: none;
+}
+.detail-view:hover {
+  background: var(--accent);
+  color: #fff;
+}
+.detail-hint {
+  font-size: 11px;
+  color: var(--faint);
+}
+
+/* One line of counts separated by "›". Sentence case, not headings: this is a
+   trace of what ran, not a set of sections. */
+.detail-steps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 4px;
+  margin: 0;
+  font-family: var(--mono);
+  font-size: 10.5px;
+  line-height: 1.7;
+  color: var(--muted);
+}
+
+.detail-facts {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 3px 12px;
+  margin: 0;
+}
+.detail-facts dt {
+  font-family: var(--font-ui);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--faint);
+  align-self: center;
+}
+.detail-facts dd {
+  margin: 0;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--text-2);
+}
+
+/* Only ever about an upload this session refused. Deliberately neutral rather
+   than `--warn` red: `--warn` in this palette is destructive-hover red, and
+   this is not a failure - the file was recognised and the notebook unchanged,
+   which is the correct outcome. Red would read as something having gone wrong. */
+.detail-duplicate {
+  margin: 0;
+  padding: 7px 9px;
+  border: 1px solid var(--line-strong);
+  border-left: 3px solid var(--accent);
+  border-radius: 6px;
+  background: var(--surface-2);
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--text-2);
+}
+
+/* The explainer, at the foot of the drawer ---------------------------------- */
+
+.pipeline-holder {
+  margin-top: 14px;
+}
+.pipeline {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 11px 0 0;
+  padding: 0 0 0 2px;
+  list-style: none;
+}
+.pipeline li {
+  padding-left: 11px;
+  border-left: 2px solid var(--accent-line);
+}
+.pipeline strong {
+  display: block;
+  font-family: var(--font-ui);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-1);
+}
+.pipeline p {
+  margin: 2px 0 0;
+  font-size: 12px;
+  line-height: 1.55;
+  color: var(--muted);
+}
+
 .sources-empty {
   padding: 22px 4px;
   text-align: center;

@@ -215,7 +215,7 @@ all of them run.
 ```bash
 cd frontend
 npm install
-npm test           # 171 checks, jsdom, no database or API key needed
+npm test           # 178 checks, jsdom, no database or API key needed
 npm run test:watch # re-runs on save
 ```
 
@@ -441,6 +441,7 @@ session; without one it uses the default session.
 | `POST` | `/api/sources` | Upload a file (multipart `file`) |
 | `POST` | `/api/sources/web` | `{query, limit}` → find pages and index them as sources |
 | `POST` | `/api/sources/{id}/reindex` | Re-parse and re-embed from the copy already on disk; keeps the id |
+| `GET` | `/api/sources/{id}/file` | The original upload as stored, `inline` so it opens rather than downloads; HTML/SVG/XML served as `text/plain` |
 | `DELETE` | `/api/sources/{id}` | Remove one source |
 | `DELETE` | `/api/sources` | Clear the session's sources |
 | `POST` | `/api/ask` | `{question}` → `{answer, citations, evidence}` (`evidence.cost` carries tokens and latency, see below) |
@@ -799,6 +800,54 @@ What ingest reports, in `GET /api/status` as `ingest` and per source:
 
 That last field is the honest one. A source that predates the report has
 `token_max` 0, and 0 here is not "everything fit", it is "nobody checked".
+
+### Seeing what ingestion did, to one file
+
+The drawer lists what a notebook holds. It does not say how any of it got
+there, and a count of chunks is a claim with no way to check it. Two controls,
+at the bottom of the drawer:
+
+**A chevron on each source row** opens that source's ingestion detail - the
+chain of steps that actually ran for *this* file, as counts rather than
+adjectives:
+
+```
+read PDF › 9 blocks › 12 chunks › 0 cut by size › 1 wordpiece cut ›
+worst 210/256 wordpieces › 3 table chunks › embedded 384-d
+```
+
+Below it, the fact rows: format and file size in KB, when it was indexed, the
+average and longest stored chunk, which ceilings fired, and how much of the
+index is tables. One row open at a time - the drawer is already a scroll
+region.
+
+Null and 0 mean different things here, and the panel keeps them apart. `0 cut by
+size` is an ordinary result for a well-behaved file and a claim about it;
+`size cuts not measured` is a source indexed before the count existed. The same
+applies to `token_max` 0, which is why the wordpiece rows consult it rather than
+`fit_splits`: both were recorded in the same pass, so no walk means neither
+number exists, and printing "no cuts" for that would be a statement about a
+file nobody measured.
+
+**"View original"** opens the stored upload in a new tab - the bytes that went
+in, not a rendering of them, because checking the index against a re-encoded
+copy is checking it against nothing. `GET /api/sources/{id}/file` serves it
+inline so a PDF opens in the browser's viewer rather than downloading.
+
+Two rules on that route. It is scoped exactly like every other source route:
+a source in another notebook, or an id you do not own, is a 404 that does not
+reveal whether it exists. And a path that resolves outside `UPLOAD_DIR` is
+refused too - the path comes from the row rather than the request, so there is
+nothing to traverse, but rows are written by callers and a boundary check costs
+nothing next to trusting every one of them forever. Uploaded HTML, XHTML, SVG
+and XML are served as `text/plain` with `nosniff`: on this origin a page served
+as its own content type could call the API as whoever is looking at it, and what
+the control promises is the file that was indexed, not something that runs.
+
+**"How indexing works"**, collapsed at the foot of the drawer, is the pipeline
+once rather than per file, since only the format parser differs between
+documents: hash and short-circuit, read the structure, split structure-first
+under `CHUNK_SIZE`, re-cut under the wordpiece window, embed locally, store.
 
 ## Retrieval: hybrid dense + BM25
 
@@ -1230,7 +1279,7 @@ retry a log line costs more than the line is worth.
 
 ## Tests
 
-118 checks covering upload, per-format parsing (including YAML/TOML/INI and hard-wrapped
+123 checks covering upload, per-format parsing (including YAML/TOML/INI and hard-wrapped
 text), OCR (a scanned page recovered and searchable, pages kept in order, both halves of a
 mixed PDF indexed, a blank scan refused with an actionable message, the missing-language
 message naming the install command, an over-cap document refused rather than indexed
@@ -1242,7 +1291,11 @@ generation metric definitions, the 503 LLM-down path, Groq routing, BOM handling
 built frontend resolving every asset it references, migrations (schema at head,
 idempotency, column-for-column agreement with the app, and the `role` check and
 `ON DELETE CASCADE` surviving), sessions (CRUD, source scoping, retrieval isolation,
-transcript persistence, cascading deletes, and surviving a restart), and the
+transcript persistence, cascading deletes, and surviving a restart), the
+original file behind a source served byte for byte only inside its own notebook
+(an uploaded page served as text rather than as something a browser runs, a path
+outside the upload directory refused, and a missing original reported as 404
+rather than as an empty body), and the
 grounding guarantees above (relevance floor, citation validation, history
 hardening, cross-source diversity). Prompt-injection handling has its own three
 checks: that a document issuing instructions is flagged rather than obeyed, that a

@@ -58,6 +58,12 @@ export default function App() {
   // clear a half-finished upload, and so the drawer can say which one it is
   // waiting for.
   const [searching, setSearching] = useState(false);
+  // Sources whose upload response said `duplicate: true`. The listing never
+  // carries the flag - it describes one upload, not the stored row - so the
+  // notice in a source's detail is driven from here. Cleared on a session
+  // switch, because it is about what this notebook was last offered, not a
+  // permanent fact about the file.
+  const [duplicateIds, setDuplicateIds] = useState(() => new Set());
 
   // Guards against a slow response for a session the user has already left
   // writing itself into the thread.
@@ -81,6 +87,7 @@ export default function App() {
     setApiBase(data.api_base);
     setActiveId(id);
     setTurns(data.history);
+    setDuplicateIds(new Set());
     setStatus(await api.status(id));
   }, []);
 
@@ -170,6 +177,10 @@ export default function App() {
           `${file.name} is already in this notebook. Nothing was re-indexed.`,
           "info",
         );
+        const matched = result.source && result.source.id;
+        if (matched) {
+          setDuplicateIds((seen) => new Set(seen).add(matched));
+        }
       }
     } catch (err) {
       toast(`${file.name}: ${err.message}`);
@@ -424,6 +435,8 @@ export default function App() {
           onClearSources={clearSources}
           onFindOccurrences={findOccurrences}
           autoSearch={highlight}
+          sessionId={activeId}
+          duplicateIds={duplicateIds}
         />
       ) : null}
 

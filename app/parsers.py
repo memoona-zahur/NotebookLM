@@ -96,6 +96,10 @@ class IngestStats:
 
     chunks: int = 0
     numeric: int = 0
+    # Extra cuts made purely to satisfy CHUNK_SIZE, the character ceiling. Kept
+    # separate from `fit_splits` because the two ceilings fire for unrelated
+    # reasons and a reader comparing them is asking which one is load-bearing.
+    size_splits: int = 0
     # Extra cuts made purely to satisfy EMBED_MAX_TOKENS. Zero on a document
     # whose chunks were already inside the window.
     fit_splits: int = 0
@@ -1219,6 +1223,11 @@ def _split_long(
             if len(block.text) <= size
             else chunk_text(block.text, size, overlap)
         )
+        if stats is not None and len(pieces) > 1:
+            # Counted here rather than inside `chunk_text`, which has no idea
+            # whether it was called because a block was long or because a caller
+            # wanted pieces for some other reason.
+            stats.size_splits += len(pieces) - 1
         for piece in pieces:
             fitted, split = _fit_to_tokens(piece, limit)
             if stats is not None and split:

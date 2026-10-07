@@ -9,10 +9,13 @@ query is a Pydantic field, but the *responses* are bounded in
 `app/websearch.py`, because their sizes are not known until they are read.
 """
 
+import mimetypes
+import re
 import uuid
 from pathlib import Path
 
 from fastapi import APIRouter, File, HTTPException, Request, UploadFile
+from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 
 from .. import config
@@ -121,6 +124,77 @@ def add_web_source(body: WebSearchRequest, session_id: str | None = None) -> dic
     session = resolve_session(session_id)
     outcome = ingest(body.query, str(session.id), body.limit)
     return {"web_search": outcome.as_dict(), **store.stats(str(session.id))}
+
+
+# Types a browser will execute rather than display. Serving a user's uploaded
+# HTML as its own content type would hand that document the app's origin - any
+# script in it could then call the API as the person viewing it. Displayed as
+# plain text instead, which is what "show me what you indexed" actually wants.
+SCRIPTABLE = {
+    "text/html",
+    "application/xhtml+xml",
+    "image/svg+xml",
+    "text/xml",
+    "application/xml",
+}
+
+
+def _header_filename(name: str) -> str:
+    """A display name made safe for one header value.
+
+    The name is user-controlled, and a CR or a quote in it would be header
+    injection rather than a download. Everything outside a small allowlist is
+    replaced, the result is truncated, and it always falls back to something
+    non-empty - an empty filename= is a malformed header.
+    """
+    safe = re.sub(r"[^A-Za-z0-9 ._()\[\]-]", "_", name).strip(" .") or "source"
+    return safe[:120]
+
+
+@router.get("/sources/{source_id}/file")
+def source_file(source_id: str, session_id: str | None = None) -> FileResponse:
+    """The original upload behind a source, so indexing can be checked by eye.
+
+    "Indexed" is a claim, and this is the evidence: the document the parser was
+    handed, served as it was stored. Web sources are served too - the fetched
+    page as well as the link back to it - so the control is not a second class
+    of source.
+
+    Two refusals, for different reasons. A source in another session is a 404
+    that says nothing about whether it exists, because owning an id is not the
+    same as owning the source. A path outside `UPLOAD_DIR` is a 404 as well:
+    the path comes from the row rather than the request so there is nothing to
+    traverse, but the store is handed paths by its callers, and a boundary
+    check costs nothing next to trusting every caller forever.
+    """
+    session = resolve_session(session_id)
+    found = store.original_file(source_id, str(session.id))
+    if found is None:
+        raise HTTPException(404, "That source is not in this notebook.")
+    name, path = found
+    try:
+        inside = path.resolve().is_relative_to(config.UPLOAD_DIR.resolve())
+    except OSError:
+        inside = False
+    if not inside:
+        raise HTTPException(404, "That file cannot be served.")
+    if not path.is_file():
+        raise HTTPException(404, "The original file is no longer on disk.")
+
+    media_type, _ = mimetypes.guess_type(path.name)
+    media_type = media_type or "application/octet-stream"
+    if media_type in SCRIPTABLE:
+        media_type = "text/plain; charset=utf-8"
+    return FileResponse(
+        path,
+        media_type=media_type,
+        headers={
+            # Inline, so a PDF opens in the browser's viewer instead of being
+            # downloaded - the point of a View button is to look at the thing.
+            "Content-Disposition": f'inline; filename="{_header_filename(name)}"',
+            "X-Content-Type-Options": "nosniff",
+        },
+    )
 
 
 @router.post("/sources/{source_id}/reindex")

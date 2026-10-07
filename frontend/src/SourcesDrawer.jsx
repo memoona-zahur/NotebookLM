@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Occurrences } from "./Highlight.jsx";
+import { PipelinePanel, SourceDetail } from "./IngestPanel.jsx";
 
 /**
  * The uploaded documents for the active session, in a drawer over the thread.
@@ -24,12 +25,21 @@ export function SourcesDrawer({
   onClearSources,
   onFindOccurrences,
   autoSearch = null,
+  // Passed through to the per-source detail: the file endpoint needs to know
+  // whose notebook it is, and the wordpiece window comes from the server's
+  // config rather than a number written into the component.
+  sessionId = null,
+  duplicateIds = null,
 }) {
   const fileInput = useRef(null);
   const closeButton = useRef(null);
   const [dragging, setDragging] = useState(false);
   const [finding, setFinding] = useState(false);
   const [query, setQuery] = useState("");
+  // Which source, if any, has its ingestion detail open. One at a time: the
+  // drawer is already a scroll region, and six expanded rows would push the
+  // list out of reach for the sake of information one at a time answers.
+  const [openId, setOpenId] = useState(null);
 
   // Escape closes, and focus moves into the drawer so keyboard users are not
   // left tabbing through the thread behind the overlay.
@@ -144,49 +154,87 @@ export function SourcesDrawer({
             {count === 0 ? (
               <p className="sources-empty">Nothing indexed in this notebook yet.</p>
             ) : (
-              status.sources.map((source) => (
-                <div className="source" key={source.id}>
-                  <span className="source-kind">{source.kind}</span>
-                  {/* A web source links back to the page it came from. That link
-                      is the only way a user can check the app indexed what they
-                      think it did, which is the whole concern with pulling in
-                      pages from the open internet. */}
-                  <span className="source-name" title={source.name}>
-                    {source.url ? (
-                      <a href={source.url} target="_blank" rel="noreferrer noopener">
-                        {source.name}
-                      </a>
-                    ) : (
-                      source.name
-                    )}
-                  </span>
-                  {source.chunks !== undefined ? (
-                    <span className="source-meta">{source.chunks}</span>
-                  ) : null}
-                  {/* Only offered when the app can actually do it. Without
-                      `onReindexSource` there is nothing to call, so the control
-                      is left out rather than shown and dead. */}
-                  {onReindexSource ? (
+              status.sources.map((source) => {
+                const open = openId === source.id;
+                const detailId = `ingest-${source.id}`;
+                const tokenWindow =
+                  (status.ingest && status.ingest.token_window) || 256;
+                return (
+                  <div className={`source${open ? " open" : ""}`} key={source.id}>
+                    {/* The row is not itself a button: the name may be a link
+                        for a web source, and nesting a link in a button is not
+                        valid HTML. The chevron is the one control that opens
+                        the detail, and it says what it opens. */}
                     <button
-                      className="icon-btn reindex"
-                      title={`Re-index ${source.name}`}
-                      aria-label={`Re-index ${source.name}`}
-                      disabled={reindexingId === source.id}
-                      onClick={() => onReindexSource(source)}
+                      className="source-expand"
+                      type="button"
+                      aria-expanded={open}
+                      aria-controls={open ? detailId : undefined}
+                      title={
+                        open
+                          ? "Hide what happened to this file"
+                          : "How this file was indexed, and its original"
+                      }
+                      aria-label={`${open ? "Hide" : "Show"} ingestion details for ${source.name}`}
+                      onClick={() => setOpenId(open ? null : source.id)}
                     >
-                      {reindexingId === source.id ? "\u2026" : "\u21BB"}
+                      <span aria-hidden="true">{open ? "▾" : "▸"}</span>
                     </button>
-                  ) : null}
-                  <button
-                    className="icon-btn danger"
-                    title={`Remove ${source.name}`}
-                    aria-label={`Remove ${source.name}`}
-                    onClick={() => onDeleteSource(source)}
-                  >
-                    &times;
-                  </button>
-                </div>
-              ))
+                    <span className="source-kind">{source.kind}</span>
+                    {/* A web source links back to the page it came from. That link
+                        is the only way a user can check the app indexed what they
+                        think it did, which is the whole concern with pulling in
+                        pages from the open internet. */}
+                    <span className="source-name" title={source.name}>
+                      {source.url ? (
+                        <a href={source.url} target="_blank" rel="noreferrer noopener">
+                          {source.name}
+                        </a>
+                      ) : (
+                        source.name
+                      )}
+                    </span>
+                    {source.chunks !== undefined ? (
+                      <span className="source-meta">{source.chunks}</span>
+                    ) : null}
+                    {/* Only offered when the app can actually do it. Without
+                        `onReindexSource` there is nothing to call, so the control
+                        is left out rather than shown and dead. */}
+                    {onReindexSource ? (
+                      <button
+                        className="icon-btn reindex"
+                        title={`Re-index ${source.name}`}
+                        aria-label={`Re-index ${source.name}`}
+                        disabled={reindexingId === source.id}
+                        onClick={() => onReindexSource(source)}
+                      >
+                        {reindexingId === source.id ? "\u2026" : "\u21BB"}
+                      </button>
+                    ) : null}
+                    <button
+                      className="icon-btn danger"
+                      title={`Remove ${source.name}`}
+                      aria-label={`Remove ${source.name}`}
+                      onClick={() => onDeleteSource(source)}
+                    >
+                      &times;
+                    </button>
+                    {/* Only rendered while open: `aria-controls` points at it
+                        only then, and nothing is in the document that the row
+                        does not claim to be showing. */}
+                    {open ? (
+                      <div className="source-detail-wrap" id={detailId}>
+                        <SourceDetail
+                          source={source}
+                          sessionId={sessionId}
+                          tokenWindow={tokenWindow}
+                          duplicate={Boolean(duplicateIds && duplicateIds.has(source.id))}
+                        />
+                      </div>
+                    ) : null}
+                  </div>
+                );
+              })
             )}
           </div>
 
@@ -209,6 +257,12 @@ export function SourcesDrawer({
               ) : null}
             </div>
           ) : null}
+
+          {/* Last, closed, and separate from both the list and the stats
+              footer: the pipeline is not per-source and it is not a statistic,
+              so putting it anywhere else would be claiming it is one or the
+              other. */}
+          <PipelinePanel />
         </div>
 
         {status ? (
