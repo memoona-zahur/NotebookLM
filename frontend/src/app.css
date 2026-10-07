@@ -305,6 +305,167 @@
   color: var(--good);
 }
 
+.cost-toggle {
+  padding: 6px 12px;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--text-2);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.cost-panel {
+  margin: 12px 32px 0;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface);
+  overflow: hidden;
+}
+
+.cost-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--line);
+}
+
+.cost-panel-header strong {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.cost-panel-header small {
+  display: block;
+  color: var(--faint);
+  font-size: 11px;
+}
+
+.cost-panel-header button {
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text-2);
+  padding: 6px 10px;
+  font-size: 11px;
+}
+
+.cost-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(130px, 1fr));
+  gap: 12px;
+  padding: 16px;
+}
+
+.cost-grid-meta {
+  padding-top: 0;
+  border-top: 1px solid var(--line);
+}
+
+.cost-box {
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--paper);
+}
+
+.cost-box.compact {
+  padding: 10px 12px;
+}
+
+.cost-box label {
+  display: block;
+  color: var(--faint);
+  font-size: 11px;
+  margin-bottom: 6px;
+}
+
+.cost-box strong {
+  font-size: 18px;
+  letter-spacing: -0.02em;
+}
+
+.cost-list-wrap {
+  padding: 0 16px 16px;
+}
+
+.cost-list-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 4px 10px;
+  color: var(--faint);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.cost-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.cost-row {
+  display: grid;
+  grid-template-columns: 70px minmax(110px, 1.2fr) minmax(150px, 1.7fr) 90px 90px 80px;
+  gap: 12px;
+  align-items: center;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: var(--paper);
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.cost-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  color: var(--text-2);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.cost-model {
+  font-weight: 600;
+  color: var(--text-2);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cost-tokens,
+.cost-latency,
+.cost-row-time,
+.cost-row-cost {
+  white-space: nowrap;
+}
+
+.cost-latency,
+.cost-row-time {
+  color: var(--faint);
+  font-size: 11px;
+}
+
+.cost-row-cost {
+  font-weight: 700;
+  color: var(--text-2);
+  text-align: right;
+}
+
+.cost-row.empty {
+  color: var(--faint);
+  justify-content: center;
+}
+
 /* Source drawer ----------------------------------------------------------- */
 
 .scrim {
@@ -595,29 +756,37 @@
   color: var(--faint);
 }
 
-/* A skyline: one bar per chunk in document order, aligned to the bottom, with
-   the dashed line at the top being the size ceiling. Bars wrap into rows
-   rather than scrolling sideways, so the whole document's shape fits the
-   width of the drawer at once. */
+/* One bar per chunk, in document order, wrapped into rows rather than scrolled
+   sideways, so a 264-chunk file still fits the width of the drawer. Every bar
+   is one row tall and carries its own fill, which is what gives every row the
+   same pitch - and a constant pitch is what lets the ceiling line be drawn
+   once per row and still mean the ceiling for the row under it. The first
+   version gave this box a fixed height instead; the rows then overflowed it
+   and painted over the legend below. */
 .chunk-map {
   position: relative;
   display: flex;
   flex-wrap: wrap;
-  align-items: flex-end;
+  align-content: flex-start;
   gap: 3px;
-  height: 64px;
   padding: 8px;
   border: 1px solid var(--line);
   border-radius: 6px;
   background: var(--surface-2);
 }
+/* Inset to the padding box so the first line lands on the top of the first
+   row, repeated at the pitch of a row plus its gap, and painted as an overlay
+   so the bars underneath keep their own colour. */
 .chunk-map::before {
   content: "";
   position: absolute;
-  left: 8px;
-  right: 8px;
-  top: 8px;
-  border-top: 1px dashed var(--line-strong);
+  inset: 8px;
+  pointer-events: none;
+  background-image: repeating-linear-gradient(
+    to bottom,
+    var(--line-strong) 0 1px,
+    transparent 1px calc(var(--row, 48px) + 3px)
+  );
 }
 
 .chunk-bar {
@@ -625,16 +794,29 @@
   padding: 0;
   border: 0;
   border-radius: 2px;
-  background: var(--accent);
-  opacity: 0.75;
+  /* Filled from the bottom up to its share of the ceiling; the part above the
+     fill stays transparent, so a run of short chunks still reads as a dip.
+     Floored at 2px because a 15-character chunk against a 900-character
+     ceiling would otherwise be a fraction of a pixel and read as an empty
+     box - the exact number is in the bar's own readout, this is only the
+     shape. */
+  background-image: linear-gradient(
+    to top,
+    var(--bar) 0,
+    var(--bar) max(2px, var(--fill, 0%)),
+    transparent max(2px, var(--fill, 0%)),
+    transparent 100%
+  );
+  --bar: var(--accent);
+  opacity: 0.8;
   cursor: pointer;
   transition: opacity 0.12s var(--ease), outline-color 0.12s var(--ease);
 }
 .chunk-bar.numeric {
-  background: var(--mid);
+  --bar: var(--mid);
 }
 .chunk-bar.over {
-  background: var(--warn);
+  --bar: var(--warn);
 }
 .chunk-bar:hover {
   opacity: 1;

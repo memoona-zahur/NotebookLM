@@ -327,9 +327,15 @@ describe("SourcesDrawer", () => {
       expect(url).toContain("session_id=sess-1");
 
       const bars = [...document.querySelectorAll(".chunk-bar")];
-      // Height, not width: the picture is a skyline under a ceiling line, so a
-      // full chunk fills the box and a quarter chunk is a quarter of it.
-      expect(bars.map((bar) => bar.style.height)).toEqual(["48px", "24px", "12px"]);
+      // Every bar is one row tall and is filled from the bottom up to its share
+      // of the ceiling, so a full chunk fills its tube and a quarter chunk is a
+      // quarter of it - a fixed height per bar was tried and overflowed the box.
+      expect(bars.map((bar) => bar.style.height)).toEqual(["48px", "48px", "48px"]);
+      expect(bars.map((bar) => bar.style.getPropertyValue("--fill"))).toEqual([
+        "100%",
+        "50%",
+        "25%",
+      ]);
       // A table chunk is drawn as one because damping did something different
       // to it, and the legend says what that colour means.
       expect(bars[1]).toHaveClass("numeric");

@@ -733,6 +733,22 @@ def test_provider_reported_tokens_are_used_not_guessed(client: TestClient) -> No
 # Stage 0 regression: the original suite
 # --------------------------------------------------------------------------
 
+def test_assistant_questions_are_detected_before_retrieval() -> None:
+    """General questions about the assistant skip retrieval and are replied to as chat."""
+    from app import intent
+
+    for message in (
+        "who r u",
+        "who are you",
+        "how you can help me today",
+        "how can you help me today",
+    ):
+        assert intent.classify(message) == "assistant", message
+    assert intent.classify("hello") == "greeting"
+    assert intent.classify("what is the CEO named in this filing") == "question"
+    print("  assistant questions and greetings are classified before retrieval: OK")
+
+
 def test_status_and_indexing(client: TestClient) -> None:
     status = client.get("/api/status").json()
     assert status["provider"] in {"groq", "openai", "ollama"}, status
@@ -3268,6 +3284,102 @@ def test_a_conversational_turn_replays_with_its_evidence(client: TestClient) -> 
     print("  a reopened greeting still shows that nothing was consulted: OK")
 
 
+def test_a_question_about_the_assistant_is_answered(client: TestClient) -> None:
+    """"Who r u" is not a retrieval question, so it must not get the floor.
+
+    On an empty notebook it used to come back as "add a PDF first", and on a
+    notebook with sources as "best match 0%, below the 25% floor" - two answers
+    to a question about the assistant that never mentioned a document. It now
+    takes the same no-passage path a greeting takes, and the evidence has to
+    keep saying that nothing was consulted.
+    """
+    sid = client.post("/api/sessions", json={"name": "who-are-you"}).json()["id"]
+    captured: list[dict] = []
+    with stubbed("I am the research assistant for this notebook.", captured):
+        body = client.post(
+            "/api/ask", params={"session_id": sid}, json={"question": "who r u"}
+        ).json()
+
+    assert body["evidence"]["verdict"] == "conversational", body["evidence"]
+    assert body["answer"] == "I am the research assistant for this notebook."
+    assert captured, "an assistant-directed question should reach the model"
+    assert body["evidence"]["cost"]["called"] is True, body["evidence"]["cost"]
+    assert body["evidence"]["considered"] == 0, body["evidence"]
+    assert body["evidence"]["best_score"] is None, body["evidence"]
+    assert body["citations"] == [], body["citations"]
+
+    # The prompt has to cover the question it was sent. It used to describe
+    # greetings only, so a capability question was answered by a prompt that
+    # never told the model it might be asked one.
+    system = captured[0][0]["content"]
+    assert "who you are" in system, system
+    print("  a question about the assistant is answered, not refused: OK")
+
+
+def test_an_assistant_question_skips_retrieval_when_there_are_sources(
+    client: TestClient,
+) -> None:
+    """With documents indexed, "how can you help me today" still skips retrieval.
+
+    Retrieval here would be worse than useless: nothing in the corpus answers
+    it, so the floor would refuse a question that has a perfectly good answer.
+    """
+    sid = client.post("/api/sessions", json={"name": "capable"}).json()["id"]
+    upload(client, "g.pdf", make_pdf(), session_id=sid)
+
+    captured: list[dict] = []
+    with stubbed(
+        "I answer from this notebook's sources, with the passage cited.", captured
+    ):
+        body = client.post(
+            "/api/ask",
+            params={"session_id": sid},
+            json={"question": "how can you help me today"},
+        ).json()
+
+    assert body["evidence"]["verdict"] == "conversational", body["evidence"]
+    assert body["citations"] == [], body["citations"]
+    assert "%" not in body["answer"], body["answer"]
+    prompt = captured[0][0]["content"]
+    assert "SOURCES" not in prompt, prompt
+    print("  an assistant question skips retrieval even with sources: OK")
+
+
+def test_only_a_whole_message_about_the_assistant_leaves_retrieval(
+    client: TestClient,
+) -> None:
+    """The regression this feature lives or dies on.
+
+    "who r u" routes to the model; "who is the CEO named in this filing" must
+    not. A keyword scan would catch the second one, which is exactly the
+    failure `intent` exists to avoid - so the boundary is asserted from both
+    sides rather than from the side that is easy to pass.
+    """
+    from app import intent
+
+    assistant = [
+        "who r u",
+        "Who are you?",
+        "how can you help me today?",
+        "what can you do",
+        "help",
+    ]
+    corpus = [
+        "who is the CEO named in this filing",
+        "what can you do with a CSV like this",
+        "how can you help me understand these terms",
+        "thanks for the refund policy, now what about the 30-day window",
+        "what does perfect mean in this contract?",
+    ]
+    for message in assistant:
+        assert intent.classify(message) == "assistant", message
+    for message in corpus:
+        assert intent.classify(message) == "question", message
+    assert intent.classify("Hi") == "greeting"
+    assert intent.classify("thanks") == "small_talk"
+    print("  only a whole message about the assistant leaves retrieval: OK")
+
+
 # --------------------------------------------------------------------------
 # web search
 # --------------------------------------------------------------------------
@@ -3774,6 +3886,9 @@ ORDER = [
     ("empty notebook gets guidance", test_an_empty_notebook_says_what_to_do_instead_of_a_score),
     ("empty notebook greeting stays local", test_an_empty_notebook_greets_without_pretending_to_have_sources),
     ("reopened greeting keeps evidence", test_a_conversational_turn_replays_with_its_evidence),
+    ("assistant question answered", test_a_question_about_the_assistant_is_answered),
+    ("assistant question skips retrieval", test_an_assistant_question_skips_retrieval_when_there_are_sources),
+    ("assistant vs corpus classification", test_only_a_whole_message_about_the_assistant_leaves_retrieval),
     ("reported tokens beat estimates", test_provider_reported_tokens_are_used_not_guessed),
     ("static files and empty question", test_static_and_empty_question),
     ("frontend bundle served", test_frontend_bundle_is_served),

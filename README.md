@@ -831,9 +831,10 @@ number exists, and printing "no cuts" for that would be a statement about a
 file nobody measured.
 
 **A chunk map**, under those facts: one bar per stored chunk, in document
-order, drawn against the dashed size ceiling at the top of the box. A bar is
-tall because its chunk is long, amber because that chunk is a table the
-re-ranker damps, red because it went past the wordpiece window. Clicking a bar
+order, in rows that wrap the way the text does, each row crossed by the dashed
+size ceiling it is measured against. A bar fills up to how long its chunk is,
+amber where that chunk is a table the re-ranker damps, red where it went past
+the wordpiece window. Clicking a bar
 opens that chunk's own text - the exact characters retrieval would quote - with
 its position, page and heading. `GET /api/sources/{id}/chunks` returns it, and
 the browser fetches it when the row opens rather than with the status, so a

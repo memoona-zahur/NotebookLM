@@ -57,6 +57,7 @@ def status(request: Request, session_id: str | None = None) -> dict:
         # and web searches (usage_events) - because a total covering only one of
         # them reads as complete while being quietly wrong.
         "usage": db.usage_totals(str(session.id)),
+        "costs": db.usage_report(str(session.id)),
         "api_base": base_url(request),
         **store.stats(str(session.id)),
     }

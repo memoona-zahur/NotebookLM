@@ -188,6 +188,9 @@ function ChunkMap({ source, sessionId }) {
   // Widen the bars for a short document rather than leaving three slivers in an
   // empty box: the picture should fill the space it was given either way.
   const barWidth = Math.max(5, Math.min(16, Math.floor(300 / chunks.length)));
+  // Rows get shorter as the count grows, because every bar is one row of the
+  // picture and a 264-chunk file at full height would fill the drawer with it.
+  const rowHeight = chunks.length > 120 ? 24 : chunks.length > 40 ? 32 : 48;
 
   return (
     <div className="chunkmap">
@@ -198,9 +201,11 @@ function ChunkMap({ source, sessionId }) {
         </span>
       </div>
 
-      <div className="chunk-map">
+      {/* `--row` is the pitch the ceiling lines are drawn at: one line per row
+          of bars, however they wrap, so the line always means "at this ceiling". */}
+      <div className="chunk-map" style={{ "--row": `${rowHeight}px` }}>
         {chunks.map((c) => {
-          const height = Math.max(3, Math.min(48, Math.round((48 * c.chars) / ceiling)));
+          const fill = Math.max(3, Math.min(100, Math.round((100 * c.chars) / ceiling)));
           const over = window > 0 && c.wordpieces > window;
           return (
             <button
@@ -209,7 +214,7 @@ function ChunkMap({ source, sessionId }) {
               className={`chunk-bar${c.numeric ? " numeric" : ""}${over ? " over" : ""}${
                 open === c.position ? " on" : ""
               }`}
-              style={{ width: `${barWidth}px`, height: `${height}px` }}
+              style={{ width: `${barWidth}px`, height: `${rowHeight}px`, "--fill": `${fill}%` }}
               title={`#${c.position + 1} · ${c.chars} chars · ${c.wordpieces} wordpieces${
                 c.heading ? ` · ${c.heading}` : ""
               }`}

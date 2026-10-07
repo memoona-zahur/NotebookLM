@@ -56,7 +56,12 @@ def ask(question: str, session: db.SessionRow) -> dict:
         # string. An empty notebook still short-circuits: there is nothing to
         # offer help with yet, and the useful reply is the one that says what to
         # do next rather than a warm sentence about sources that do not exist.
-        if has_sources:
+        #
+        # A question about the assistant itself is the exception to that
+        # short-circuit. "Who r u" is answerable with no documents, so telling
+        # the user to add a PDF would be a non-answer to a question that was
+        # never about the corpus.
+        if has_sources or kind == "assistant":
             return _conversational(question, session_id, kind, history)
         return _conversational(question, session_id, "empty")
     if not has_sources:

@@ -359,5 +359,97 @@ def usage_totals(session_id: str | None = None) -> dict:
     }
 
 
+def usage_report(session_id: str | None = None) -> dict:
+    """Per-query and session spend estimates for the UI dashboard.
+
+    This intentionally stays an estimate: the app has provider token counts, but
+    the exact billing question depends on the real model pricing table the
+    deployment config chooses. It is still useful enough to surface a real cost
+    breakdown alongside traceability.
+    """
+    totals = usage_totals(session_id)
+    history = []
+    llm_usd = 0.0
+    web_usd = 0.0
+
+    where = "WHERE session_id = %s" if session_id else ""
+    params = (session_id,) if session_id else ()
+    with connection() as conn:
+        rows = conn.execute(
+            "SELECT id, created_at, role, evidence FROM messages "
+            + ("WHERE session_id = %s" if session_id else "") + " ORDER BY id DESC",
+            params,
+        ).fetchall()
+        for row_id, created_at, role, evidence in rows:
+            if not evidence or not isinstance(evidence, dict):
+                continue
+            cost = evidence.get("cost") or {}
+            if not isinstance(cost, dict):
+                continue
+            prompt_tokens = int(cost.get("prompt_tokens") or 0)
+            completion_tokens = int(cost.get("completion_tokens") or 0)
+            model = str(cost.get("model") or config.resolved_model())
+            item_cost = config.estimate_cost_usd(model, prompt_tokens, completion_tokens)
+            if not item_cost:
+                continue
+            llm_usd += item_cost
+            history.append(
+                {
+                   "kind": "llm",
+                   "role": role,
+                   "model": model,
+                   "prompt_tokens": prompt_tokens,
+                   "completion_tokens": completion_tokens,
+                   "total_tokens": prompt_tokens + completion_tokens,
+                   "cost_usd": round(item_cost, 6),
+                   "latency_ms": float(cost.get("generation_ms") or cost.get("latency_ms") or 0.0),
+                   "timestamp": created_at.isoformat() if created_at else None,
+                }
+            )
+
+        rows = conn.execute(
+            "SELECT id, created_at, kind, model, prompt_tokens, completion_tokens, latency_ms "
+            "FROM usage_events "
+            + ("WHERE session_id = %s" if session_id else "") + " ORDER BY id DESC",
+            params,
+        ).fetchall()
+        for row_id, created_at, kind, model, prompt_tokens, completion_tokens, latency_ms in rows:
+            model_name = str(model or config.resolved_model())
+            item_cost = config.estimate_cost_usd(model_name, int(prompt_tokens or 0), int(completion_tokens or 0))
+            if item_cost:
+                web_usd += item_cost
+            history.append(
+                {
+                   "kind": "web_search",
+                   "role": kind,
+                   "model": model_name,
+                   "prompt_tokens": int(prompt_tokens or 0),
+                   "completion_tokens": int(completion_tokens or 0),
+                   "total_tokens": int(prompt_tokens or 0) + int(completion_tokens or 0),
+                   "cost_usd": round(item_cost, 6),
+                   "latency_ms": float(latency_ms or 0.0),
+                   "timestamp": created_at.isoformat() if created_at else None,
+                }
+            )
+
+    history.sort(key=lambda item: item["timestamp"] or "", reverse=True)
+    total_usd = round(llm_usd + web_usd, 6)
+    return {
+        "currency": "USD",
+        "total_usd": total_usd,
+        "llm_usd": round(llm_usd, 6),
+        "web_search_usd": round(web_usd, 6),
+        "prompt_tokens": int(totals["prompt_tokens"]),
+        "completion_tokens": int(totals["completion_tokens"]),
+        "llm_prompt_tokens": int(totals["llm_prompt_tokens"]),
+        "llm_completion_tokens": int(totals["llm_completion_tokens"]),
+        "web_prompt_tokens": int(totals["web_prompt_tokens"]),
+        "web_completion_tokens": int(totals["web_completion_tokens"]),
+        "questions": int(totals["turns"]),
+        "searches": int(totals["searches"]),
+        "history": history,
+    }
+
+
 def now() -> datetime:
     return datetime.now(timezone.utc)

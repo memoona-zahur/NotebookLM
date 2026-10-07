@@ -25,6 +25,11 @@ import { SourcesDrawer } from "./SourcesDrawer.jsx";
 import { Thread } from "./Thread.jsx";
 import { Composer } from "./Composer.jsx";
 
+function formatUsd(value) {
+  const amount = Number(value || 0);
+  return `$${amount.toFixed(4)}`;
+}
+
 export default function App() {
   const [sessions, setSessions] = useState([]);
   const [activeId, setActiveId] = useState(null);
@@ -58,6 +63,7 @@ export default function App() {
   // clear a half-finished upload, and so the drawer can say which one it is
   // waiting for.
   const [searching, setSearching] = useState(false);
+  const [costOpen, setCostOpen] = useState(false);
   // Sources whose upload response said `duplicate: true`. The listing never
   // carries the flag - it describes one upload, not the stored row - so the
   // notice in a source's detail is driven from here. Cleared on a session
@@ -118,6 +124,14 @@ export default function App() {
       toast(err.message);
     }
   }
+
+  useEffect(() => {
+    if (!activeId) return;
+    const timer = window.setInterval(() => {
+      refreshStatus(activeId);
+    }, 10000);
+    return () => window.clearInterval(timer);
+  }, [activeId]);
 
   async function selectSession(id) {
     try {
@@ -357,6 +371,15 @@ export default function App() {
         <header className="topbar">
           <h1>{active ? active.name : "NotebookLM"}</h1>
           <div className="spacer" />
+          {status?.costs ? (
+            <button
+              className="cost-toggle"
+              onClick={() => setCostOpen((open) => !open)}
+              type="button"
+            >
+              {formatUsd(status.costs.total_usd)} total
+            </button>
+          ) : null}
           <button
             className="sources-toggle"
             onClick={() => setSourcesOpen(true)}
@@ -373,6 +396,90 @@ export default function App() {
             </div>
           ) : null}
         </header>
+
+        {status?.costs ? (
+          <section className={`cost-panel${costOpen ? " open" : ""}`}>
+            <div className="cost-panel-header">
+              <div>
+                <strong>Cost dashboard</strong>
+                <small>{status.provider} · {status.model}</small>
+              </div>
+              <button type="button" onClick={() => setCostOpen((open) => !open)}>
+                {costOpen ? "Collapse" : "Expand"}
+              </button>
+            </div>
+            {costOpen ? (
+              <>
+                <div className="cost-grid">
+                  <div className="cost-box">
+                    <label>Total spend</label>
+                    <strong>{formatUsd(status.costs.total_usd)}</strong>
+                  </div>
+                  <div className="cost-box">
+                    <label>LLM</label>
+                    <strong>{formatUsd(status.costs.llm_usd)}</strong>
+                  </div>
+                  <div className="cost-box">
+                    <label>Web search</label>
+                    <strong>{formatUsd(status.costs.web_search_usd)}</strong>
+                  </div>
+                  <div className="cost-box">
+                    <label>Tokens</label>
+                    <strong>{(status.costs.prompt_tokens + status.costs.completion_tokens).toLocaleString()}</strong>
+                  </div>
+                </div>
+
+                <div className="cost-grid cost-grid-meta">
+                  <div className="cost-box compact">
+                    <label>Input tokens</label>
+                    <strong>{status.costs.prompt_tokens.toLocaleString()}</strong>
+                  </div>
+                  <div className="cost-box compact">
+                    <label>Output tokens</label>
+                    <strong>{status.costs.completion_tokens.toLocaleString()}</strong>
+                  </div>
+                  <div className="cost-box compact">
+                    <label>Turns</label>
+                    <strong>{status.costs.questions || 0}</strong>
+                  </div>
+                  <div className="cost-box compact">
+                    <label>Billable calls</label>
+                    <strong>{status.costs.history ? status.costs.history.filter((item) => item.cost_usd > 0).length : 0}</strong>
+                  </div>
+                </div>
+
+                <div className="cost-list-wrap">
+                  <div className="cost-list-header">
+                    <span>Recent calls</span>
+                    <span>Per query · session</span>
+                  </div>
+                  <div className="cost-list">
+                    {status.costs.history && status.costs.history.length ? (
+                      status.costs.history.slice(0, 10).map((item, index) => (
+                        <div key={`${item.kind}-${index}`} className="cost-row">
+                          <span className="cost-pill">{item.kind === "web_search" ? "Web" : "LLM"}</span>
+                          <span className="cost-model">{item.model}</span>
+                          <span className="cost-tokens">
+                            {(Number(item.prompt_tokens || 0)).toLocaleString()} in / {(Number(item.completion_tokens || 0)).toLocaleString()} out
+                          </span>
+                          <span className="cost-latency">
+                            {item.latency_ms ? `${Number(item.latency_ms).toFixed(0)} ms` : "—"}
+                          </span>
+                          <span className="cost-row-time">
+                            {item.timestamp ? new Date(item.timestamp).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }) : "—"}
+                          </span>
+                          <span className="cost-row-cost">{item.cost_usd > 0 ? formatUsd(item.cost_usd) : "$0.0000"}</span>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="cost-row empty">No billable calls recorded yet.</div>
+                    )}
+                  </div>
+                </div>
+              </>
+            ) : null}
+          </section>
+        ) : null}
 
         {/* Starter questions when the thread is empty. `send` is passed
             directly rather than wrapped: a suggestion is a question, and it must

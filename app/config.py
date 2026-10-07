@@ -255,3 +255,32 @@ def resolved_model() -> str:
         "openai": OPENAI_MODEL,
         "ollama": OLLAMA_MODEL,
     }.get(resolved_provider(), "unknown")
+
+
+MODEL_PRICE_TABLE = {
+    "openai/gpt-oss-120b": {"input": 0.15, "output": 0.75},
+    "openai/gpt-oss-20b": {"input": 0.08, "output": 0.16},
+    "gpt-4o-mini": {"input": 0.15, "output": 0.60},
+    "gpt-4o": {"input": 5.0, "output": 15.0},
+    "llama3.1": {"input": 0.08, "output": 0.08},
+    "llama3.2": {"input": 0.08, "output": 0.08},
+}
+
+
+def model_price(model: str) -> dict | None:
+    """USD per 1M tokens for an LLM. Returns None when no local rate is known."""
+    name = (model or "").strip().lower()
+    for key, price in MODEL_PRICE_TABLE.items():
+        if key in name:
+            return price
+    return None
+
+
+def estimate_cost_usd(model: str, prompt_tokens: int = 0, completion_tokens: int = 0) -> float:
+    """Best-effort estimate, using configured model rates when available."""
+    price = model_price(model)
+    if not price:
+        return 0.0
+    input_cost = prompt_tokens * price["input"] / 1_000_000.0
+    output_cost = completion_tokens * price["output"] / 1_000_000.0
+    return round(input_cost + output_cost, 6)
