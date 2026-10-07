@@ -215,7 +215,7 @@ all of them run.
 ```bash
 cd frontend
 npm install
-npm test           # 178 checks, jsdom, no database or API key needed
+npm test           # 182 checks, jsdom, no database or API key needed
 npm run test:watch # re-runs on save
 ```
 
@@ -442,6 +442,7 @@ session; without one it uses the default session.
 | `POST` | `/api/sources/web` | `{query, limit}` → find pages and index them as sources |
 | `POST` | `/api/sources/{id}/reindex` | Re-parse and re-embed from the copy already on disk; keeps the id |
 | `GET` | `/api/sources/{id}/file` | The original upload as stored, `inline` so it opens rather than downloads; HTML/SVG/XML served as `text/plain` |
+| `GET` | `/api/sources/{id}/chunks` | Every stored chunk in document order with `chars`, `wordpieces` and whether it is a table, plus the two ceilings the picture is drawn against |
 | `DELETE` | `/api/sources/{id}` | Remove one source |
 | `DELETE` | `/api/sources` | Clear the session's sources |
 | `POST` | `/api/ask` | `{question}` → `{answer, citations, evidence}` (`evidence.cost` carries tokens and latency, see below) |
@@ -828,6 +829,21 @@ applies to `token_max` 0, which is why the wordpiece rows consult it rather than
 `fit_splits`: both were recorded in the same pass, so no walk means neither
 number exists, and printing "no cuts" for that would be a statement about a
 file nobody measured.
+
+**A chunk map**, under those facts: one bar per stored chunk, in document
+order, drawn against the dashed size ceiling at the top of the box. A bar is
+tall because its chunk is long, amber because that chunk is a table the
+re-ranker damps, red because it went past the wordpiece window. Clicking a bar
+opens that chunk's own text - the exact characters retrieval would quote - with
+its position, page and heading. `GET /api/sources/{id}/chunks` returns it, and
+the browser fetches it when the row opens rather than with the status, so a
+notebook with a dozen sources does not pay for the eleven nobody opened. Each
+`chars` is measured from `text` in that response rather than kept as a column,
+so it cannot disagree with the text sitting beside it. What is *not* in that
+response, and never will be, is which ceiling cut a piece: ingest counted the
+two kinds of cut for the file, but it did not record the origin of each
+fragment, and inventing it afterwards would make the one checkable thing on
+this panel uncheckable.
 
 **"View original"** opens the stored upload in a new tab - the bytes that went
 in, not a rendering of them, because checking the index against a re-encoded
@@ -1279,7 +1295,7 @@ retry a log line costs more than the line is worth.
 
 ## Tests
 
-123 checks covering upload, per-format parsing (including YAML/TOML/INI and hard-wrapped
+124 checks covering upload, per-format parsing (including YAML/TOML/INI and hard-wrapped
 text), OCR (a scanned page recovered and searchable, pages kept in order, both halves of a
 mixed PDF indexed, a blank scan refused with an actionable message, the missing-language
 message naming the install command, an over-cap document refused rather than indexed
@@ -1295,7 +1311,9 @@ transcript persistence, cascading deletes, and surviving a restart), the
 original file behind a source served byte for byte only inside its own notebook
 (an uploaded page served as text rather than as something a browser runs, a path
 outside the upload directory refused, and a missing original reported as 404
-rather than as an empty body), and the
+rather than as an empty body), every stored chunk of one source returned in
+document order with its size and the two ceilings, scoped the same way and
+distinguishing an unowned source from one with nothing stored, and the
 grounding guarantees above (relevance floor, citation validation, history
 hardening, cross-source diversity). Prompt-injection handling has its own three
 checks: that a document issuing instructions is flagged rather than obeyed, that a

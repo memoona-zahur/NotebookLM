@@ -120,7 +120,7 @@ def _token_limit() -> int:
     return config.EMBED_MAX_TOKENS
 
 
-def _count(text: str) -> int:
+def count_tokens(text: str) -> int:
     """Wordpieces of `text`, using the real tokenizer when it is loadable.
 
     Imported lazily: `sentence_transformers` is a heavy import and parsing a CSV
@@ -150,7 +150,7 @@ def _fit_to_tokens(text: str, limit: int) -> tuple[list[str], bool]:
     if limit <= 0 or not text:
         return [text] if text else [], False
 
-    measured = _count(text)
+    measured = count_tokens(text)
     if measured <= limit:
         return [text], False
 
@@ -161,7 +161,7 @@ def _fit_to_tokens(text: str, limit: int) -> tuple[list[str], bool]:
         # taken from CHUNK_OVERLAP, which is sized for a 900-char window and
         # would be a third of a fragment this small.
         pieces = chunk_text(text, budget, budget // 8)
-        if pieces and all(_count(piece) <= limit for piece in pieces):
+        if pieces and all(count_tokens(piece) <= limit for piece in pieces):
             return pieces, True
         budget = max(1, budget // 2)
     return [text], True
@@ -1211,7 +1211,7 @@ def _split_long(
         # The common case: inside both ceilings. Keeps the original Block
         # (page, heading and all) rather than rebuilding an equivalent one.
         if len(block.text) <= size:
-            tokens = _count(block.text) if limit > 0 else 0
+            tokens = count_tokens(block.text) if limit > 0 else 0
             if limit <= 0 or tokens <= limit:
                 out.append(block)
                 if stats is not None:
@@ -1237,7 +1237,7 @@ def _split_long(
                     continue
                 out.append(Block(text=fragment, page=block.page, heading=block.heading))
                 if stats is not None:
-                    _tally(stats, fragment, _count(fragment) if limit > 0 else 0)
+                    _tally(stats, fragment, count_tokens(fragment) if limit > 0 else 0)
     return out
 
 

@@ -19,7 +19,7 @@ from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 
 from .. import config
-from ..parsers import SUPPORTED, UnreadableDocument
+from ..parsers import SUPPORTED, UnreadableDocument, count_tokens
 from ..payloads import resolve_session
 from ..store import MAX_TERM_CHARS, store
 from ..webingest import ingest
@@ -195,6 +195,37 @@ def source_file(source_id: str, session_id: str | None = None) -> FileResponse:
             "X-Content-Type-Options": "nosniff",
         },
     )
+
+
+@router.get("/sources/{source_id}/chunks")
+def source_chunks(source_id: str, session_id: str | None = None) -> dict:
+    """Every chunk of one source, sized, so the split can be checked by eye.
+
+    The whole feature exists because "indexed" hides the part a reader would
+    want to see: how their document became 264 pieces, how big each one came
+    out, and how close any of them sit to what the model keeps. A count says
+    none of that, and re-opening the PDF says less, because the split is not in
+    the PDF.
+
+    Wordpieces are counted here rather than stored, so they can never disagree
+    with what ingest recorded - `count_tokens` is the same call ingest makes.
+    That costs one tokenizer pass per chunk, in a worker thread, which is why
+    the route is a plain `def`.
+    """
+    session = resolve_session(session_id)
+    records = store.source_chunks(source_id, str(session.id))
+    if records is None:
+        raise HTTPException(404, "That source is not in this notebook.")
+    for row in records:
+        row["wordpieces"] = count_tokens(row["text"])
+    return {
+        "source_id": source_id,
+        "ceiling": {
+            "chars": config.CHUNK_SIZE,
+            "wordpieces": config.EMBED_MAX_TOKENS,
+        },
+        "chunks": records,
+    }
 
 
 @router.post("/sources/{source_id}/reindex")

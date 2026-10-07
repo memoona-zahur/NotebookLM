@@ -1,5 +1,5 @@
 import React from "react";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { SourcesDrawer } from "../SourcesDrawer.jsx";
@@ -74,6 +74,36 @@ function setup(props = {}) {
     dialog: screen.getByRole("dialog"),
   };
 }
+
+// Expanding a source now asks the server for that source's chunks. The default
+// answer is an empty map, so every test above the chunk map keeps testing the
+// panel it lives in instead of the network call it happens to make.
+function stubChunks(payload) {
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async () => ({
+      ok: true,
+      status: 200,
+      text: async () => JSON.stringify(payload),
+    }))
+  );
+}
+
+beforeEach(() => stubChunks({ source_id: "s1", ceiling: { chars: 900, wordpieces: 256 }, chunks: [] }));
+afterEach(() => vi.unstubAllGlobals());
+
+// A map small enough that every height can be worked out by hand: the ceiling
+// is 100 characters, so a full chunk is a full-height bar and a quarter chunk
+// is a quarter one.
+const CHUNKS = {
+  source_id: "s1",
+  ceiling: { chars: 100, wordpieces: 256 },
+  chunks: [
+    { position: 0, page: 1, heading: "Section one", text: "a".repeat(100), chars: 100, wordpieces: 96, numeric: false },
+    { position: 1, page: null, heading: null, text: "b".repeat(50), chars: 50, wordpieces: 48, numeric: true },
+    { position: 2, page: null, heading: null, text: "c".repeat(25), chars: 25, wordpieces: 24, numeric: false },
+  ],
+};
 
 describe("SourcesDrawer", () => {
   it("is exposed as a modal dialog and lists the session's sources", () => {
@@ -278,6 +308,91 @@ describe("SourcesDrawer", () => {
       await user.click(screen.getByRole("button", { name: /hide how indexing works/i }));
 
       expect(screen.queryByText("Upload and hash")).not.toBeInTheDocument();
+    });
+  });
+
+  describe("the chunk map", () => {
+    it("draws one bar per stored chunk, sized against the ceiling", async () => {
+      stubChunks(CHUNKS);
+      const { user } = setup({ sessionId: "sess-1" });
+
+      await user.click(chevron("notes\\.pdf"));
+
+      await waitFor(() => expect(document.querySelectorAll(".chunk-bar")).toHaveLength(3));
+
+      // Fetched for the row that was opened, and only that one: a notebook
+      // with a dozen sources must not pay for the eleven nobody opened.
+      const url = String(fetch.mock.calls[0][0]);
+      expect(url).toContain("/api/sources/s1/chunks");
+      expect(url).toContain("session_id=sess-1");
+
+      const bars = [...document.querySelectorAll(".chunk-bar")];
+      // Height, not width: the picture is a skyline under a ceiling line, so a
+      // full chunk fills the box and a quarter chunk is a quarter of it.
+      expect(bars.map((bar) => bar.style.height)).toEqual(["48px", "24px", "12px"]);
+      // A table chunk is drawn as one because damping did something different
+      // to it, and the legend says what that colour means.
+      expect(bars[1]).toHaveClass("numeric");
+      expect(bars[0]).not.toHaveClass("numeric");
+      // Document order, not insertion order of anything else.
+      expect(bars[0]).toHaveAttribute(
+        "aria-label",
+        "Chunk 1: 100 characters, 96 wordpieces"
+      );
+      expect(
+        screen.getByText(/25 min · 50 median · 100 p90 · 100 max chars/)
+      ).toBeInTheDocument();
+    });
+
+    it("reads a chunk exactly as it was indexed when its bar is chosen", async () => {
+      stubChunks(CHUNKS);
+      const { user } = setup({ sessionId: "sess-1" });
+      await user.click(chevron("notes\\.pdf"));
+      await waitFor(() => expect(document.querySelectorAll(".chunk-bar")).toHaveLength(3));
+
+      await user.click(screen.getByRole("button", { name: /^Chunk 1:/ }));
+
+      const view = document.querySelector(".chunk-view");
+      expect(view).not.toBeNull();
+      expect(within(view).getByText("Section one")).toBeInTheDocument();
+      expect(within(view).getByText(/96\/256 wordpieces/)).toBeInTheDocument();
+      // The stored text, not a preview of it: this is the piece the retrieval
+      // will quote, and the whole point is to be able to check that.
+      expect(within(view).getByText("a".repeat(100))).toBeInTheDocument();
+
+      // Choosing another moves the view rather than stacking a second one.
+      await user.click(screen.getByRole("button", { name: /^Chunk 2:/ }));
+      expect(document.querySelectorAll(".chunk-view")).toHaveLength(1);
+      expect(within(document.querySelector(".chunk-view")).getByText("table")).toBeInTheDocument();
+      expect(within(document.querySelector(".chunk-view")).queryByText("Section one")).toBeNull();
+    });
+
+    it("distinguishes a source with nothing stored from a failed fetch", async () => {
+      stubChunks({ ...CHUNKS, chunks: [] });
+      const { user } = setup({ sessionId: "sess-1" });
+
+      await user.click(chevron("notes\\.pdf"));
+
+      expect(await screen.findByText(/No chunks are stored for this source/i)).toBeInTheDocument();
+      expect(screen.queryByText(/Could not draw/i)).not.toBeInTheDocument();
+    });
+
+    it("says why the map is missing rather than showing an empty box", async () => {
+      vi.stubGlobal(
+        "fetch",
+        vi.fn(async () => ({
+          ok: false,
+          status: 404,
+          text: async () => JSON.stringify({ detail: "That source is not in this notebook." }),
+        }))
+      );
+      const { user } = setup({ sessionId: "sess-1" });
+
+      await user.click(chevron("notes\\.pdf"));
+
+      expect(await screen.findByText(/Could not draw the chunk map/i)).toBeInTheDocument();
+      expect(screen.getByText(/not in this notebook/i)).toBeInTheDocument();
+      expect(document.querySelectorAll(".chunk-bar")).toHaveLength(0);
     });
   });
 });

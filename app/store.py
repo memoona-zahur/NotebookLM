@@ -482,6 +482,51 @@ class VectorStore:
             return None
         return row[0], Path(row[1])
 
+    def source_chunks(self, source_id: str, session_id: str) -> list[dict] | None:
+        """Every stored chunk of one source in document order, or None.
+
+        None means the source is not in this session - the same 404 the other
+        per-source routes give, because owning a source id is not the same as
+        owning its chunks. An empty list is a different answer: a source that
+        exists and has nothing indexed under it.
+
+        What comes back is what was stored, not a re-derivation of it. `page`
+        and `heading` are the parent block's, because that is what survived the
+        split - which sub-piece of a parent a chunk is, and whether the size or
+        the wordpiece ceiling cut it, was never recorded, and inventing it after
+        the fact would be the opposite of what this endpoint is for. `chars` is
+        measured here rather than kept as a column, for the same reason
+        `avg_chars` is: it is a function of `text`, and a second copy could
+        drift from the first.
+        """
+        with db.connection() as conn:
+            owned = conn.execute(
+                "SELECT 1 FROM sources WHERE id = %s AND session_id = %s",
+                (source_id, session_id),
+            ).fetchone()
+            if owned is None:
+                return None
+            rows = conn.execute(
+                """
+                SELECT position, page, heading, text, numeric_heavy
+                FROM chunks
+                WHERE source_id = %s
+                ORDER BY position
+                """,
+                (source_id,),
+            ).fetchall()
+        return [
+            {
+                "position": row[0],
+                "page": row[1],
+                "heading": row[2],
+                "text": row[3],
+                "chars": len(row[3]),
+                "numeric": bool(row[4]),
+            }
+            for row in rows
+        ]
+
     # -- reads -------------------------------------------------------------
 
     def sources(self, session_id: str) -> list[Source]:

@@ -1625,6 +1625,57 @@ def test_a_source_whose_file_is_gone_says_so(client: TestClient) -> None:
     print("  a missing original is a 404 that says so: OK")
 
 
+def test_every_chunk_of_a_source_is_returned_with_its_size(client: TestClient) -> None:
+    """The chunk map, behind a route: what "3 chunks" is actually made of.
+
+    A count is the one number a reader cannot check anything against, and the
+    split is not in the original file - it happened here. So the endpoint
+    returns the pieces themselves, in document order, each with the two
+    ceilings the picture draws them against, and lets the browser decide how
+    much of that to show at once.
+    """
+    from app import config
+
+    sid = client.post("/api/sessions", json={"name": "chunk map"}).json()["id"]
+    body = ("# Heading\n\n" + " ".join(f"row {i} is {i}." for i in range(150))).encode()
+    source = upload(client, "map.txt", body, session_id=sid)
+
+    res = client.get(f"/api/sources/{source['id']}/chunks", params={"session_id": sid})
+    assert res.status_code == 200, res.text
+    payload = res.json()
+
+    assert payload["ceiling"] == {
+        "chars": config.CHUNK_SIZE,
+        "wordpieces": config.EMBED_MAX_TOKENS,
+    }, payload["ceiling"]
+    chunks = payload["chunks"]
+    assert chunks, "an indexed source has something to show"
+    assert len(chunks) == source["chunks"], (len(chunks), source["chunks"])
+    # Document order, because a skyline that shuffled its bars would picture a
+    # different document than the one on disk.
+    assert [c["position"] for c in chunks] == list(range(len(chunks)))
+    for chunk in chunks:
+        assert set(chunk) == {"position", "page", "heading", "text", "chars",
+                              "numeric", "wordpieces"}, set(chunk)
+        # The stored measurement, not a re-count that could disagree with the
+        # average and maximum already shown on the row above it.
+        assert chunk["chars"] == len(chunk["text"]), chunk["position"]
+        assert chunk["wordpieces"] >= 1, chunk["position"]
+        assert isinstance(chunk["numeric"], bool)
+    assert any(c["chars"] > 1 for c in chunks)
+
+    # The same scoping every other source route has: owning the id is not the
+    # same as owning what was indexed under it.
+    other = client.post("/api/sessions", json={"name": "not yours"}).json()["id"]
+    assert client.get(
+        f"/api/sources/{source['id']}/chunks", params={"session_id": other}
+    ).status_code == 404
+    assert client.get(
+        f"/api/sources/{uuid.uuid4()}/chunks", params={"session_id": sid}
+    ).status_code == 404
+    print("  every chunk of a source is returned with its size: OK")
+
+
 def test_a_chunking_config_that_could_hang_cannot_hang(client: TestClient) -> None:
     """`CHUNK_SIZE <= CHUNK_OVERLAP` looped backwards and appended forever.
 
@@ -3813,6 +3864,7 @@ ORDER = [
     ("uploaded page served as text", test_an_uploaded_page_is_served_as_text_never_as_something_that_runs),
     ("path outside uploads refused", test_a_source_pointing_outside_the_upload_directory_is_refused),
     ("missing original is 404", test_a_source_whose_file_is_gone_says_so),
+    ("chunks of a source with sizes", test_every_chunk_of_a_source_is_returned_with_its_size),
     ("duplicate upload not indexed twice", test_an_upload_the_session_already_has_is_not_indexed_twice),
     ("chunks fit the embedding window", test_no_chunk_is_longer_than_the_embedding_model_keeps),
     ("ingestion report", test_the_ingestion_report_says_what_chunking_did),

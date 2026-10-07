@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { api } from "./api.js";
 
 /**
@@ -132,6 +132,134 @@ function stepsFor(source, tokenWindow) {
   return steps;
 }
 
+/**
+ * How this file was cut, as a picture of the cut.
+ *
+ * One bar per stored chunk, in document order, wrapping the way the document
+ * wraps - so a run of short pieces beside one long piece is visible before
+ * anything is read. Width is measured against the size ceiling rather than
+ * against the longest chunk, because the question is "how close to the limit
+ * is this", not "how does it compare to itself".
+ *
+ * Fetched when the row opens rather than with the status: this is one
+ * document's worth of text, and a notebook with a dozen sources should not pay
+ * for the eleven nobody opened.
+ */
+function ChunkMap({ source, sessionId }) {
+  const [data, setData] = useState(null);
+  const [error, setError] = useState(null);
+  const [open, setOpen] = useState(null);
+
+  useEffect(() => {
+    let alive = true;
+    setData(null);
+    setError(null);
+    setOpen(null);
+    // `Promise.resolve().then` rather than a bare call: this runs inside a
+    // render effect, so a synchronously thrown failure would take the whole
+    // tree down instead of landing in the message below.
+    Promise.resolve()
+      .then(() => api.sourceChunks(sessionId, source.id))
+      .then((payload) => {
+        if (alive) setData(payload);
+      })
+      .catch((err) => {
+        if (alive) setError(err.message);
+      });
+    return () => {
+      alive = false;
+    };
+  }, [sessionId, source.id]);
+
+  if (error) return <p className="chunk-note">Could not draw the chunk map: {error}</p>;
+  if (!data) return <p className="chunk-note">Measuring every chunk…</p>;
+
+  const chunks = data.chunks || [];
+  if (!chunks.length) {
+    return <p className="chunk-note">No chunks are stored for this source.</p>;
+  }
+
+  const window = data.ceiling.wordpieces;
+  const ceiling = data.ceiling.chars || 1;
+  const lengths = chunks.map((c) => c.chars).sort((a, b) => a - b);
+  const at = (q) => lengths[Math.min(lengths.length - 1, Math.floor(q * lengths.length))];
+  const selected = chunks.find((c) => c.position === open) || null;
+  const anyOver = window > 0 && chunks.some((c) => c.wordpieces > window);
+  // Widen the bars for a short document rather than leaving three slivers in an
+  // empty box: the picture should fill the space it was given either way.
+  const barWidth = Math.max(5, Math.min(16, Math.floor(300 / chunks.length)));
+
+  return (
+    <div className="chunkmap">
+      <div className="chunkmap-head">
+        <span>Every chunk, in order</span>
+        <span className="chunkmap-scale">
+          height = size against the {ceiling}-char ceiling
+        </span>
+      </div>
+
+      <div className="chunk-map">
+        {chunks.map((c) => {
+          const height = Math.max(3, Math.min(48, Math.round((48 * c.chars) / ceiling)));
+          const over = window > 0 && c.wordpieces > window;
+          return (
+            <button
+              key={c.position}
+              type="button"
+              className={`chunk-bar${c.numeric ? " numeric" : ""}${over ? " over" : ""}${
+                open === c.position ? " on" : ""
+              }`}
+              style={{ width: `${barWidth}px`, height: `${height}px` }}
+              title={`#${c.position + 1} · ${c.chars} chars · ${c.wordpieces} wordpieces${
+                c.heading ? ` · ${c.heading}` : ""
+              }`}
+              aria-label={`Chunk ${c.position + 1}: ${c.chars} characters, ${c.wordpieces} wordpieces`}
+              aria-pressed={open === c.position}
+              onClick={() => setOpen(open === c.position ? null : c.position)}
+            />
+          );
+        })}
+      </div>
+
+      <div className="chunkmap-legend">
+        <span>
+          <i className="sw" /> text
+        </span>
+        <span>
+          <i className="sw numeric" /> tables
+        </span>
+        {anyOver ? (
+          <span>
+            <i className="sw over" /> past the wordpiece window
+          </span>
+        ) : null}
+        <span className="chunkmap-range">
+          {lengths[0]} min · {at(0.5)} median · {at(0.9)} p90 · {lengths[lengths.length - 1]}{" "}
+          max chars
+        </span>
+      </div>
+
+      {selected ? (
+        <div className="chunk-view">
+          <div className="chunk-view-head">
+            <strong>#{selected.position + 1}</strong>
+            {selected.page ? <span>p.{selected.page}</span> : null}
+            <span>{selected.chars} chars</span>
+            <span>
+              {selected.wordpieces}/{window || "?"} wordpieces
+            </span>
+            {selected.numeric ? <span className="chunk-tag">table</span> : null}
+          </div>
+          {selected.heading ? <p className="chunk-heading">{selected.heading}</p> : null}
+          <p className="chunk-text">{selected.text}</p>
+        </div>
+      ) : (
+        <p className="chunk-hint">Click a bar to read that chunk as it was indexed.</p>
+      )}
+    </div>
+  );
+}
+
 export function SourceDetail({ source, sessionId, tokenWindow = 256, duplicate = false }) {
   // The original document, not a re-render of it. A fetch would mean
   // re-implementing the PDF viewer and the download prompt the browser already
@@ -193,6 +321,11 @@ export function SourceDetail({ source, sessionId, tokenWindow = 256, duplicate =
           {source.chunks ? ` (${Math.round((100 * source.numeric) / source.chunks)}%)` : ""}
         </dd>
       </dl>
+
+      {/* The rest of the panel is what happened to the file; this is what
+          happened to its contents. Fetched here so opening one row costs one
+          document, not the whole notebook. */}
+      <ChunkMap source={source} sessionId={sessionId} />
 
       {duplicate ? (
         <p className="detail-duplicate">

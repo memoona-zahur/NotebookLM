@@ -104,6 +104,11 @@ export const api = {
     if (sessionId) url.searchParams.set("session_id", sessionId);
     return url.toString();
   },
+  // Every chunk of one source, with its size. Fetched when a source row is
+  // opened rather than with the status, so a notebook with a dozen sources
+  // does not pay for eleven documents nobody asked about.
+  sourceChunks: (sessionId, sourceId) =>
+    request(`/api/sources/${encodeURIComponent(sourceId)}/chunks`, { sessionId }),
   deleteSource: (sessionId, sourceId) =>
     request(`/api/sources/${encodeURIComponent(sourceId)}`, { method: "DELETE", sessionId }),
   clearSources: (sessionId) => request("/api/sources", { method: "DELETE", sessionId }),

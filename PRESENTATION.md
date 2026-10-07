@@ -551,7 +551,7 @@ quality would be the fastest way to lose the room.
 
 ### 8.3 Tests
 
-`./run_tests.sh` — 123 backend, 178 frontend. Includes: relevance floor,
+`./run_tests.sh` — 124 backend, 182 frontend. Includes: relevance floor,
 citation validation, injection defence, history injection attempts, upload
 ownership, citation persistence across reload, greeting behaviour, and web-source
 ingestion (a found page becomes a citable source, one unreachable page does not
