@@ -1230,10 +1230,76 @@ context plus the system prompt, not the question. This is why `context_chars` an
 `passages_sent` are reported alongside the tokens: the lever that reduces cost is
 sending less evidence, which is a retrieval decision, not a generation one.
 
-`total_tokens` is reported rather than converted to currency. A dollar figure would
-need a price table that goes stale, and would imply the number means the same thing
-across Groq, OpenAI and a local Ollama. Tokens plus the model name stays true when
-prices change.
+`total_tokens` remains the measurement. The cost dashboard adds a *dollar*
+estimate on top of it, under the rules below.
+
+### The cost dashboard, and what it does not know
+
+`GET /api/status` returns a `costs` object; the top bar renders it. Groq and
+OpenAI both publish list prices, and a session's spend is checkable against
+them, so the panel shows money - but only as a claim a reader can audit:
+
+```json
+"costs": {
+  "currency": "USD",
+  "as_of": "2026-10-07",
+  "price_source": "Groq Cloud docs (console.groq.com/docs/models) and OpenAI pricing, checked 2026-10-07",
+  "notes": ["Estimate at published list prices; web search tool fees are not included."],
+  "total_usd": 0.000642,
+  "llm_usd": 0.000642,
+  "web_search_usd": 0.0,
+  "questions": 3,
+  "messages": 6,
+  "priced_calls": 3,
+  "unpriced_calls": 1,
+  "unrecorded_calls": 0,
+  "unpriced_models": ["mystery-model-9000"],
+  "history": [ ... ]
+}
+```
+
+The rules it exists to keep:
+
+**Prices travel with their as-of date and source.** The panel prints
+`Estimate · prices as of 2026-10-07 · Groq Cloud docs...`. A dollar figure
+without a rate card and a date is a rumour; a dated one can be re-checked, and
+re-checked is exactly what should happen when a provider reprices.
+`app/config.py` holds the table and `MODEL_PRICE_AS_OF`.
+
+**An unknown price is `None`, never `0.0`.** `estimate_cost_usd()` returns
+`None` when no rate is on file, and `usage_report` renders that as `no rate`
+with a note naming the model - and leaves it out of the total rather than
+adding a zero. Reporting it as `0.0` is how an unpriced model ends up looking
+free, and "no idea" is not the same statement as "cost nothing".
+
+**No row is dropped for being free.** A refusal never called the model
+(`called: false`, measured $0.0000, note "the model was never called"), a local
+Ollama turn is free by construction (flagged `local`), an unpriced model shows
+`no rate`, and a row with no cost dict at all shows `no cost data` rather than
+disappearing. The report used to skip any row whose price came out falsy, which
+silently deleted three of those four kinds and made the remaining total look
+complete.
+
+**`questions` counts user messages; `messages` counts rows.** They used to be
+the same number under two names - the message count, labelled `questions` -
+which read as every question being counted twice beside the thread next to it.
+
+**Totals cover everything; the list shows the last 50.** Per-query history is
+capped so a long transcript cannot make `/api/status` (polled every 10 seconds
+by the UI and by the Docker healthcheck) return an unbounded payload, while the
+header totals are computed over every row - and only the `evidence->'cost'`
+sub-object is read, not the whole blob.
+
+**Matching is exact, not by substring.** `gpt-4o` is a substring of
+`gpt-4o-mini`, so a substring match priced whichever the table listed first.
+`model_price()` now matches the whole name, then the segment after the last
+slash (`openai/gpt-4o-mini` -> `gpt-4o-mini`).
+
+What the panel does **not** know: web search's per-request tool fee is excluded
+rather than guessed at (the rate card page for it has not been reachable since
+August 2026), a summarise pass reports its own cost in its response but is not
+stored as a chat turn so it never reaches this list, and the table is a
+snapshot - the `notes` line says all of this out loud.
 
 ### Where the two kinds of spend are recorded
 
@@ -1296,7 +1362,7 @@ retry a log line costs more than the line is worth.
 
 ## Tests
 
-124 checks covering upload, per-format parsing (including YAML/TOML/INI and hard-wrapped
+130 checks covering upload, per-format parsing (including YAML/TOML/INI and hard-wrapped
 text), OCR (a scanned page recovered and searchable, pages kept in order, both halves of a
 mixed PDF indexed, a blank scan refused with an actionable message, the missing-language
 message naming the install command, an over-cap document refused rather than indexed
@@ -1320,7 +1386,12 @@ hardening, cross-source diversity). Prompt-injection handling has its own three
 checks: that a document issuing instructions is flagged rather than obeyed, that a
 passage cannot fake a prompt role, and that the system prompt still carries the
 rule - the last one because an instruction nothing asserts can silently be edited
-away. The LLM is stubbed, so no API key is needed to run them.
+away. The cost dashboard has its own two: the price table is asserted against the
+published rate card (with an unknown model returning *no price*, never zero), and
+the spend report is asserted to keep every kind of free row - refusal, local
+model, unpriced model, unrecorded turn - while counting `questions` as user
+messages rather than as all rows. The LLM is stubbed, so no API key is needed to
+run them.
 
 A failed check no longer stops the run: every check is reported and the process exits
 non-zero if any failed.

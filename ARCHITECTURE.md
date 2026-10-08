@@ -16,7 +16,7 @@ status — is a read over the same state.
 
 ```
 ┌────────────────────────────────  BROWSER  (frontend/src)  ────────────────────────────────┐
-│ App.jsx ── turns[] ── send() (App.jsx:273) ──► api.ask()  (api.js:119)                    │
+│ App.jsx ── turns[] ── send() (App.jsx:287) ──► api.ask()  (api.js:119)                    │
 │   ├─ IngestPanel.jsx   drop → api.upload()  ───────────────┐                             │
 │   ├─ SourcesDrawer.jsx source list, footer totals, panels  │                             │
 │   ├─ Answer.jsx        answer + [n] citations + evidence   │                             │
@@ -80,11 +80,11 @@ sequenceDiagram
     participant DB as PostgreSQL + pgvector
 
     UI->>API: POST /api/sources (multipart file, session_id)
-    API->>API: suffix in ALLOWED ? otherwise 400 (sources.py:64)
+    API->>API: suffix in ALLOWED ? otherwise 400 (sources.py:82)
     API->>API: resolve_session() unknown id is 404 (payloads.py:33)
     API->>API: write UPLOAD_DIR / uuid4hex + suffix
     API->>ST: store.add(path, display_name, session_id) (store.py:225)
-    ST->>DB: content hash, then _find_duplicate in this session (store.py:312)
+    ST->>DB: content hash, then _find_duplicate in this session (store.py:317)
     alt duplicate
         ST-->>API: existing Source flagged duplicate
         Note right of ST: stored file discarded, no parse, no embed
@@ -100,7 +100,7 @@ sequenceDiagram
         ST->>ST: _invalidate(session_id) bumps the BM25 revision
         ST-->>API: Source(...)
     end
-    API-->>UI: { source, duplicate, ...store.stats() } (store.py:548)
+    API-->>UI: { source, duplicate, ...store.stats() } (store.py:553)
     UI->>UI: refresh list, advance PipelinePanel stages
 ```
 
@@ -132,7 +132,7 @@ sequenceDiagram
     participant ST as store.add()
     participant DB as usage_events
 
-    UI->>API: POST /api/sources/web {query, limit} (sources.py:110)
+    UI->>API: POST /api/sources/web {query, limit} (sources.py:127)
     API->>WI: ingest(query, session_id, limit) (webingest.py:72)
     WI->>WI: web_search_available() no key or WEB_SEARCH=0 is 400 (config.py:230)
     WI->>WS: find(query, limit) (websearch.py:98)
@@ -146,7 +146,7 @@ sequenceDiagram
     end
     WI->>DB: record_usage_event(kind=web_search, model, tokens, latency) (db.py:281)
     WI-->>API: WebIngest { added[], failed[{url, reason}], cost }
-    API-->>UI: 200 even when some pages failed (sources.py:128)
+    API-->>UI: 200 even when some pages failed (sources.py:131)
 ```
 
 Partial success is the design: five results, three indexed, two refused is
@@ -177,22 +177,22 @@ sequenceDiagram
     API->>AS: answering.ask(question, session) (answering.py:36)
     AS->>DB: recent_messages(HISTORY_TURNS) history comes from the DB (db.py:239)
     AS->>IN: classify(question) (intent.py:103)
-    AS->>ST: stats(session_id) to learn whether sources exist (store.py:548)
+    AS->>ST: stats(session_id) to learn whether sources exist (store.py:553)
     alt not a question, or notebook is empty
-        AS->>DB: _conversational: fixed reply or llm.chat with no SOURCES (answering.py:143)
+        AS->>DB: _conversational: fixed reply or llm.chat with no SOURCES (answering.py:145)
         AS-->>UI: verdict conversational, cost measured zero if no model call
     else a real question with sources
         AS->>TR: ask_span (tracing.py:199)
         AS->>ST: search_detailed(question, session_id) inside retrieval_span
         ST-->>AS: SearchResult(hits, best_score, mode, floor_applied)
         alt search.relevant is false (best_score below floor, store.py:169)
-            AS->>DB: _refuse: usage.not_called is a measured zero (answering.py:213)
+            AS->>DB: _refuse: usage.not_called is a measured zero (answering.py:228)
             AS-->>UI: verdict no_match, no citations, floor reported in evidence
         else passages survived the floor
-            AS->>LM: answer(question, hits, history) inside generation_span (llm.py:343)
-            LM->>LM: _trim_context to MAX_CONTEXT_CHARS (llm.py:216)
-            LM->>LM: _build_messages: SYSTEM_PROMPT, then PRIOR, SOURCES, QUESTION (llm.py:196)
-            LM->>LM: _generate dispatches to groq / openai / ollama (llm.py:322)
+            AS->>LM: answer(question, hits, history) inside generation_span (llm.py:349)
+            LM->>LM: _trim_context to MAX_CONTEXT_CHARS (llm.py:221)
+            LM->>LM: _build_messages: SYSTEM_PROMPT, then PRIOR, SOURCES, QUESTION (llm.py:201)
+            LM->>LM: _generate dispatches to groq / openai / ollama (llm.py:327)
             LM-->>AS: Grounded(text, cited, invalid, passages)
             AS->>DB: evidence(search, audit, answered, cost) builds the summary (payloads.py:55)
             AS->>DB: add_message(user) then add_message(assistant, citations, evidence) (db.py:211)
@@ -203,29 +203,29 @@ sequenceDiagram
     UI->>UI: append turn, refreshStatus(), Answer.jsx renders evidence strip
 ```
 
-### Inside `search_detailed` (`store.py:664`)
+### Inside `search_detailed` (`store.py:669`)
 
 ```mermaid
 flowchart TD
     A["embed_query(question) embeddings.py:24"] --> B["pgvector cosine distance, LIMIT pool_size = TOP_K x 4, scoped to session store.py:694"]
     B --> C["distance to similarity: 1.0 - distance (store.py:706)"]
-    C --> D{"HYBRID_ENABLED and BM25 has ids? store.py:730"}
+    C --> D{"HYBRID_ENABLED and BM25 has ids? store.py:736"}
     D -- no --> E["mode = dense, all hits admitted as dense"]
     D -- yes --> F["BM25 top + re-score unseen ids with score_against_query"]
     F --> G["RRF fuse of dense and lexical orderings (lexical.py:163)"]
-    G --> H{"admission test store.py:778"}
+    G --> H{"admission test store.py:782"}
     H -->|"score >= DENSE_STRONG"| I["admitted as dense"]
     H -->|"score >= floor and term coverage"| I2["admitted as both"]
     H -->|"rescue_allowed and coverage and score >= BM25_RESCUE_MIN"| J["admitted as lexical, rescued"]
     H -->|"otherwise"| K["dropped"]
-    I --> L["numeric damping: numeric-heavy score x NUMERIC_DAMPING (store.py:811)"]
+    I --> L["numeric damping: numeric-heavy score x NUMERIC_DAMPING (store.py:820)"]
     I2 --> L
     J --> L
-    L --> M["effective_floor = max floor, best_score x MIN_RATIO (store.py:830)"]
-    M --> N{"cross-encoder rerank the head? (store.py:858)"}
+    L --> M["effective_floor = max floor, best_score x MIN_RATIO (store.py:835)"]
+    M --> N{"cross-encoder rerank the head? (store.py:862)"}
     N --> O["rerank pool of RERANK_POOL, promote RERANK_TOP_K, mode becomes hybrid+rerank"]
     N --> P["keep fused order"]
-    O --> Q["MAX_PER_SOURCE cap, then backfill to TOP_K (store.py:885)"]
+    O --> Q["MAX_PER_SOURCE cap, then backfill to TOP_K (store.py:884)"]
     P --> Q
     Q --> R["SearchResult with hits, best_score, floor_applied, numeric_share, damped, mode"]
 ```
@@ -243,19 +243,19 @@ single global threshold cannot separate that case from noise.
 
 | Endpoint | Path through the code |
 |---|---|
-| `POST /api/summarize` | `chat.py:31` → `answering.summarize:252` → `store.search_detailed` → floor check → `llm.summarize:387` (SYSTEM_PROMPT + `TASK:`) → evidence written **without** `cost` → two rows |
-| `GET /api/sources/{id}/chunks` | `sources.py:200` → `store.source_chunks:485`, session-scoped, ordered by `position`, adds `count_tokens` per chunk (`parsers.py:123`) → `ChunkMap` bar heights |
-| `GET /api/sources/{id}/file` | `sources.py:154` → `store.original_file:467` (UPLOAD_DIR boundary) → `FileResponse`; scriptable content types forced to `text/plain` so uploaded HTML cannot run in the app's origin |
-| `POST /api/sources/{id}/reindex` | `sources.py:231` → `store.reindex:333` re-parses the stored file with the current chunking, keeping the same source id |
-| `GET /api/sources/occurrences?term=` | `sources.py:48` → `store.find_occurrences:588` → drawer highlight |
-| `DELETE /api/sources/{id}` and `/api/sources` | `sources.py:279`, `sources.py:289` → `store.remove:424` / `store.clear:439`: rows, files, caches |
+| `POST /api/summarize` | `chat.py:34` → `answering.summarize:257` → `store.search_detailed` → floor check → `llm.summarize:393` (SYSTEM_PROMPT + `TASK:`) → evidence written **with** `cost`, because a summarise pass is a real generation → two rows |
+| `GET /api/sources/{id}/chunks` | `sources.py:217` → `store.source_chunks:490`, session-scoped, ordered by `position`, adds `count_tokens` per chunk (`parsers.py:123`) → `ChunkMap` bar heights |
+| `GET /api/sources/{id}/file` | `sources.py:154` → `store.original_file:472` (UPLOAD_DIR boundary) → `FileResponse`; scriptable content types forced to `text/plain` so uploaded HTML cannot run in the app's origin |
+| `POST /api/sources/{id}/reindex` | `sources.py:248` → `store.reindex:338` re-parses the stored file with the current chunking, keeping the same source id |
+| `GET /api/sources/occurrences?term=` | `sources.py:58` → `store.find_occurrences:593` → drawer highlight |
+| `DELETE /api/sources/{id}` and `/api/sources` | `sources.py:296`, `sources.py:306` → `store.remove:429` / `store.clear:444`: rows, files, caches |
 | `GET /api/status` | `meta.py:22` → `store.stats` + `db.usage_totals:309` + `tracing.status:77` + provider readiness |
 | `/api/sessions` CRUD | `sessions.py` → `db.*`; `session_payload:96` attaches `recent_messages` for the transcript |
 
 Error map, in one place: provider unreachable → `LLMUnavailable` → 503;
 unknown session → 404; empty question or unsupported
 file type → 400; a bug in retrieval or SQL → 500. The frontend turns any non-2xx
-into an assistant-shaped error turn (`App.jsx:326`), so a failure is legible in
+into an assistant-shaped error turn (`App.jsx:335`), so a failure is legible in
 the thread instead of only in the console.
 
 ---
@@ -277,7 +277,7 @@ Caches            lru_cache SentenceTransformer (embeddings.py:9)
                   BM25 per (session, revision), rebuilt after _invalidate (store.py:207)
 
 In process        usage.py latency window (P50/P95 over recent requests)
-                  llm.py _last_usage, cleared before every call (llm.py:324)
+                  llm.py _last_usage, a ContextVar cleared before every call (llm.py:331)
 
 Opt-in            LANGSMITH_TRACING spans → network, or JSONL when
                   LANGSMITH_TRACING_LOCAL=1 (tracing.py:77 reports the state)
@@ -286,16 +286,16 @@ Opt-in            LANGSMITH_TRACING spans → network, or JSONL when
 Money and tokens: the database stores **tokens**, never dollars. Dollars are
 computed at read time from a dated price table so the persisted fact cannot go
 stale — see `README.md` "What a question costs" (line 1161) and
-`PRESENTATION.md:743` for the current rationale, and the cost dashboard plan for
-the rate table and its provenance.
+`PRESENTATION.md:743` for the current rationale, and the cost dashboard section
+of the README for the rate table, its provenance, and what the total leaves out.
 
 ---
 
 ## 7. Reading order, if you are new to this repo
 
 1. `app/answering.py:1` — the whole policy in one readable function.
-2. `app/store.py:664` — retrieval, with the reasoning for each step inline.
-3. `app/llm.py:7` — `SYSTEM_PROMPT`, then `_build_messages` for what the model
+2. `app/store.py:669` — retrieval, with the reasoning for each step inline.
+3. `app/llm.py:8` — `SYSTEM_PROMPT`, then `_build_messages` for what the model
    actually sees.
 4. `app/parsers.py:1096` — how an arbitrary file becomes `Block`s.
 5. `README.md` — the long-form narrative of the same flows, plus the eval

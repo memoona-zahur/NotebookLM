@@ -551,7 +551,7 @@ quality would be the fastest way to lose the room.
 
 ### 8.3 Tests
 
-`./run_tests.sh` — 124 backend, 182 frontend. Includes: relevance floor,
+`./run_tests.sh` — 130 backend, 182 frontend. Includes: relevance floor,
 citation validation, injection defence, history injection attempts, upload
 ownership, citation persistence across reload, greeting behaviour, and web-source
 ingestion (a found page becomes a citable source, one unreachable page does not
@@ -740,13 +740,18 @@ different shapes:
 cost was computed, returned in the response, and dropped - so any total was
 short by every search ever run, and short in a way that *looked* complete.
 
-**Tokens, not dollars.** A price table goes stale, and a dollar figure implies
-tokens mean the same across Groq, OpenAI and local Ollama. Tokens plus model
-name stays true when prices change. If a dollar figure is wanted, compute it
-offline from the persisted tokens rather than baking it into the app.
+**Tokens are the measurement; the cost dashboard is a dated estimate.** A dollar
+figure without a rate card and a date is a rumour, so the panel prints its
+as-of date and source (`Estimate · prices as of 2026-10-07 · Groq Cloud docs…`),
+renders an unknown price as `no rate` rather than `$0.0000`, and keeps the
+free rows visible - a refusal (model never called, measured $0) and a local
+Ollama turn are statements, not gaps. Matching is exact rather than by
+substring, because `gpt-4o` is a substring of `gpt-4o-mini`.
 
 **Verified prices (Oct 2026):** `gpt-oss-120b` $0.15 in / $0.60 out per 1M;
 `gpt-oss-20b` (web search) $0.075 / $0.30; MiniLM embeddings $0 - local.
+The web-search *tool* fee is excluded rather than guessed at: that rate card
+has not been reachable since August 2026.
 
 **The two numbers to report:**
 

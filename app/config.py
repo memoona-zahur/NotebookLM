@@ -160,8 +160,11 @@ DENSE_STRONG = float(os.getenv("DENSE_STRONG", "0.40"))
 COVERAGE_MIN = float(os.getenv("COVERAGE_MIN", "0.5"))
 BM25_RESCUE_MIN = float(os.getenv("BM25_RESCUE_MIN", "0.12"))
 
-# Prior conversation turns included for follow-up questions.
+# Prior conversation turns included for follow-up questions. Keep the window
+# short and deterministic; when the session grows, older turns are compacted into
+# a short summary instead of being sent verbatim.
 HISTORY_TURNS = int(os.getenv("HISTORY_TURNS", "6"))
+HISTORY_SUMMARY_CHARS = int(os.getenv("HISTORY_SUMMARY_CHARS", "600"))
 
 # Public origin the browser uses to reach this API, e.g.
 # http://localhost:8000. Left empty it is derived from the request, which works
@@ -257,30 +260,77 @@ def resolved_model() -> str:
     }.get(resolved_provider(), "unknown")
 
 
-MODEL_PRICE_TABLE = {
-    "openai/gpt-oss-120b": {"input": 0.15, "output": 0.75},
-    "openai/gpt-oss-20b": {"input": 0.08, "output": 0.16},
+# Money, and how much of it is a guess.
+#
+# Rates are read at request time and always travel with their as-of date,
+# because a price that is not dated is a price that has silently gone stale.
+# `None` from `model_price`/`estimate_cost_usd` means "no rate on file", which
+# is a different statement from 0.0 ("measured free") - reporting the first as
+# the second is how an unpriced model ends up looking free in a total.
+MODEL_PRICE_AS_OF = "2026-10-07"
+MODEL_PRICE_SOURCE = (
+    "Groq Cloud docs (console.groq.com/docs/models) and OpenAI pricing, "
+    "checked 2026-10-07"
+)
+# Not included in any total: Groq charges for the browser_search tool by the
+# request as well as by the token, and that fee is deliberately left out rather
+# than guessed at - see the note the API returns beside the totals.
+MODEL_PRICE_NOTES = [
+    "Estimate at published list prices; web search tool fees are not included.",
+]
+
+MODEL_PRICE_TABLE: dict[str, dict] = {
+    # Groq, self-serve, USD per 1M tokens.
+    "openai/gpt-oss-120b": {"input": 0.15, "output": 0.60},
+    "openai/gpt-oss-20b": {"input": 0.075, "output": 0.30},
+    # OpenAI.
     "gpt-4o-mini": {"input": 0.15, "output": 0.60},
     "gpt-4o": {"input": 5.0, "output": 15.0},
-    "llama3.1": {"input": 0.08, "output": 0.08},
-    "llama3.2": {"input": 0.08, "output": 0.08},
+    # Ollama runs these on this machine. There is no metered rate, so they are
+    # priced at zero and flagged `local` - zero because it is measured free,
+    # not because the rate is unknown.
+    "llama3.1": {"input": 0.0, "output": 0.0, "local": True},
+    "llama3.2": {"input": 0.0, "output": 0.0, "local": True},
 }
 
 
 def model_price(model: str) -> dict | None:
-    """USD per 1M tokens for an LLM. Returns None when no local rate is known."""
+    """USD per 1M tokens for `model`, or None when no rate is on file.
+
+    Matched exactly - the whole name first, then the part after the last slash -
+    rather than by substring. Substring matching is order-dependent in a way a
+    price table must not be: `gpt-4o` is a substring of `gpt-4o-mini`, so
+    whichever appeared first in the table would decide the price for both.
+    """
     name = (model or "").strip().lower()
-    for key, price in MODEL_PRICE_TABLE.items():
-        if key in name:
-            return price
-    return None
+    if not name:
+        return None
+    if name in MODEL_PRICE_TABLE:
+        return MODEL_PRICE_TABLE[name]
+    return MODEL_PRICE_TABLE.get(name.rsplit("/", 1)[-1])
 
 
-def estimate_cost_usd(model: str, prompt_tokens: int = 0, completion_tokens: int = 0) -> float:
-    """Best-effort estimate, using configured model rates when available."""
+def estimate_cost_usd(
+    model: str, prompt_tokens: int = 0, completion_tokens: int = 0
+) -> float | None:
+    """What the call would have cost at the rate on file, or None if unknown.
+
+    None is load-bearing. Callers must show it as "no rate on file" rather than
+    folding it into a total as zero.
+    """
     price = model_price(model)
-    if not price:
-        return 0.0
+    if price is None:
+        return None
     input_cost = prompt_tokens * price["input"] / 1_000_000.0
     output_cost = completion_tokens * price["output"] / 1_000_000.0
     return round(input_cost + output_cost, 6)
+
+
+def price_provenance() -> dict:
+    """The as-of date and source that the totals computed from them must carry."""
+    return {
+        "currency": "USD",
+        "as_of": MODEL_PRICE_AS_OF,
+        "source": MODEL_PRICE_SOURCE,
+        "notes": list(MODEL_PRICE_NOTES),
+    }

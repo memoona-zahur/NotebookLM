@@ -704,8 +704,8 @@ def test_provider_reported_tokens_are_used_not_guessed(client: TestClient) -> No
 
     def fake_compatible(messages, base_url, api_key, model):
         captured["chars"] = sum(len(str(m.get("content") or "")) for m in messages)
-        llm._last_usage = usage.from_response(
-            model, messages, FakeResponse(), 12.0, "answer text"
+        llm._last_usage.set(
+            usage.from_response(model, messages, FakeResponse(), 12.0, "answer text")
         )
         return "answer text [1]"
 
@@ -733,8 +733,15 @@ def test_provider_reported_tokens_are_used_not_guessed(client: TestClient) -> No
 # Stage 0 regression: the original suite
 # --------------------------------------------------------------------------
 
-def test_assistant_questions_are_detected_before_retrieval() -> None:
-    """General questions about the assistant skip retrieval and are replied to as chat."""
+def test_assistant_questions_are_detected_before_retrieval(
+    client: TestClient,
+) -> None:
+    """General questions about the assistant skip retrieval and are replied to as chat.
+
+    Takes `client` because the runner hands one to every test, and is listed in
+    ORDER like every other test: an unlisted test runs in no suite, which is
+    how this one stayed green while never executing.
+    """
     from app import intent
 
     for message in (
@@ -747,6 +754,167 @@ def test_assistant_questions_are_detected_before_retrieval() -> None:
     assert intent.classify("hello") == "greeting"
     assert intent.classify("what is the CEO named in this filing") == "question"
     print("  assistant questions and greetings are classified before retrieval: OK")
+
+
+def test_price_table_matches_the_rate_card_and_flags_local_models(
+    client: TestClient,
+) -> None:
+    """Every dollar the UI shows comes from this table, so the table is asserted.
+
+    Rates are Groq's and OpenAI's published list prices on the date stamped in
+    `MODEL_PRICE_AS_OF`. Two failure modes matter more than a cent here:
+
+    * `gpt-4o` is a substring of `gpt-4o-mini`, so a substring match priced
+      whichever of the two the table happened to list first. Matching is
+      exact now.
+    * An unknown model used to price at 0.0, which reads as "free" in a total.
+      It returns None, and None has to reach the UI as "no rate on file".
+    """
+    assert cfg.MODEL_PRICE_AS_OF == "2026-10-07", cfg.MODEL_PRICE_AS_OF
+    assert cfg.model_price("openai/gpt-oss-120b") == {"input": 0.15, "output": 0.60}
+    assert cfg.model_price("openai/gpt-oss-20b") == {"input": 0.075, "output": 0.30}
+    assert cfg.model_price("gpt-4o-mini") == {"input": 0.15, "output": 0.60}
+    assert cfg.model_price("gpt-4o") == {"input": 5.0, "output": 15.0}
+    # A provider-prefixed OpenAI model resolves through its last path segment.
+    assert cfg.model_price("openai/gpt-4o-mini") == {"input": 0.15, "output": 0.60}
+
+    # Local models are free because they run on this machine - a measured zero
+    # flagged as local, not an unknown price.
+    llama = cfg.model_price("llama3.1")
+    assert llama is not None and llama.get("local") is True, llama
+    assert llama["input"] == 0.0 and llama["output"] == 0.0, llama
+    assert cfg.estimate_cost_usd("llama3.1", 1_000_000, 1_000_000) == 0.0
+
+    # Unknown is None, never 0.0.
+    assert cfg.model_price("mystery-model-9000") is None
+    assert cfg.estimate_cost_usd("mystery-model-9000", 1_000, 1_000) is None
+    assert cfg.estimate_cost_usd("", 1_000, 1_000) is None
+
+    # One million in, one million out at $0.15/$0.60 is $0.75. A table that
+    # cannot do this arithmetic is not worth displaying.
+    assert cfg.estimate_cost_usd("openai/gpt-oss-120b", 1_000_000, 1_000_000) == 0.75
+    assert cfg.estimate_cost_usd("openai/gpt-oss-20b", 1_000_000, 1_000_000) == 0.375
+
+    prov = cfg.price_provenance()
+    assert prov["as_of"] == cfg.MODEL_PRICE_AS_OF, prov
+    assert prov["source"] and prov["notes"], prov
+    print(f"  price table -> 120b $0.15/$0.60 as of {prov['as_of']}: OK")
+
+
+def test_usage_report_keeps_zero_and_unpriced_calls_visible(client: TestClient) -> None:
+    """Four different kinds of "costs nothing" must stay distinguishable.
+
+    The dashboard used to drop any row whose price came out falsy, which
+    silently deleted refusals (measured $0), local turns, and models with no
+    rate on file - three statements that are not the same statement. It also
+    reported the *message* count as "questions", which read as every question
+    being counted twice.
+    """
+    answered_sid = client.post("/api/sessions", json={"name": "priced"}).json()["id"]
+    upload(client, "orbital_mechanics.pdf", make_pdf(), session_id=answered_sid)
+    with provider("groq"), stubbed("Reaction wheels saturate [1]."):
+        asked = client.post(
+            "/api/ask",
+            params={"session_id": answered_sid},
+            json={
+                "question": "Why do reaction wheels need momentum dumps?",
+                "history": [],
+            },
+        )
+    assert asked.status_code == 200, asked.text
+
+    # A turn recorded without a price, and a turn that recorded no cost at all
+    # (what a summarise pass produces) - both must still appear.
+    db.add_message(
+        answered_sid,
+        "assistant",
+        "an older turn from an unpriced model",
+        evidence={
+            "cost": {
+                "called": True,
+                "model": "mystery-model-9000",
+                "prompt_tokens": 100,
+                "completion_tokens": 10,
+                "latency_ms": 5.0,
+            }
+        },
+    )
+    db.add_message(answered_sid, "assistant", "a turn with no cost recorded")
+
+    report = db.usage_report(answered_sid)
+    by_model = {row["model"]: row for row in report["history"] if row["kind"] == "llm"}
+    assert "mystery-model-9000" in by_model, report["history"]
+    unpriced = by_model["mystery-model-9000"]
+    assert unpriced["cost_usd"] is None, unpriced
+    assert "no rate on file" in unpriced["price_note"], unpriced
+    assert unpriced["total_tokens"] == 110, unpriced
+
+    unrecorded = by_model.get("") or [
+        row for row in report["history"] if not row["recorded"]
+    ]
+    assert unrecorded, report["history"]
+    unrecorded = unrecorded if isinstance(unrecorded, dict) else unrecorded[0]
+    assert unrecorded["cost_usd"] is None, unrecorded
+    assert unrecorded["price_note"] == "cost not recorded for this turn", unrecorded
+
+    priced = [
+        row for row in report["history"]
+        if row["kind"] == "llm" and row["recorded"] and row["model"] not in ("", None)
+        and row["cost_usd"] is not None and row["question"]
+    ]
+    assert priced, report["history"]
+    assert priced[0]["cost_usd"] > 0, priced[0]
+    assert priced[0]["question"].startswith("Why do reaction wheels"), priced[0]
+
+    assert report["unpriced_models"] == ["mystery-model-9000"], report
+    assert report["unpriced_calls"] == 1, report
+    assert report["unrecorded_calls"] == 1, report
+    assert report["priced_calls"] == 1, report
+
+    # questions = user messages; messages = every row. The old code returned the
+    # message count under the name "questions".
+    assert report["questions"] == 1, report
+    assert report["messages"] == 4, report
+    assert report["questions"] < report["messages"], report
+
+    # The unpriced model's tokens are counted - they were spent - but not its
+    # dollars, because no rate exists to spend them at.
+    assert report["llm_prompt_tokens"] >= 100, report
+    assert report["total_usd"] == priced[0]["cost_usd"], report
+
+    # Provenance travels with the totals, over the wire.
+    status = client.get(
+        "/api/status", params={"session_id": answered_sid}
+    ).json()["costs"]
+    assert status["as_of"] == cfg.MODEL_PRICE_AS_OF, status
+    assert status["price_source"], status
+    # The row that answers a question carries the question it answered, so the
+    # dashboard can say *what* cost what.
+    assert any(row.get("question") for row in status["history"]), status["history"]
+
+    # A refusal never contacts the model: measured zero, shown as zero, with
+    # the reason rather than as an unknown price.
+    refused_sid = client.post("/api/sessions", json={"name": "refusal"}).json()["id"]
+    refused = client.post(
+        "/api/ask",
+        params={"session_id": refused_sid},
+        json={"question": "What is the CEO named in this filing?", "history": []},
+    )
+    assert refused.status_code == 200, refused.text
+    refusal_report = db.usage_report(refused_sid)
+    assert refusal_report["questions"] == 1, refusal_report
+    assert len(refusal_report["history"]) == 1, refusal_report
+    refusal = refusal_report["history"][0]
+    assert refusal["cost_usd"] == 0.0, refusal
+    assert refusal["price_note"] == "the model was never called", refusal
+    assert refusal["prompt_tokens"] == 0 and refusal["completion_tokens"] == 0, refusal
+    # The evidence names the model that was configured; naming it is not the
+    # same as having called it, which is what the note is for.
+    assert refusal["model"] in ("", cfg.resolved_model()), refusal
+    assert refusal_report["total_usd"] == 0.0, refusal_report
+    print(
+        "  usage report -> priced, unpriced, unrecorded and free rows all kept: OK"
+    )
 
 
 def test_status_and_indexing(client: TestClient) -> None:
@@ -3104,7 +3272,14 @@ def test_summarize_endpoint(client: TestClient) -> None:
     assert res.status_code == 200, res.text
     body = res.json()
     assert "evidence" in body and body["evidence"]["verdict"] in {"answered", "no_match"}
-    print("  /api/summarize ->", body["evidence"]["verdict"])
+    # Summarising is a real generation, so its cost is reported like any other
+    # call's. Leaving it out made a spend that happened invisible - the one
+    # failure mode a cost ledger must not have.
+    cost = body["evidence"].get("cost")
+    assert cost, body["evidence"]
+    assert cost["verdict"] in {"answered", "no_match"}, cost
+    assert cost["total_tokens"] >= 0 and cost["generation_ms"] >= 0, cost
+    print("  /api/summarize ->", body["evidence"]["verdict"], cost["total_tokens"], "tokens")
 
 
 def test_summarize_reports_bad_query_distinctly(client: TestClient) -> None:
@@ -3248,27 +3423,26 @@ def test_an_empty_notebook_says_what_to_do_instead_of_a_score(
 def test_an_empty_notebook_greets_without_pretending_to_have_sources(
     client: TestClient,
 ) -> None:
-    """A greeting on an empty notebook must not be sent to the model.
+    """A greeting on an empty notebook still answers naturally.
 
-    The model-generated greeting exists to be warm when there are documents to
-    be warm *about*. With none, a generated "I'm ready to answer questions about
-    your sources" is describing something that does not exist, so the empty
-    notebook keeps its fixed reply and spends no tokens.
+    This is a general assistant interaction, not a retrieval failure. The empty
+    notebook nudge should apply to actual corpus questions, not to social chat.
     """
     sid = client.post("/api/sessions", json={"name": "bare-greet"}).json()["id"]
 
-    def explode(messages):
-        raise AssertionError("no model call on an empty notebook")
-
-    with stubbed(explode):
+    captured: list[dict] = []
+    with stubbed("Hello! I can help with general questions and notebook tasks.", captured):
         body = client.post(
             "/api/ask", params={"session_id": sid}, json={"question": "Hello"}
         ).json()
 
     assert body["evidence"]["verdict"] == "conversational", body["evidence"]
-    assert body["evidence"]["cost"]["called"] is False, body["evidence"]
+    assert body["evidence"]["cost"]["called"] is True, body["evidence"]
     assert body["evidence"]["considered"] == 0, body["evidence"]
-    print("  a greeting on an empty notebook stays local and free: OK")
+    assert body["answer"] == "Hello! I can help with general questions and notebook tasks.", body["answer"]
+    prompt = captured[0][0]["content"]
+    assert "SOURCES" not in prompt, prompt
+    print("  a greeting on an empty notebook still answers naturally: OK")
 
 
 def test_a_conversational_turn_replays_with_its_evidence(client: TestClient) -> None:
@@ -3886,6 +4060,9 @@ ORDER = [
     ("empty notebook gets guidance", test_an_empty_notebook_says_what_to_do_instead_of_a_score),
     ("empty notebook greeting stays local", test_an_empty_notebook_greets_without_pretending_to_have_sources),
     ("reopened greeting keeps evidence", test_a_conversational_turn_replays_with_its_evidence),
+    ("assistant classification before retrieval", test_assistant_questions_are_detected_before_retrieval),
+    ("price table matches the rate card", test_price_table_matches_the_rate_card_and_flags_local_models),
+    ("usage report keeps every kind of free row", test_usage_report_keeps_zero_and_unpriced_calls_visible),
     ("assistant question answered", test_a_question_about_the_assistant_is_answered),
     ("assistant question skips retrieval", test_an_assistant_question_skips_retrieval_when_there_are_sources),
     ("assistant vs corpus classification", test_only_a_whole_message_about_the_assistant_leaves_retrieval),

@@ -236,8 +236,41 @@ def add_message(
         )
 
 
-def recent_messages(session_id: str, limit: int) -> list[dict]:
+def _history_summary(turns: list[dict]) -> str:
+    """A cheap, deterministic summary for very long sessions.
+
+    This is intentionally simple. The source documents still remain the authority,
+    and the summary only exists to preserve continuity between recent turns without
+    sending the entire transcript back into the model every time.
+    """
+    topics: list[str] = []
+    for turn in turns:
+        if not isinstance(turn, dict):
+            continue
+        content = " ".join(str(turn.get("content", "") or "").split())
+        if not content:
+            continue
+        role = turn.get("role")
+        prefix = "user asked" if role == "user" else "assistant answered" if role == "assistant" else "conversation noted"
+        clipped = content[:160]
+        if len(content) > 160:
+            clipped += "..."
+        topics.append(f"{prefix}: {clipped}")
+    if not topics:
+        return ""
+    # Keep the first and last few points so the summary preserves intent without
+    # ballooning with every turn in the session.
+    selected = topics[:3] + topics[-3:]
+    summary = " ".join(dict.fromkeys(selected))
+    return summary[: config.HISTORY_SUMMARY_CHARS]
+
+
+def recent_messages(session_id: str, limit: int, compact: bool = False) -> list[dict]:
     """Oldest-first window of the most recent `limit` turns.
+
+    When `compact` is true, we keep the tail of the conversation verbatim and
+    collapse the older history into one short summary. This holds recall stable in
+    long chats without letting the context window drift unbounded.
 
     An assistant turn carries its citations and evidence back out, so a
     reopened session renders the same provenance the original response did.
@@ -248,6 +281,7 @@ def recent_messages(session_id: str, limit: int) -> list[dict]:
     """
     if limit <= 0:
         return []
+    fetch_limit = limit + 20 if compact else limit
     with connection() as conn:
         rows = conn.execute(
             "SELECT role, content, citations, evidence FROM ("
@@ -255,7 +289,7 @@ def recent_messages(session_id: str, limit: int) -> list[dict]:
             "  WHERE session_id = %s"
             "  ORDER BY id DESC LIMIT %s"
             ") recent ORDER BY id",
-            (session_id, limit),
+            (session_id, fetch_limit),
         ).fetchall()
     turns = []
     for role, content, citations, evidence in rows:
@@ -265,7 +299,14 @@ def recent_messages(session_id: str, limit: int) -> list[dict]:
         if evidence:
             turn["evidence"] = evidence
         turns.append(turn)
-    return turns
+    if not compact or len(turns) <= limit:
+        return turns
+
+    recent = turns[-limit:]
+    summary = _history_summary(turns[:-limit])
+    if not summary:
+        return recent
+    return [{"role": "assistant", "content": f"Earlier conversation summary: {summary}"}] + recent
 
 
 def clear_messages(session_id: str) -> None:
@@ -359,76 +400,143 @@ def usage_totals(session_id: str | None = None) -> dict:
     }
 
 
-def usage_report(session_id: str | None = None) -> dict:
+def usage_report(session_id: str | None = None, totals: dict | None = None) -> dict:
     """Per-query and session spend estimates for the UI dashboard.
 
-    This intentionally stays an estimate: the app has provider token counts, but
-    the exact billing question depends on the real model pricing table the
-    deployment config chooses. It is still useful enough to surface a real cost
-    breakdown alongside traceability.
+    Rules this function exists to keep:
+
+    * A row is never dropped for being free or unpriced. A refusal that never
+      called the model, a local Ollama turn at $0, and a model with no rate on
+      file are all *statements*; omitting them turns "measured zero" and "no
+      idea" into the same silent nothing, which is how a dashboard starts
+      lying.
+    * `cost_usd` is None when no rate is on file, never 0.0, and carries a
+      `price_note` saying why.
+    * Totals are computed over every row; only the displayed history is capped,
+      so a long transcript cannot turn the header number into a lie either.
+
+    The cost sub-object is read out of `messages.evidence` rather than the whole
+    blob, because this runs on every /api/status poll.
     """
-    totals = usage_totals(session_id)
-    history = []
+    if totals is None:
+        totals = usage_totals(session_id)
+    history: list[dict] = []
     llm_usd = 0.0
     web_usd = 0.0
+    priced_calls = 0
+    unpriced_models: dict[str, int] = {}
+    unrecorded_calls = 0
 
-    where = "WHERE session_id = %s" if session_id else ""
-    params = (session_id,) if session_id else ()
+    scope = "WHERE session_id = %s" if session_id else ""
+    params: tuple = (session_id,) if session_id else ()
     with connection() as conn:
         rows = conn.execute(
-            "SELECT id, created_at, role, evidence FROM messages "
-            + ("WHERE session_id = %s" if session_id else "") + " ORDER BY id DESC",
+            "SELECT id, created_at, role, content, evidence->'cost' AS cost "
+            "FROM messages "
+            + scope
+            + " ORDER BY id ASC",
             params,
         ).fetchall()
-        for row_id, created_at, role, evidence in rows:
-            if not evidence or not isinstance(evidence, dict):
+        questions = 0
+        pending_question: str | None = None
+        for row_id, created_at, role, content, cost in rows:
+            if role == "user":
+                questions += 1
+                text = " ".join(str(content or "").split())
+                pending_question = text[:200] or None
                 continue
-            cost = evidence.get("cost") or {}
-            if not isinstance(cost, dict):
-                continue
-            prompt_tokens = int(cost.get("prompt_tokens") or 0)
-            completion_tokens = int(cost.get("completion_tokens") or 0)
-            model = str(cost.get("model") or config.resolved_model())
-            item_cost = config.estimate_cost_usd(model, prompt_tokens, completion_tokens)
-            if not item_cost:
-                continue
-            llm_usd += item_cost
+            cost = cost if isinstance(cost, dict) else None
+            if cost is None:
+                # No cost dict at all: the turn ran but never recorded one.
+                item_cost, price_note = None, "cost not recorded for this turn"
+                unrecorded_calls += 1
+                prompt_tokens = completion_tokens = 0
+                model = ""
+            else:
+                prompt_tokens = int(cost.get("prompt_tokens") or 0)
+                completion_tokens = int(cost.get("completion_tokens") or 0)
+                called = bool(cost.get("called", True))
+                # A turn that never called the model has no model of its own;
+                # falling back to the configured one would name a provider that
+                # never answered.
+                model = str(
+                    cost.get("model") or (config.resolved_model() if called else "")
+                )
+                if not called:
+                    # Measured zero: no provider was contacted, so this is a
+                    # free turn that happened, not an unknown price.
+                    item_cost, price_note = 0.0, "the model was never called"
+                    priced_calls += 1
+                else:
+                    item_cost = config.estimate_cost_usd(
+                        model, prompt_tokens, completion_tokens
+                    )
+                    if item_cost is None:
+                        price_note = f"no rate on file for {model}"
+                        unpriced_models[model] = unpriced_models.get(model, 0) + 1
+                    else:
+                        price = config.model_price(model) or {}
+                        price_note = (
+                            "runs locally, no metered rate" if price.get("local") else None
+                        )
+                        priced_calls += 1
+                        llm_usd += item_cost
             history.append(
                 {
-                   "kind": "llm",
-                   "role": role,
-                   "model": model,
-                   "prompt_tokens": prompt_tokens,
-                   "completion_tokens": completion_tokens,
-                   "total_tokens": prompt_tokens + completion_tokens,
-                   "cost_usd": round(item_cost, 6),
-                   "latency_ms": float(cost.get("generation_ms") or cost.get("latency_ms") or 0.0),
-                   "timestamp": created_at.isoformat() if created_at else None,
+                    "kind": "llm",
+                    "role": role,
+                    "question": pending_question,
+                    "model": model,
+                    "recorded": cost is not None,
+                    "prompt_tokens": prompt_tokens,
+                    "completion_tokens": completion_tokens,
+                    "total_tokens": prompt_tokens + completion_tokens,
+                    "cost_usd": None if item_cost is None else round(item_cost, 6),
+                    "price_note": price_note,
+                    "latency_ms": float(
+                        (cost or {}).get("generation_ms")
+                        or (cost or {}).get("latency_ms")
+                        or 0.0
+                    ),
+                    "timestamp": created_at.isoformat() if created_at else None,
                 }
             )
+            pending_question = None
 
         rows = conn.execute(
-            "SELECT id, created_at, kind, model, prompt_tokens, completion_tokens, latency_ms "
+            "SELECT id, created_at, kind, model, prompt_tokens, completion_tokens, "
+            "latency_ms "
             "FROM usage_events "
-            + ("WHERE session_id = %s" if session_id else "") + " ORDER BY id DESC",
+            + scope
+            + " ORDER BY id ASC",
             params,
         ).fetchall()
         for row_id, created_at, kind, model, prompt_tokens, completion_tokens, latency_ms in rows:
             model_name = str(model or config.resolved_model())
-            item_cost = config.estimate_cost_usd(model_name, int(prompt_tokens or 0), int(completion_tokens or 0))
-            if item_cost:
+            item_cost = config.estimate_cost_usd(
+                model_name, int(prompt_tokens or 0), int(completion_tokens or 0)
+            )
+            if item_cost is None:
+                price_note = f"no rate on file for {model_name}"
+                unpriced_models[model_name] = unpriced_models.get(model_name, 0) + 1
+            else:
+                price_note = None
+                priced_calls += 1
                 web_usd += item_cost
             history.append(
                 {
-                   "kind": "web_search",
-                   "role": kind,
-                   "model": model_name,
-                   "prompt_tokens": int(prompt_tokens or 0),
-                   "completion_tokens": int(completion_tokens or 0),
-                   "total_tokens": int(prompt_tokens or 0) + int(completion_tokens or 0),
-                   "cost_usd": round(item_cost, 6),
-                   "latency_ms": float(latency_ms or 0.0),
-                   "timestamp": created_at.isoformat() if created_at else None,
+                    "kind": "web_search",
+                    "role": kind,
+                    "question": None,
+                    "model": model_name,
+                    "recorded": True,
+                    "prompt_tokens": int(prompt_tokens or 0),
+                    "completion_tokens": int(completion_tokens or 0),
+                    "total_tokens": int(prompt_tokens or 0) + int(completion_tokens or 0),
+                    "cost_usd": None if item_cost is None else round(item_cost, 6),
+                    "price_note": price_note,
+                    "latency_ms": float(latency_ms or 0.0),
+                    "timestamp": created_at.isoformat() if created_at else None,
                 }
             )
 
@@ -436,6 +544,9 @@ def usage_report(session_id: str | None = None) -> dict:
     total_usd = round(llm_usd + web_usd, 6)
     return {
         "currency": "USD",
+        "as_of": config.MODEL_PRICE_AS_OF,
+        "price_source": config.MODEL_PRICE_SOURCE,
+        "notes": list(config.MODEL_PRICE_NOTES),
         "total_usd": total_usd,
         "llm_usd": round(llm_usd, 6),
         "web_search_usd": round(web_usd, 6),
@@ -445,9 +556,16 @@ def usage_report(session_id: str | None = None) -> dict:
         "llm_completion_tokens": int(totals["llm_completion_tokens"]),
         "web_prompt_tokens": int(totals["web_prompt_tokens"]),
         "web_completion_tokens": int(totals["web_completion_tokens"]),
-        "questions": int(totals["turns"]),
+        # A question is a user message. The message count was being labelled
+        # "questions", which read as a 2x error against the thread beside it.
+        "questions": questions,
+        "messages": int(totals["turns"]),
         "searches": int(totals["searches"]),
-        "history": history,
+        "priced_calls": priced_calls,
+        "unpriced_calls": sum(unpriced_models.values()),
+        "unrecorded_calls": unrecorded_calls,
+        "unpriced_models": sorted(unpriced_models),
+        "history": history[:50],
     }
 
 

@@ -377,7 +377,11 @@ export default function App() {
               onClick={() => setCostOpen((open) => !open)}
               type="button"
             >
-              {formatUsd(status.costs.total_usd)} total
+              {/* No rows means nothing has been measured yet. Printing
+                  "$0.0000 total" there states a measurement nobody made. */}
+              {status.costs.history && status.costs.history.length
+                ? `${formatUsd(status.costs.total_usd)} total`
+                : "Costs"}
             </button>
           ) : null}
           <button
@@ -403,6 +407,15 @@ export default function App() {
               <div>
                 <strong>Cost dashboard</strong>
                 <small>{status.provider} · {status.model}</small>
+                {/* A dollar figure without a rate card and a date is a rumour.
+                    The as-of date travels with the totals from the API. */}
+                <small
+                  className="cost-provenance"
+                  title={status.costs.price_source || ""}
+                >
+                  Estimate · prices as of {status.costs.as_of || "unknown"} ·
+                  {" "}{status.costs.price_source}
+                </small>
               </div>
               <button type="button" onClick={() => setCostOpen((open) => !open)}>
                 {costOpen ? "Collapse" : "Expand"}
@@ -425,26 +438,32 @@ export default function App() {
                   </div>
                   <div className="cost-box">
                     <label>Tokens</label>
-                    <strong>{(status.costs.prompt_tokens + status.costs.completion_tokens).toLocaleString()}</strong>
+                    <strong>{Number((status.costs.prompt_tokens ?? 0) + (status.costs.completion_tokens ?? 0)).toLocaleString()}</strong>
                   </div>
                 </div>
 
                 <div className="cost-grid cost-grid-meta">
                   <div className="cost-box compact">
                     <label>Input tokens</label>
-                    <strong>{status.costs.prompt_tokens.toLocaleString()}</strong>
+                    <strong>{Number(status.costs.prompt_tokens ?? 0).toLocaleString()}</strong>
                   </div>
                   <div className="cost-box compact">
                     <label>Output tokens</label>
-                    <strong>{status.costs.completion_tokens.toLocaleString()}</strong>
+                    <strong>{Number(status.costs.completion_tokens ?? 0).toLocaleString()}</strong>
                   </div>
                   <div className="cost-box compact">
-                    <label>Turns</label>
+                    <label>Questions</label>
                     <strong>{status.costs.questions || 0}</strong>
                   </div>
                   <div className="cost-box compact">
-                    <label>Billable calls</label>
-                    <strong>{status.costs.history ? status.costs.history.filter((item) => item.cost_usd > 0).length : 0}</strong>
+                    <label>Priced calls</label>
+                    <strong>{status.costs.priced_calls ?? 0}</strong>
+                  </div>
+                  {/* Unpriced rows stay visible rather than disappearing: they
+                      are tokens spent at a rate nobody has on file. */}
+                  <div className={`cost-box compact${status.costs.unpriced_calls ? " warn" : ""}`}>
+                    <label>No rate on file</label>
+                    <strong>{status.costs.unpriced_calls || 0}</strong>
                   </div>
                 </div>
 
@@ -458,7 +477,9 @@ export default function App() {
                       status.costs.history.slice(0, 10).map((item, index) => (
                         <div key={`${item.kind}-${index}`} className="cost-row">
                           <span className="cost-pill">{item.kind === "web_search" ? "Web" : "LLM"}</span>
-                          <span className="cost-model">{item.model}</span>
+                          <span className="cost-model" title={item.model || ""}>
+                            {item.model || (item.recorded === false ? "—" : "not called")}
+                          </span>
                           <span className="cost-tokens">
                             {(Number(item.prompt_tokens || 0)).toLocaleString()} in / {(Number(item.completion_tokens || 0)).toLocaleString()} out
                           </span>
@@ -468,14 +489,37 @@ export default function App() {
                           <span className="cost-row-time">
                             {item.timestamp ? new Date(item.timestamp).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }) : "—"}
                           </span>
-                          <span className="cost-row-cost">{item.cost_usd > 0 ? formatUsd(item.cost_usd) : "$0.0000"}</span>
+                          {/* null cost means no rate is on file; 0.0000 means it
+                              was measured and it was free. Different claims, so
+                              they are written differently. */}
+                          <span className="cost-row-cost" title={item.price_note || ""}>
+                            {item.cost_usd == null
+                              ? item.recorded === false ? "no cost data" : "no rate"
+                              : formatUsd(item.cost_usd)}
+                          </span>
                         </div>
                       ))
                     ) : (
-                      <div className="cost-row empty">No billable calls recorded yet.</div>
+                      <div className="cost-row empty">No calls recorded yet.</div>
                     )}
                   </div>
                 </div>
+
+                {(status.costs.notes && status.costs.notes.length) ||
+                (status.costs.unpriced_models || []).length ? (
+                  <div className="cost-notes">
+                    {(status.costs.notes || []).map((note) => (
+                      <p key={note}>{note}</p>
+                    ))}
+                    {(status.costs.unpriced_models || []).length ? (
+                      <p>
+                        No rate on file for:{" "}
+                        {status.costs.unpriced_models.join(", ")} - those calls
+                        show as <em>no rate</em> and are not in the total.
+                      </p>
+                    ) : null}
+                  </div>
+                ) : null}
               </>
             ) : null}
           </section>

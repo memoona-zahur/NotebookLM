@@ -28,6 +28,16 @@ router = APIRouter(prefix="/api", tags=["sources"])
 
 ALLOWED = SUPPORTED
 
+
+def _is_database_failure(exc: BaseException) -> bool:
+    """True for pool exhaustion and connection errors - infrastructure, not input."""
+    try:
+        import psycopg
+        from psycopg_pool import PoolTimeout
+    except Exception:  # noqa: BLE001 - then this deployment has no psycopg to blame
+        return False
+    return isinstance(exc, (psycopg.Error, PoolTimeout))
+
 # Uploads are copied to disk in pieces this size rather than one `file.read()`,
 # which would hold the whole file in memory with no ceiling on it.
 UPLOAD_CHUNK_BYTES = 1024 * 1024
@@ -94,6 +104,13 @@ async def add_source(
         # A file we could not parse is not worth keeping; one we parsed is
         # retained so the session can be re-indexed without a re-upload.
         target.unlink(missing_ok=True)
+        if _is_database_failure(exc):
+            # A pool timeout or a dropped connection is not the user's file
+            # being bad. Answering 400 here tells someone to fix an upload that
+            # was never wrong, and the UI shows the parser's fault on the file.
+            raise HTTPException(
+                503, "The database is busy; try the upload again."
+            ) from exc
         raise HTTPException(400, f"Could not read file: {exc}") from exc
 
     # `duplicate` is surfaced at the top level as well as on the source, because

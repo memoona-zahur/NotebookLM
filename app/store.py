@@ -261,6 +261,12 @@ class VectorStore:
         chunk_count = 0
         source_id = None
         kind = path.suffix.lower().lstrip(".")
+        # Embed before the transaction opens. embed_texts is seconds of CPU
+        # work; holding one of the pool's connections across it means two
+        # concurrent uploads can starve every other request out of the pool.
+        # reindex has always done it this way - the two paths should not
+        # disagree about when the expensive part happens.
+        vectors = embed_texts([row[3] for row in keep]) if keep else []
         with db.connection() as conn:
             source = conn.execute(
                 "INSERT INTO sources (session_id, name, kind, pages, storage_path, url, "
@@ -275,7 +281,6 @@ class VectorStore:
             source_id = source[0]
             created_at = source[1]
             if keep:
-                vectors = embed_texts([row[3] for row in keep])
                 with conn.cursor() as cur:
                     cur.executemany(
                         "INSERT INTO chunks (source_id, position, page, heading, text, "

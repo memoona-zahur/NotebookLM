@@ -41,27 +41,21 @@ def ask(question: str, session: db.SessionRow) -> dict:
 
     # History is read from the session, never from the request body: a client
     # that supplies its own turns could otherwise inject context the server did
-    # not record.
-    history = db.recent_messages(session_id, config.HISTORY_TURNS)
+    # not record. Long sessions are compacted into a short summary so the model
+    # keeps the relevant thread without being forced to carry the full transcript.
+    history = db.recent_messages(session_id, config.HISTORY_TURNS, compact=True)
 
-    # Not every message is a question about the corpus. "Hi" has no passage to
-    # retrieve and no answer to ground, so it is answered without embedding
-    # anything or spending a token. See app/intent.py for why this is a
-    # whole-message match and not a keyword scan.
+    # Not every message is a question about the corpus. A greeting, a thank-you,
+    # or an assistant-capability question is ordinary conversation, not retrieval,
+    # and it should still receive a natural assistant reply even when there are no
+    # uploaded files yet.
     kind = intent.classify(question)
     has_sources = bool(store.stats(session_id)["sources"])
     if kind != "question":
-        # Greetings and small talk go to the model when it is reachable, so the
-        # first thing the app says sounds like an assistant rather than a canned
-        # string. An empty notebook still short-circuits: there is nothing to
-        # offer help with yet, and the useful reply is the one that says what to
-        # do next rather than a warm sentence about sources that do not exist.
-        #
-        # A question about the assistant itself is the exception to that
-        # short-circuit. "Who r u" is answerable with no documents, so telling
-        # the user to add a PDF would be a non-answer to a question that was
-        # never about the corpus.
-        if has_sources or kind == "assistant":
+        # General conversation is allowed to work before a notebook has any
+        # sources. Only a real corpus question should receive the "add a PDF"
+        # nudge.
+        if kind in {"greeting", "small_talk", "assistant"}:
             return _conversational(question, session_id, kind, history)
         return _conversational(question, session_id, "empty")
     if not has_sources:
@@ -258,7 +252,9 @@ def summarize(instruction: str, session: db.SessionRow) -> dict:
     """Summarise a session's sources, honouring an optional instruction."""
     session_id = str(session.id)
     query = instruction.strip() or "key points, themes and conclusions"
+    started = time.perf_counter()
     search = store.search_detailed(query, session_id=session_id, top_k=12)
+    retrieval_ms = (time.perf_counter() - started) * 1000
 
     if not search.relevant:
         # Don't spend an LLM call on passages we already judged irrelevant, and
@@ -269,17 +265,35 @@ def summarize(instruction: str, session: db.SessionRow) -> dict:
             if empty
             else "None of the indexed sources match that instruction. Try a broader topic."
         )
+        refusal = usage.not_called(
+            config.resolved_model(), retrieval_ms, "no_match", len(search.hits)
+        )
         return {
             "summary": message,
             "citations": [],
-            "evidence": evidence(search, Grounded(message, [], [], 0), "no_match"),
+            "evidence": evidence(
+                search, Grounded(message, [], [], 0), "no_match", refusal
+            ),
         }
 
     audit = run_summary(search.hits, instruction)
+    # Summarising is a real generation and is priced like one. Without this the
+    # tokens it spends and the time it takes are recorded nowhere: the call
+    # happens and the only trace of it is a missing number.
+    reported = last_usage()
+    cost = usage.Request(
+        model=reported.model or config.resolved_model(),
+        usage=reported,
+        retrieval_ms=retrieval_ms,
+        generation_ms=reported.latency_ms,
+        passages_sent=audit.passages,
+        context_chars=sum(len(str(h.get("text") or "")) for h in search.hits),
+        verdict="answered",
+    )
     return {
         "summary": audit.text,
         "citations": search.hits,
-        "evidence": evidence(search, audit, "answered"),
+        "evidence": evidence(search, audit, "answered", cost),
     }
 
 

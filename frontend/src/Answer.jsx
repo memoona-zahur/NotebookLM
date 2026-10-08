@@ -157,13 +157,17 @@ function Cost({ cost }) {
     return <span className="chip ok">no tokens spent — refused before the model</span>;
   }
 
-  const ms = Math.round(cost.generation_ms);
+  // Read defensively: a turn recorded by an older build - or restored from a
+  // backup taken before a field existed - can be missing one of these, and a
+  // missing number must not take the whole thread down with it.
+  const total = Number(cost.total_tokens ?? 0);
+  const ms = Math.round(Number(cost.generation_ms ?? 0));
   const seconds = ms >= 1000 ? `${(ms / 1000).toFixed(1)}s` : `${ms}ms`;
 
   return (
     <span className="chip" title={cost.estimated ? "Token count estimated from text length" : "Token count reported by the provider"}>
-      {cost.total_tokens.toLocaleString()} tokens{cost.estimated ? " (est.)" : ""} ·{" "}
-      {seconds} to answer · {Math.round(cost.retrieval_ms)}ms to search
+      {total.toLocaleString()} tokens{cost.estimated ? " (est.)" : ""} ·{" "}
+      {seconds} to answer · {Math.round(Number(cost.retrieval_ms ?? 0))}ms to search
     </span>
   );
 }

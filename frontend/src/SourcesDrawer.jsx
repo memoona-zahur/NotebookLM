@@ -318,9 +318,11 @@ export function SourcesDrawer({
               ) : null}
               <dt>Relevance floor</dt>
               <dd>{Math.round(status.min_score * 100)}%</dd>
-              {/* Tokens, not dollars: a price table goes stale, and tokens plus
-                  model stays true when prices change. Searches are broken out
-                  because they are the spend the response used to throw away. */}
+              {/* Tokens here, dollars in the cost dashboard above. A price
+                  table goes stale, so the dollar figure only means something
+                  with the as-of date and source it travels with - which is why
+                  the panel prints both. Searches are broken out because they
+                  are the spend the response used to throw away. */}
               {status.usage ? (
                 <>
                   <dt>Tokens spent</dt>

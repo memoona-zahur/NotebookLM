@@ -387,6 +387,18 @@
   letter-spacing: -0.02em;
 }
 
+.cost-provenance {
+  margin-top: 2px;
+}
+
+/* A non-zero "no rate on file" count means part of the spend is unknowable,
+   and that should be visible rather than sitting quietly in a total. Blue,
+   not --warn: --warn in this palette is destructive red, and an unpriced
+   model is not an error. */
+.cost-box.warn strong {
+  color: var(--accent-text);
+}
+
 .cost-list-wrap {
   padding: 0 16px 16px;
 }
@@ -464,6 +476,16 @@
 .cost-row.empty {
   color: var(--faint);
   justify-content: center;
+}
+
+.cost-notes {
+  padding: 4px 16px 16px;
+  color: var(--faint);
+  font-size: 11px;
+}
+
+.cost-notes p {
+  margin: 6px 0 0;
 }
 
 /* Source drawer ----------------------------------------------------------- */
