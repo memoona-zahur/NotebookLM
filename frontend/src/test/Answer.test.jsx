@@ -75,6 +75,22 @@ describe("Citation", () => {
     expect(screen.getByText(/p\.3/)).toBeInTheDocument();
     expect(screen.getByText("42%")).toBeInTheDocument();
   });
+
+  it("highlights only the exact source sentence tied to the answer", () => {
+    render(
+      <Citation
+        citation={{
+          ...citation,
+          text: "The photometer has 42 CCDs. It measures light for the mission.",
+          highlight: { start: 0, end: 26 },
+        }}
+        index={0}
+        cited={[1]}
+      />,
+    );
+    const mark = document.querySelector(".source-highlight");
+    expect(mark).toHaveTextContent("The photometer has 42 CCDs");
+  });
 });
 
 describe("Evidence", () => {

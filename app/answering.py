@@ -19,7 +19,9 @@ would be a reasonable product decision and none of them belongs in a module
 whose whole job is to make one policy legible.
 """
 
+import re
 import time
+from difflib import SequenceMatcher
 
 from . import config, db, intent, tracing, usage
 from .llm import NO_MATCH, Grounded, LLMUnavailable, answer as run_answer
@@ -28,6 +30,81 @@ from .llm import last_usage
 from .llm import summarize as run_summary
 from .payloads import evidence
 from .store import store
+
+
+def _sentence_spans(text: str) -> list[tuple[int, int, str]]:
+    """Split text into sentence-like spans with the original offsets preserved."""
+    spans: list[tuple[int, int, str]] = []
+    current = []
+    start = 0
+    for index, char in enumerate(text):
+        current.append(char)
+        if char in ".!?":
+            end = index + 1
+            chunk = text[start:end].strip()
+            if chunk:
+                spans.append((start, end, chunk))
+            start = end
+    tail = text[start:].strip()
+    if tail:
+        spans.append((start, len(text), tail))
+    if not spans:
+        return [(0, len(text), text.strip())] if text.strip() else []
+    return spans
+
+
+def _tokenize(text: str) -> list[str]:
+    return re.findall(r"[A-Za-z0-9]+", (text or "").lower())
+
+
+def _clause_score(left: str, right: str) -> float:
+    left_tokens = set(_tokenize(left))
+    right_tokens = set(_tokenize(right))
+    if not left_tokens or not right_tokens:
+        return 0.0
+    overlap = len(left_tokens & right_tokens)
+    union = len(left_tokens | right_tokens)
+    overlap_score = overlap / union if union else 0.0
+    return max(overlap_score, SequenceMatcher(None, left.lower(), right.lower()).ratio())
+
+
+def _citation_highlight(answer_text: str, passage_text: str, citation_index: int) -> tuple[int, int] | None:
+    """Find the most likely sentence in a passage that supports the answer's [n] citation."""
+    marker = f"[{citation_index}]"
+    match = re.search(re.escape(marker), answer_text)
+    if match is None:
+        return None
+    window_start = max(0, match.start() - 180)
+    window_end = min(len(answer_text), match.end() + 180)
+    answer_clause = answer_text[window_start:window_end].strip()
+    if not answer_clause:
+        return None
+
+    best = None
+    best_score = 0.0
+    for start, end, sentence in _sentence_spans(passage_text):
+        cleaned = sentence.strip()
+        if not cleaned:
+            continue
+        score = _clause_score(answer_clause.replace(marker, ""), cleaned)
+        if score > best_score:
+            best_score = score
+            best = (start, end)
+    if best is None or best_score < 0.12:
+        return None
+    return best
+
+
+def _annotate_citations(answer_text: str, hits: list[dict]) -> list[dict]:
+    """Add exact source sentence spans to cited passages so the UI can highlight only the evidence."""
+    annotated: list[dict] = []
+    for index, hit in enumerate(hits, start=1):
+        clue = dict(hit)
+        highlight = _citation_highlight(answer_text, hit.get("text", ""), index)
+        if highlight is not None:
+            clue["highlight"] = {"start": highlight[0], "end": highlight[1]}
+        annotated.append(clue)
+    return annotated
 
 
 def ask(question: str, session: db.SessionRow) -> dict:
@@ -97,6 +174,8 @@ def ask(question: str, session: db.SessionRow) -> dict:
                 passages=audit.passages,
                 **reported.as_dict(),
             )
+
+        search.hits = _annotate_citations(audit.text, search.hits)
 
         cost = usage.Request(
             model=reported.model or config.resolved_model(),

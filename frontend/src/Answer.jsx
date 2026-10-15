@@ -42,13 +42,40 @@ export function useCitationLinks(threadRef) {
       link.classList.add("active");
 
       target.classList.add("open", "flash");
+      const exact = target.querySelector(".source-highlight");
+      if (exact) {
+        exact.classList.add("flash");
+      }
       target.scrollIntoView({ behavior: "smooth", block: "center" });
       setTimeout(() => target.classList.remove("flash"), 1200);
+      setTimeout(() => {
+        if (exact) exact.classList.remove("flash");
+      }, 1200);
     };
 
     root.addEventListener("click", onClick);
     return () => root.removeEventListener("click", onClick);
   }, [threadRef]);
+}
+
+function SourceHighlight({ text, highlight }) {
+  if (!highlight || !Number.isInteger(highlight.start) || !Number.isInteger(highlight.end)) {
+    return <>{text}</>;
+  }
+
+  const start = Math.max(0, Math.min(highlight.start, text.length));
+  const end = Math.max(start, Math.min(highlight.end, text.length));
+  if (start >= end || end <= start) {
+    return <>{text}</>;
+  }
+
+  return (
+    <>
+      {text.slice(0, start)}
+      <mark className="source-highlight">{text.slice(start, end)}</mark>
+      {text.slice(end)}
+    </>
+  );
 }
 
 /** A retrieved passage, collapsed to a header and expandable to the full text. */
@@ -78,7 +105,9 @@ export function Citation({ citation, index, cited }) {
         <span className="cite-score">{Math.round((citation.score || 0) * 100)}%</span>
         {wasCited ? <span className="cite-cited" title="Cited by the answer" /> : null}
       </button>
-      <pre className="snippet">{citation.text}</pre>
+      <pre className="snippet">
+        <SourceHighlight text={citation.text} highlight={wasCited ? citation.highlight : null} />
+      </pre>
     </div>
   );
 }

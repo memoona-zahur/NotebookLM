@@ -1245,12 +1245,18 @@
   overflow-wrap: anywhere;
 }
 
-mark.hit {
+mark.hit,
+.source-highlight {
   padding: 0 1px;
   border-radius: 2px;
   background: var(--mark);
   color: var(--mark-ink);
   font-weight: 600;
+}
+
+.source-highlight.flash {
+  background: var(--flash);
+  box-shadow: inset 0 0 0 1px var(--accent);
 }
 
 .occ-close {
