@@ -70,6 +70,7 @@ db.migrate()
 # Where the parser tests drop files. A scratch directory rather than the
 # project's own data folder, so a test run never leaves something behind that
 # looks like a real upload.
+ROOT = Path(__file__).resolve().parent
 TMP = Path(os.environ.get("TEMP") or ".") / "notebooklm-parse-tests"
 
 
@@ -315,9 +316,15 @@ def test_migrated_schema_matches_what_the_app_uses(client: TestClient) -> None:
                     # facts, `size_splits` is the character ceiling's count
                     # against the wordpiece ceiling's - reporting only one of
                     # the two ceilings would answer half the question.
-                    "file_bytes", "size_splits"},
+                    "file_bytes", "size_splits",
+                    # Added by 0007. The parsed text is what non-PDF sources are
+                    # shown as, and `page_offsets` turns a document offset into
+                    # a page-local one.
+                    "parsed_text", "page_offsets"},
         "chunks": {"id", "source_id", "position", "page", "heading", "text",
-                   "numeric_heavy", "embedding"},
+                   "numeric_heavy", "embedding",
+                   # Added by 0007: where the chunk sits in the parsed text.
+                   "char_start", "char_end"},
         "messages": {
             "id",
             "session_id",
@@ -1840,7 +1847,10 @@ def test_every_chunk_of_a_source_is_returned_with_its_size(client: TestClient) -
     assert [c["position"] for c in chunks] == list(range(len(chunks)))
     for chunk in chunks:
         assert set(chunk) == {"position", "page", "heading", "text", "chars",
-                              "numeric", "wordpieces"}, set(chunk)
+                              "numeric", "wordpieces",
+                              # Added with 0007: where the chunk sits in the
+                              # parsed text, None when not recorded.
+                              "char_start", "char_end"}, set(chunk)
         # The stored measurement, not a re-count that could disagree with the
         # average and maximum already shown on the row above it.
         assert chunk["chars"] == len(chunk["text"]), chunk["position"]
@@ -1858,6 +1868,209 @@ def test_every_chunk_of_a_source_is_returned_with_its_size(client: TestClient) -
         f"/api/sources/{uuid.uuid4()}/chunks", params={"session_id": sid}
     ).status_code == 404
     print("  every chunk of a source is returned with its size: OK")
+
+
+def _legacy_chunk_text(text: str, size: int, overlap: int) -> list[str]:
+    """`chunk_text` exactly as it was before it was rebuilt on `chunk_spans`."""
+    size = max(1, int(size))
+    overlap = max(0, min(int(overlap), size // 2))
+    if len(text) <= size:
+        return [text] if text else []
+    chunks: list[str] = []
+    if parsers.is_numeric_heavy(text):
+        buffer: list[str] = []
+        length = 0
+        for line in text.splitlines():
+            if not line.strip():
+                continue
+            if buffer and length + len(line) > size:
+                chunks.append("\n".join(buffer))
+                buffer, length = [], 0
+            buffer.append(line)
+            length += len(line) + 1
+        if buffer:
+            chunks.append("\n".join(buffer))
+        return chunks
+    start = 0
+    while start < len(text):
+        end = min(start + size, len(text))
+        if end < len(text):
+            window = text[start:end]
+            split = max(window.rfind("\n\n"), window.rfind(". "), window.rfind(" "))
+            if split > size * 0.5:
+                end = start + split + 1
+        piece = text[start:end].strip()
+        if piece:
+            chunks.append(piece)
+        if end >= len(text):
+            break
+        start = max(start + 1, end - overlap)
+    return chunks
+
+
+def _squash(text: str) -> str:
+    return " ".join(text.split())
+
+
+def test_chunk_text_is_unchanged_by_the_span_rewrite(client: TestClient) -> None:
+    """Recording offsets must not move a single chunk boundary.
+
+    Every embedding, score and eval number was calibrated on the old cuts, so
+    the rewrite is only acceptable if it is byte-identical to the old function
+    on real documents and on awkward sizes.
+    """
+    checked = 0
+    for path in sorted((ROOT / "experiments" / "corpus").iterdir()):
+        if path.suffix.lower() not in parsers.SUPPORTED:
+            continue
+        for block in parsers._raw_blocks(path, 900):
+            for size, overlap in ((900, 150), (300, 60), (120, 40), (50, 400)):
+                assert parsers.chunk_text(block.text, size, overlap) == \
+                    _legacy_chunk_text(block.text, size, overlap), (path.name, size)
+                checked += 1
+    assert checked > 100, checked
+    print(f"  chunk_text matches the previous implementation on {checked} cases: OK")
+
+
+def test_every_chunk_knows_where_it_came_from(client: TestClient) -> None:
+    """A chunk's offsets slice the parsed text back to the chunk.
+
+    Prose must match exactly. Table-like chunks are their lines re-joined, so
+    they match up to whitespace. Overlapping chunks must overlap in *offsets*,
+    not just in words, because the same region has one position.
+    """
+    tmp = TMP / "offsets"
+    tmp.mkdir(parents=True, exist_ok=True)
+
+    prose = tmp / "long.txt"
+    prose.write_text(
+        "\n\n".join(
+            f"Paragraph {i} says that the reactor coolant temperature stays "
+            f"below 300 degrees. Section {i}.2 adds that valves close at 5.5 bar. "
+            * 4
+            for i in range(12)
+        )
+    )
+    document = parsers.parse_document(prose, chunk_size=400, chunk_overlap=100)
+    assert len(document.blocks) > 10, len(document.blocks)
+    for block in document.blocks:
+        assert block.start is not None and block.end is not None, block
+        assert document.text[block.start:block.end] == block.text, block.start
+    overlaps = sum(
+        1 for a, b in zip(document.blocks, document.blocks[1:]) if b.start < a.end
+    )
+    assert overlaps >= 3, "chunk overlap must show up as overlapping offsets"
+    print(f"  prose chunks slice back exactly, {overlaps} overlaps share offsets: OK")
+
+    table = tmp / "rows.csv"
+    table.write_text("id,temp,flow\n" + "\n".join(f"{i},{20 + i}.5,{i * 3}.25" for i in range(300)))
+    document = parsers.parse_document(table, chunk_size=300)
+    assert len(document.blocks) > 2
+    for block in document.blocks:
+        assert _squash(document.text[block.start:block.end]) == _squash(block.text), block
+
+    for name in ("handbook.pdf", "football.md", "contract.html", "report.docx",
+                 "coffee_sales.csv", "pipeline.py", "app.log"):
+        document = parsers.parse_document(ROOT / "experiments" / "corpus" / name)
+        for block in document.blocks:
+            assert 0 <= block.start <= block.end <= len(document.text), (name, block)
+            assert _squash(document.text[block.start:block.end]) == _squash(block.text), \
+                (name, block.start)
+    print("  table, PDF, Markdown, HTML, DOCX, CSV, code and log offsets slice back: OK")
+
+
+def test_pdf_chunks_fall_inside_their_page(client: TestClient) -> None:
+    """`page_offsets` says where each page starts, and chunks stay inside theirs."""
+    tmp = TMP / "offsets"
+    tmp.mkdir(parents=True, exist_ok=True)
+    path = tmp / "three.pdf"
+    path.write_bytes(make_pdf(pages=3))
+    document = parsers.parse_document(path, chunk_size=300, chunk_overlap=60)
+    offsets = document.page_offsets
+    assert offsets and len(offsets) == 3 and offsets == sorted(offsets), offsets
+    assert offsets[0] == 0, offsets
+    for block in document.blocks:
+        low = offsets[block.page - 1]
+        high = offsets[block.page] if block.page < len(offsets) else len(document.text)
+        assert low <= block.start and block.end <= high, (block.page, block.start, block.end, offsets)
+
+    doc = parsers.parse_document(ROOT / "experiments" / "corpus" / "football.md")
+    assert doc.page_offsets is None, "a format without pages has no page offsets"
+    print("  PDF chunks lie inside their page's range; other formats have none: OK")
+
+
+def test_offsets_are_stored_and_returned(client: TestClient) -> None:
+    """Upload records the parsed text and offsets; reindex backfills them."""
+    sid = client.post("/api/sessions", json={"name": "offsets stored"}).json()["id"]
+    source = upload(client, "doc.txt", (
+        "Alpha clause one. " * 30 + "\n\n" + "Beta clause two. " * 30
+    ).encode(), session_id=sid)
+
+    with db.connection() as conn:
+        parsed, pages = conn.execute(
+            "SELECT parsed_text, page_offsets FROM sources WHERE id = %s", (source["id"],)
+        ).fetchone()
+    assert parsed and "Beta clause two." in parsed and pages is None
+
+    chunks = client.get(f"/api/sources/{source['id']}/chunks", params={"session_id": sid}).json()["chunks"]
+    for chunk in chunks:
+        assert parsed[chunk["char_start"]:chunk["char_end"]] == chunk["text"], chunk
+
+    # A source indexed before 0007 has no positions; NULL says so, 0 would lie.
+    with db.connection() as conn:
+        conn.execute("UPDATE chunks SET char_start = NULL, char_end = NULL WHERE source_id = %s", (source["id"],))
+        conn.execute("UPDATE sources SET parsed_text = NULL WHERE id = %s", (source["id"],))
+    old = client.get(f"/api/sources/{source['id']}/chunks", params={"session_id": sid}).json()["chunks"]
+    assert all(c["char_start"] is None and c["char_end"] is None for c in old)
+
+    assert client.post(f"/api/sources/{source['id']}/reindex", params={"session_id": sid}).status_code == 200
+    again = client.get(f"/api/sources/{source['id']}/chunks", params={"session_id": sid}).json()["chunks"]
+    assert all(c["char_start"] is not None for c in again), "reindex must backfill offsets"
+    client.delete(f"/api/sessions/{sid}")
+    print("  offsets are stored, NULL when unrecorded, and backfilled by reindex: OK")
+
+
+def test_migration_0007_round_trips_on_a_fresh_database(client: TestClient) -> None:
+    """upgrade -> downgrade -> upgrade on a brand-new database, not the shared one.
+
+    A downgrade nobody has run is a downgrade that does not work. This uses its
+    own scratch database so dropping the columns cannot disturb other tests.
+    """
+    import psycopg
+    from alembic import command
+    from psycopg import sql
+    from psycopg.conninfo import make_conninfo
+
+    name = f"{TEST_DB}_roundtrip"
+    url = make_conninfo(ADMIN_URL, dbname=name)
+    with psycopg.connect(ADMIN_URL, autocommit=True) as admin:
+        admin.execute(sql.SQL("DROP DATABASE IF EXISTS {}").format(sql.Identifier(name)))
+        admin.execute(sql.SQL("CREATE DATABASE {}").format(sql.Identifier(name)))
+
+    def columns() -> set[str]:
+        with psycopg.connect(url) as conn:
+            rows = conn.execute(
+                "SELECT table_name || '.' || column_name FROM information_schema.columns "
+                "WHERE table_schema = 'public' AND table_name IN ('sources', 'chunks')"
+            ).fetchall()
+        return {row[0] for row in rows}
+
+    new = {"sources.parsed_text", "sources.page_offsets", "chunks.char_start", "chunks.char_end"}
+    previous = os.environ["DATABASE_URL"]
+    os.environ["DATABASE_URL"] = url
+    try:
+        cfg = db.alembic_config()
+        command.upgrade(cfg, "head")
+        assert new <= columns(), new - columns()
+        command.downgrade(cfg, "0006_source_view")
+        assert not (new & columns()), new & columns()
+        command.upgrade(cfg, "head")
+        assert new <= columns()
+    finally:
+        os.environ["DATABASE_URL"] = previous
+        with psycopg.connect(ADMIN_URL, autocommit=True) as admin:
+            admin.execute(sql.SQL("DROP DATABASE IF EXISTS {}").format(sql.Identifier(name)))
+    print("  migration 0007 upgrades, downgrades and upgrades again: OK")
 
 
 def test_a_chunking_config_that_could_hang_cannot_hang(client: TestClient) -> None:
@@ -4048,6 +4261,11 @@ def test_latency_percentiles_are_reported_over_recent_requests(client: TestClien
 
 
 ORDER = [
+    ("chunking is unchanged by offsets", test_chunk_text_is_unchanged_by_the_span_rewrite),
+    ("chunks know their position", test_every_chunk_knows_where_it_came_from),
+    ("pdf chunks stay inside their page", test_pdf_chunks_fall_inside_their_page),
+    ("offsets stored and backfilled", test_offsets_are_stored_and_returned),
+    ("migration 0007 round trip", test_migration_0007_round_trips_on_a_fresh_database),
     ("status and indexing", test_status_and_indexing),
     ("retrieval quality", test_retrieval_quality),
     ("ask returns answer + audit", test_ask_returns_answer_and_audit),

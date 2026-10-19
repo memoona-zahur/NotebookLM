@@ -99,6 +99,35 @@ def _file_bytes(path: Path) -> int | None:
         return None
 
 
+def _prepare(path: Path) -> tuple["parsers.ParsedDocument", parsers.IngestStats, list[tuple], int]:
+    """Parse a file into the rows to store: `(document, stats, keep, numeric)`.
+
+    `keep` rows are `(position, page, heading, text, numeric_heavy, char_start,
+    char_end)`. Shared by `add` and `reindex` so the two cannot disagree about
+    what a chunk row is - they used to each build the tuple by hand.
+    """
+    stats = parsers.IngestStats()
+    document = parsers.parse_document(path, stats=stats)
+    keep: list[tuple] = []
+    numeric = 0
+    for position, block in enumerate(document.blocks):
+        if not block.text.strip():
+            continue
+        heavy = parsers.is_numeric_heavy(block.text)
+        if heavy:
+            numeric += 1
+        keep.append((position, block.page, block.heading, block.text, heavy,
+                     block.start, block.end))
+    return document, stats, keep, numeric
+
+
+_CHUNK_INSERT = (
+    "INSERT INTO chunks (source_id, position, page, heading, text, "
+    "numeric_heavy, char_start, char_end, embedding) "
+    "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)"
+)
+
+
 @dataclass
 class Source:
     id: str
@@ -244,19 +273,9 @@ class VectorStore:
                 _discard(path)
                 return existing
 
-        stats = parsers.IngestStats()
-        blocks = parsers.parse(path, stats=stats)
+        document, stats, keep, numeric = _prepare(path)
+        blocks = document.blocks
         name = display_name or path.name
-
-        keep: list[tuple] = []
-        numeric = 0
-        for position, block in enumerate(blocks):
-            if not block.text.strip():
-                continue
-            heavy = parsers.is_numeric_heavy(block.text)
-            if heavy:
-                numeric += 1
-            keep.append((position, block.page, block.heading, block.text, heavy))
 
         chunk_count = 0
         source_id = None
@@ -270,23 +289,24 @@ class VectorStore:
         with db.connection() as conn:
             source = conn.execute(
                 "INSERT INTO sources (session_id, name, kind, pages, storage_path, url, "
-                "content_hash, token_max, fit_splits, size_splits, file_bytes) "
-                "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) "
+                "content_hash, token_max, fit_splits, size_splits, file_bytes, "
+                "parsed_text, page_offsets) "
+                "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) "
                 "RETURNING id, to_char(created_at AT TIME ZONE 'UTC', "
                 "'YYYY-MM-DD HH24:MI:SS')",
                 (session_id, name, kind, len(blocks), str(path), url or "",
                  digest or None, stats.token_max, stats.fit_splits,
-                 stats.size_splits, _file_bytes(path)),
+                 stats.size_splits, _file_bytes(path), document.text,
+                 document.page_offsets),
             ).fetchone()
             source_id = source[0]
             created_at = source[1]
             if keep:
                 with conn.cursor() as cur:
                     cur.executemany(
-                        "INSERT INTO chunks (source_id, position, page, heading, text, "
-                        "numeric_heavy, embedding) VALUES (%s, %s, %s, %s, %s, %s, %s)",
+                        _CHUNK_INSERT,
                         [
-                            (source_id, row[0], row[1], row[2], row[3], row[4], vector)
+                            (source_id, *row, vector)
                             for row, vector in zip(keep, vectors)
                         ],
                     )
@@ -371,18 +391,9 @@ class VectorStore:
                 "cannot be re-read. Upload it again to index it."
             )
 
-        stats = parsers.IngestStats()
-        blocks = parsers.parse(path, stats=stats)
+        document, stats, keep, numeric = _prepare(path)
+        blocks = document.blocks
         digest = _content_hash(path)
-        keep: list[tuple] = []
-        numeric = 0
-        for position, block in enumerate(blocks):
-            if not block.text.strip():
-                continue
-            heavy = parsers.is_numeric_heavy(block.text)
-            if heavy:
-                numeric += 1
-            keep.append((position, block.page, block.heading, block.text, heavy))
 
         vectors = embed_texts([row[3] for row in keep]) if keep else []
 
@@ -391,21 +402,22 @@ class VectorStore:
             if keep:
                 with conn.cursor() as cur:
                     cur.executemany(
-                        "INSERT INTO chunks (source_id, position, page, heading, text, "
-                        "numeric_heavy, embedding) VALUES (%s, %s, %s, %s, %s, %s, %s)",
+                        _CHUNK_INSERT,
                         [
-                            (source_id, row[0], row[1], row[2], row[3], row[4], vector)
+                            (source_id, *row, vector)
                             for row, vector in zip(keep, vectors)
                         ],
                     )
             conn.execute(
                 "UPDATE sources SET chunk_count = %s, numeric_count = %s, pages = %s, "
                 "content_hash = %s, token_max = %s, fit_splits = %s, "
-                "size_splits = %s, file_bytes = %s "
+                "size_splits = %s, file_bytes = %s, parsed_text = %s, "
+                "page_offsets = %s "
                 "WHERE id = %s",
                 (len(keep), numeric, len(blocks), digest or None,
                  stats.token_max, stats.fit_splits, stats.size_splits,
-                 _file_bytes(path), source_id),
+                 _file_bytes(path), document.text, document.page_offsets,
+                 source_id),
             )
 
         self._invalidate(session_id)
@@ -513,7 +525,7 @@ class VectorStore:
                 return None
             rows = conn.execute(
                 """
-                SELECT position, page, heading, text, numeric_heavy
+                SELECT position, page, heading, text, numeric_heavy, char_start, char_end
                 FROM chunks
                 WHERE source_id = %s
                 ORDER BY position
@@ -528,6 +540,9 @@ class VectorStore:
                 "text": row[3],
                 "chars": len(row[3]),
                 "numeric": bool(row[4]),
+                # None for a chunk indexed before 0007 recorded positions.
+                "char_start": row[5],
+                "char_end": row[6],
             }
             for row in rows
         ]

@@ -136,10 +136,11 @@ def count_tokens(text: str) -> int:
         return max(1, (len(text) + 3) // 4)
 
 
-def _fit_to_tokens(text: str, limit: int) -> tuple[list[str], bool]:
+def _fit_spans(text: str, limit: int) -> tuple[list[tuple[int, int]], bool]:
     """Cut one piece down until every fragment fits `limit` wordpieces.
 
-    Returns the fragments and whether any cut was needed. The starting budget is
+    Returns the fragments as `(start, end)` spans into `text` and whether any
+    cut was needed. The starting budget is
     derived from this text's own characters-per-wordpiece ratio rather than a
     guess, so the normal case is one pass; from there the budget is halved until
     every piece fits, which terminates because `chunk_text` with a budget of 1
@@ -147,12 +148,15 @@ def _fit_to_tokens(text: str, limit: int) -> tuple[list[str], bool]:
     `chunk_text`'s boundary rules are not monotonic in the budget, and a search
     over a non-monotonic predicate can land on a budget that does not fit.
     """
-    if limit <= 0 or not text:
-        return [text] if text else [], False
+    if not text:
+        return [], False
+    whole = [(0, len(text))]
+    if limit <= 0:
+        return whole, False
 
     measured = count_tokens(text)
     if measured <= limit:
-        return [text], False
+        return whole, False
 
     budget = max(1, (len(text) * limit) // measured)
     while budget > 1:
@@ -160,11 +164,17 @@ def _fit_to_tokens(text: str, limit: int) -> tuple[list[str], bool]:
         # continuation starting the next one. Scaled to the budget rather than
         # taken from CHUNK_OVERLAP, which is sized for a 900-char window and
         # would be a third of a fragment this small.
-        pieces = chunk_text(text, budget, budget // 8)
-        if pieces and all(count_tokens(piece) <= limit for piece in pieces):
-            return pieces, True
+        spans = chunk_spans(text, budget, budget // 8)
+        if spans and all(count_tokens(text[a:b]) <= limit for a, b in spans):
+            return spans, True
         budget = max(1, budget // 2)
-    return [text], True
+    return whole, True
+
+
+def _fit_to_tokens(text: str, limit: int) -> tuple[list[str], bool]:
+    """`_fit_spans`, as text. Kept for callers that only want the fragments."""
+    spans, split = _fit_spans(text, limit)
+    return [text[a:b] for a, b in spans], split
 
 
 _HEADING_RE = re.compile(r"^(#{1,6})\s+(.*\S)\s*$")
@@ -184,6 +194,24 @@ class Block:
     text: str
     page: int = 0
     heading: str = ""
+    # Where this block sits in the document's parsed text (`ParsedDocument.text`).
+    # None until `parse_document` assigns it. For a chunk cut from a larger block
+    # these are absolute offsets, not offsets within the block.
+    start: int | None = None
+    end: int | None = None
+
+
+@dataclass
+class ParsedDocument:
+    """A parsed file: its chunks, the text they index into, and where pages start."""
+
+    blocks: list[Block]
+    # The pre-split blocks joined with a blank line. Every chunk's `start`/`end`
+    # index into this string.
+    text: str
+    # PDF only: offset in `text` where each page begins (element 0 is page 1).
+    # A page with no text takes the offset of the next page that has some.
+    page_offsets: list[int] | None = None
 
 
 def digit_ratio(text: str) -> float:
@@ -1093,6 +1121,83 @@ def _parse_html(path: Path) -> list[Block]:
     return blocks or ([Block(text=_clean(soup.get_text("\n")))] if soup.get_text(strip=True) else [])
 
 
+def _raw_blocks(path: Path, size: int) -> list[Block]:
+    """The file's blocks before any splitting to the chunk ceilings."""
+    suffix = path.suffix.lower()
+
+    if suffix == ".pdf":
+        return _parse_pdf(path)
+    if suffix == ".docx":
+        return _parse_docx(path, size)
+    if suffix in {".html", ".htm"}:
+        return _parse_html(path)
+    if suffix in TABLE_SUFFIXES:
+        return _parse_table(_decode(path), size)
+    if suffix in STRUCTURED_SUFFIXES:
+        return _parse_json(_decode(path), size)
+    if suffix in CONFIG_SUFFIXES:
+        return _parse_config(_decode(path), suffix, size)
+    if suffix in LOG_SUFFIXES:
+        return _parse_log(_decode(path), size)
+    if suffix in CODE_SUFFIXES:
+        return _parse_python(_decode(path)) if suffix == ".py" else _parse_code_generic(_decode(path))
+    if suffix in PROSE_SUFFIXES:
+        return _parse_text(_decode(path))
+    raise ValueError(f"Unsupported file type: {suffix or path.name}")
+
+
+def _page_offsets(blocks: list[Block], total: int) -> list[int]:
+    """Where each PDF page starts in the parsed text; index 0 is page 1.
+
+    A page that produced no block (blank, or unreadable) takes the start of the
+    next page that has one, so its extent is empty rather than invented. `total`
+    is the length of the parsed text and ends the last page.
+    """
+    starts: dict[int, int] = {}
+    for block in blocks:
+        if block.page and block.page not in starts and block.start is not None:
+            starts[block.page] = block.start
+    if not starts:
+        return []
+    offsets = [0] * max(starts)
+    following = total
+    for page in range(max(starts), 0, -1):
+        following = starts.get(page, following)
+        offsets[page - 1] = following
+    return offsets
+
+
+def parse_document(
+    path: Path,
+    chunk_size: int | None = None,
+    chunk_overlap: int | None = None,
+    stats: IngestStats | None = None,
+) -> ParsedDocument:
+    """Parse a file into chunks that know where they came from.
+
+    The parsed text is the blocks joined with a blank line, and each chunk's
+    `start`/`end` index into it. Offsets are absolute, so two chunks that
+    overlap cover the same region of the same text.
+    """
+    size = chunk_size or default_chunk_size()
+    overlap = chunk_overlap if chunk_overlap is not None else default_chunk_overlap()
+
+    raw = _raw_blocks(path, size)
+    position = 0
+    for block in raw:
+        block.start = position
+        block.end = position + len(block.text)
+        position = block.end + len(BLOCK_SEPARATOR)
+    text = BLOCK_SEPARATOR.join(block.text for block in raw)
+    offsets = _page_offsets(raw, len(text)) if path.suffix.lower() == ".pdf" else None
+
+    return ParsedDocument(
+        blocks=_split_long(raw, size, overlap, stats),
+        text=text,
+        page_offsets=offsets or None,
+    )
+
+
 def parse(
     path: Path,
     chunk_size: int | None = None,
@@ -1104,40 +1209,25 @@ def parse(
     `stats`, when given, is filled with what chunking actually did. Callers that
     only need the blocks pass nothing and pay no extra tokenization.
     """
-    size = chunk_size or default_chunk_size()
-    overlap = chunk_overlap if chunk_overlap is not None else default_chunk_overlap()
-    suffix = path.suffix.lower()
-
-    if suffix == ".pdf":
-        return _split_long(_parse_pdf(path), size, overlap, stats)
-    if suffix == ".docx":
-        blocks = _parse_docx(path, size)
-    elif suffix in {".html", ".htm"}:
-        blocks = _parse_html(path)
-    elif suffix in TABLE_SUFFIXES:
-        blocks = _parse_table(_decode(path), size)
-    elif suffix in STRUCTURED_SUFFIXES:
-        blocks = _parse_json(_decode(path), size)
-    elif suffix in CONFIG_SUFFIXES:
-        blocks = _parse_config(_decode(path), suffix, size)
-    elif suffix in LOG_SUFFIXES:
-        blocks = _parse_log(_decode(path), size)
-    elif suffix in CODE_SUFFIXES:
-        blocks = _parse_python(_decode(path)) if suffix == ".py" else _parse_code_generic(_decode(path))
-    elif suffix in PROSE_SUFFIXES:
-        blocks = _parse_text(_decode(path))
-    else:
-        raise ValueError(f"Unsupported file type: {suffix or path.name}")
-
-    return _split_long(blocks, size, overlap, stats)
+    return parse_document(path, chunk_size, chunk_overlap, stats).blocks
 
 
-def chunk_text(text: str, size: int, overlap: int) -> list[str]:
-    """Split on paragraph, then sentence, then word, with overlap.
+BLOCK_SEPARATOR = "\n\n"
+
+
+def chunk_spans(text: str, size: int, overlap: int) -> list[tuple[int, int]]:
+    """Where `chunk_text` cuts, as `(start, end)` offsets into `text`.
+
+    Split on paragraph, then sentence, then word, with overlap.
 
     Table-like text is split on line boundaries instead. Cutting a numeric
     block on a word boundary slices rows in half, which produces fragments like
     "003.52309 11.5 52 0" that match nothing and read as gibberish when cited.
+
+    For prose, `text[start:end]` is exactly the chunk. For table-like text the
+    chunk is its lines re-joined with "\n" and blank lines dropped, so the span
+    covers the same lines and the slice can differ from the chunk only in line
+    terminators and the blank lines between them.
     """
     # Both values come from config, so they are clamped here rather than trusted.
     # Overlap at or above size walks `start` backwards below and the loop never
@@ -1150,24 +1240,28 @@ def chunk_text(text: str, size: int, overlap: int) -> list[str]:
     overlap = max(0, min(int(overlap), size // 2))
 
     if len(text) <= size:
-        return [text] if text else []
+        return [(0, len(text))] if text else []
 
-    chunks: list[str] = []
+    spans: list[tuple[int, int]] = []
     if is_numeric_heavy(text):
-        lines = text.splitlines()
-        buffer: list[str] = []
+        first = last = None
         length = 0
-        for line in lines:
-            if not line.strip():
+        at = 0
+        for body, raw in zip(text.splitlines(), text.splitlines(keepends=True)):
+            line_start = at
+            at += len(raw)
+            if not body.strip():
                 continue
-            if buffer and length + len(line) > size:
-                chunks.append("\n".join(buffer))
-                buffer, length = [], 0
-            buffer.append(line)
-            length += len(line) + 1
-        if buffer:
-            chunks.append("\n".join(buffer))
-        return chunks
+            if first is not None and length + len(body) > size:
+                spans.append((first, last))
+                first, length = None, 0
+            if first is None:
+                first = line_start
+            last = line_start + len(body)
+            length += len(body) + 1
+        if first is not None:
+            spans.append((first, last))
+        return spans
 
     start = 0
     while start < len(text):
@@ -1177,9 +1271,11 @@ def chunk_text(text: str, size: int, overlap: int) -> list[str]:
             split = max(window.rfind("\n\n"), window.rfind(". "), window.rfind(" "))
             if split > size * 0.5:
                 end = start + split + 1
-        piece = text[start:end].strip()
+        raw = text[start:end]
+        piece = raw.strip()
         if piece:
-            chunks.append(piece)
+            lead = len(raw) - len(raw.lstrip())
+            spans.append((start + lead, start + lead + len(piece)))
         if end >= len(text):
             break
         # Monotonic, not merely "minus overlap". A boundary choice can move
@@ -1188,7 +1284,17 @@ def chunk_text(text: str, size: int, overlap: int) -> list[str]:
         # terminates and appends forever. Taking the max keeps overlap where it
         # is useful and guarantees progress where it is not.
         start = max(start + 1, end - overlap)
-    return chunks
+    return spans
+
+
+def chunk_text(text: str, size: int, overlap: int) -> list[str]:
+    """Split on paragraph, then sentence, then word, with overlap.
+
+    The text of each span from `chunk_spans`; see there for the rules. Table-like
+    text is re-joined line by line rather than sliced.
+    """
+    size = max(1, int(size))
+    return [_slice_chunk(text, a, b, size) for a, b in chunk_spans(text, size, overlap)]
 
 
 def _split_long(
@@ -1204,6 +1310,10 @@ def _split_long(
     fragment checked against the model's wordpiece window, because the token
     count of a block is not a simple function of its length (a table of part
     numbers and the same number of English words tokenize very differently).
+
+    Every chunk that comes out of a block with a known position keeps one:
+    `start`/`end` are absolute offsets into the document text, found by adding
+    the offsets of each nested cut to the block's own start.
     """
     limit = _token_limit()
     out: list[Block] = []
@@ -1219,26 +1329,48 @@ def _split_long(
                 continue
 
         pieces = (
-            [block.text]
+            [(0, len(block.text))]
             if len(block.text) <= size
-            else chunk_text(block.text, size, overlap)
+            else chunk_spans(block.text, size, overlap)
         )
         if stats is not None and len(pieces) > 1:
             # Counted here rather than inside `chunk_text`, which has no idea
             # whether it was called because a block was long or because a caller
             # wanted pieces for some other reason.
             stats.size_splits += len(pieces) - 1
-        for piece in pieces:
-            fitted, split = _fit_to_tokens(piece, limit)
+        for piece_start, piece_end in pieces:
+            piece = _slice_chunk(block.text, piece_start, piece_end, size)
+            fitted, split = _fit_spans(piece, limit)
             if stats is not None and split:
                 stats.fit_splits += len(fitted) - 1
-            for fragment in fitted:
+            for frag_start, frag_end in fitted:
+                fragment = piece[frag_start:frag_end]
                 if not fragment.strip():
                     continue
-                out.append(Block(text=fragment, page=block.page, heading=block.heading))
+                start = end = None
+                if block.start is not None:
+                    if (frag_start, frag_end) == (0, len(piece)):
+                        # The fragment is the whole piece, so its span is the
+                        # piece's own and stays exact even for re-joined lines.
+                        start = block.start + piece_start
+                        end = block.start + piece_end
+                    else:
+                        start = block.start + piece_start + frag_start
+                        end = start + len(fragment)
+                out.append(
+                    Block(text=fragment, page=block.page, heading=block.heading,
+                          start=start, end=end)
+                )
                 if stats is not None:
                     _tally(stats, fragment, count_tokens(fragment) if limit > 0 else 0)
     return out
+
+
+def _slice_chunk(text: str, start: int, end: int, size: int) -> str:
+    """The chunk text for one span of `text`, as `chunk_text` would return it."""
+    if len(text) > size and is_numeric_heavy(text):
+        return "\n".join(line for line in text[start:end].splitlines() if line.strip())
+    return text[start:end]
 
 
 def _tally(stats: IngestStats, text: str, tokens: int) -> None:
