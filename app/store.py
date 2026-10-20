@@ -3,7 +3,7 @@ import re
 from dataclasses import dataclass
 from pathlib import Path
 
-from . import config
+from . import citing, config
 from . import db
 from . import parsers
 from .embeddings import embed_query, embed_texts, score_against_query
@@ -499,6 +499,47 @@ class VectorStore:
             return None
         return row[0], Path(row[1])
 
+    def location_info(self, source_ids: list[str], session_id: str) -> dict[str, dict]:
+        """What is needed to find a quote in each source's original document.
+
+        Keyed by source id; a source outside this session is simply absent, so
+        a caller cannot learn anything about another notebook's files. `path` is
+        the stored original, `page_offsets` is PDF-only, and `has_text` says
+        whether the parsed text was recorded (False before migration 0007).
+        """
+        if not source_ids:
+            return {}
+        with db.connection() as conn:
+            rows = conn.execute(
+                "SELECT id::text, name, kind, storage_path, page_offsets, "
+                "parsed_text IS NOT NULL, COALESCE(length(parsed_text), 0) FROM sources "
+                "WHERE session_id = %s AND id = ANY(%s::uuid[])",
+                (session_id, list(source_ids)),
+            ).fetchall()
+        return {
+            row[0]: {
+                "name": row[1], "kind": row[2], "path": row[3],
+                "page_offsets": list(row[4]) if row[4] is not None else None,
+                "has_text": bool(row[5]),
+                "text_len": int(row[6]),
+            }
+            for row in rows
+        }
+
+    def region(self, source_id: str, start: int, end: int) -> str | None:
+        """`parsed_text[start:end]` of a source, cut in the database.
+
+        The whole text can be megabytes and a citation needs one chunk of it,
+        so it is sliced where it lives rather than fetched and sliced here.
+        None when the text was not recorded.
+        """
+        with db.connection() as conn:
+            row = conn.execute(
+                "SELECT substr(parsed_text, %s, %s) FROM sources WHERE id = %s",
+                (start + 1, max(0, end - start), source_id),
+            ).fetchone()
+        return row[0] if row else None
+
     def source_chunks(self, source_id: str, session_id: str) -> list[dict] | None:
         """Every stored chunk of one source in document order, or None.
 
@@ -621,7 +662,8 @@ class VectorStore:
         """
         pattern = _occurrence_pattern(term)
         if pattern is None:
-            return {"term": term, "occurrences": [], "count": 0, "truncated": False}
+            return {"term": term, "occurrences": [], "count": 0, "truncated": False,
+                    "unit": "utf16"}
 
         term = term.strip()[:MAX_TERM_CHARS]
         with db.connection() as conn:
@@ -655,7 +697,10 @@ class VectorStore:
                     "page": page,
                     "heading": heading,
                     "text": text,
-                    "matches": [list(span) for span in spans[:per_chunk]],
+                    # UTF-16 units, because the browser slices `text` with them
+                    # and Python's spans count code points.
+                    "matches": [list(span) for span in
+                                citing.to_utf16_spans(text, spans[:per_chunk])],
                     "count": len(spans),
                 }
             )
@@ -664,6 +709,7 @@ class VectorStore:
             "occurrences": occurrences,
             "count": total,
             "truncated": truncated,
+            "unit": "utf16",
         }
 
     # -- retrieval ---------------------------------------------------------
@@ -708,7 +754,8 @@ class VectorStore:
             dense_rows = conn.execute(
                 "SELECT c.id::text, c.text, c.page, c.heading, c.numeric_heavy, "
                 "       s.id::text AS source_id, s.name, "
-                "       c.embedding <=> %s::vector AS distance "
+                "       c.embedding <=> %s::vector AS distance, "
+                "       c.char_start, c.char_end "
                 "FROM chunks c JOIN sources s ON s.id = c.source_id "
                 "WHERE s.session_id = %s "
                 "ORDER BY c.embedding <=> %s::vector LIMIT %s",
@@ -724,7 +771,8 @@ class VectorStore:
         by_id: dict[str, dict] = {}
 
         def remember(chunk_id: str, source_id: str, name: str, page: int,
-                     heading: str, text: str, numeric: bool, score: float) -> None:
+                     heading: str, text: str, numeric: bool, score: float,
+                     char_start: int | None = None, char_end: int | None = None) -> None:
             if chunk_id in by_id:
                 by_id[chunk_id]["score"] = round(score, 4)
                 return
@@ -736,13 +784,19 @@ class VectorStore:
                 "source_id": source_id,
                 "heading": heading or "",
                 "numeric_heavy": bool(numeric),
+                # Where the chunk sits in the source's parsed text; None for a
+                # source indexed before migration 0007 recorded positions.
+                "char_start": char_start,
+                "char_end": char_end,
                 "score": round(score, 4),
                 "support": 0.0,
                 "rescued": False,
             }
 
-        for chunk_id, text, page, heading, numeric, source_id, name, distance in dense_rows:
-            remember(chunk_id, source_id, name, page, heading, text, numeric, 1.0 - float(distance))
+        for (chunk_id, text, page, heading, numeric, source_id, name, distance,
+             char_start, char_end) in dense_rows:
+            remember(chunk_id, source_id, name, page, heading, text, numeric,
+                     1.0 - float(distance), char_start, char_end)
 
         mode = "dense"
         dense_ranked = sorted(by_id.values(), key=lambda hit: -hit["score"])[:pool_size]
@@ -759,7 +813,8 @@ class VectorStore:
                 with db.connection() as conn:
                     rows = conn.execute(
                         "SELECT c.id::text, c.text, c.page, c.heading, c.numeric_heavy, "
-                        "       s.id::text, s.name, c.embedding <=> %s::vector "
+                        "       s.id::text, s.name, c.embedding <=> %s::vector, "
+                        "       c.char_start, c.char_end "
                         "FROM chunks c JOIN sources s ON s.id = c.source_id "
                         "WHERE c.id = ANY(%s::bigint[])",
                         (query_vector, [int(cid) for cid in unseen]),
@@ -768,7 +823,8 @@ class VectorStore:
                     query_vector, [row[1] for row in rows]
                 )
                 for row, score in zip(rows, measured):
-                    remember(row[0], row[5], row[6], row[2], row[3], row[1], row[4], score)
+                    remember(row[0], row[5], row[6], row[2], row[3], row[1], row[4], score,
+                             row[8], row[9])
 
             covers = dict(
                 (cid, cov) for cid, _s, cov in lexical.top(query, len(lexical.ids))

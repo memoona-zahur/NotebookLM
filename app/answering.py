@@ -19,11 +19,12 @@ would be a reasonable product decision and none of them belongs in a module
 whose whole job is to make one policy legible.
 """
 
+import logging
 import re
 import time
-from difflib import SequenceMatcher
+from pathlib import Path
 
-from . import config, db, intent, tracing, usage
+from . import citing, config, db, intent, pdfloc, tracing, usage
 from .llm import NO_MATCH, Grounded, LLMUnavailable, answer as run_answer
 from .llm import chat as run_chat
 from .llm import last_usage
@@ -32,78 +33,103 @@ from .payloads import evidence
 from .store import store
 
 
-def _sentence_spans(text: str) -> list[tuple[int, int, str]]:
-    """Split text into sentence-like spans with the original offsets preserved."""
-    spans: list[tuple[int, int, str]] = []
-    current = []
-    start = 0
-    for index, char in enumerate(text):
-        current.append(char)
-        if char in ".!?":
-            end = index + 1
-            chunk = text[start:end].strip()
-            if chunk:
-                spans.append((start, end, chunk))
-            start = end
-    tail = text[start:].strip()
-    if tail:
-        spans.append((start, len(text), tail))
+log = logging.getLogger(__name__)
+
+
+def _locate(hit: dict, found: dict, info: dict | None) -> dict | None:
+    """Where in the original document a cited passage's quotes are, or None.
+
+    A PDF page is located by rectangles; anything else (and a PDF page that has
+    no text layer to take rectangles from) by offsets into the parsed text the
+    chunks were cut from. Best effort: a location is a convenience on top of an
+    answer that is already complete, so a failure here returns None rather than
+    costing the user their answer.
+    """
+    if info is None:
+        return None
+    name, source_id = info["name"], hit.get("source_id")
+    char_start = hit.get("char_start")
+
+    if info["kind"] == "pdf" and hit.get("page") and info.get("path"):
+        relative = [None] * len(found["quotes"])
+        offsets = info.get("page_offsets")
+        page = hit["page"]
+        if char_start is not None and offsets and 1 <= page <= len(offsets):
+            page_start = offsets[page - 1]
+            page_end = offsets[page] if page < len(offsets) else info["text_len"]
+            span = max(1, page_end - page_start)
+            relative = [
+                min(1.0, max(0.0, (char_start + s - page_start) / span))
+                for s, _ in found["spans"]
+            ]
+        located = pdfloc.rects_for_quotes(
+            Path(info["path"]), page, list(zip(found["quotes"], relative))
+        )
+        if located is not None:
+            return {"kind": "pdf", "source_id": source_id, "source": name, **located}
+
+    char_end = hit.get("char_end")
+    if char_start is None or char_end is None or not info["has_text"]:
+        return None
+    region = store.region(source_id, char_start, char_end)
+    if not region:
+        return None
+    spans = []
+    for quote in found["quotes"]:
+        span = citing.find_quote(quote, region)
+        if span is not None:
+            spans.append({"start": char_start + span[0], "end": char_start + span[1]})
     if not spans:
-        return [(0, len(text), text.strip())] if text.strip() else []
-    return spans
-
-
-def _tokenize(text: str) -> list[str]:
-    return re.findall(r"[A-Za-z0-9]+", (text or "").lower())
-
-
-def _clause_score(left: str, right: str) -> float:
-    left_tokens = set(_tokenize(left))
-    right_tokens = set(_tokenize(right))
-    if not left_tokens or not right_tokens:
-        return 0.0
-    overlap = len(left_tokens & right_tokens)
-    union = len(left_tokens | right_tokens)
-    overlap_score = overlap / union if union else 0.0
-    return max(overlap_score, SequenceMatcher(None, left.lower(), right.lower()).ratio())
-
-
-def _citation_highlight(answer_text: str, passage_text: str, citation_index: int) -> tuple[int, int] | None:
-    """Find the most likely sentence in a passage that supports the answer's [n] citation."""
-    marker = f"[{citation_index}]"
-    match = re.search(re.escape(marker), answer_text)
-    if match is None:
         return None
-    window_start = max(0, match.start() - 180)
-    window_end = min(len(answer_text), match.end() + 180)
-    answer_clause = answer_text[window_start:window_end].strip()
-    if not answer_clause:
-        return None
-
-    best = None
-    best_score = 0.0
-    for start, end, sentence in _sentence_spans(passage_text):
-        cleaned = sentence.strip()
-        if not cleaned:
-            continue
-        score = _clause_score(answer_clause.replace(marker, ""), cleaned)
-        if score > best_score:
-            best_score = score
-            best = (start, end)
-    if best is None or best_score < 0.12:
-        return None
-    return best
+    return {"kind": "text", "source_id": source_id, "source": name,
+            "spans": spans, "unit": "cp"}
 
 
-def _annotate_citations(answer_text: str, hits: list[dict]) -> list[dict]:
-    """Add exact source sentence spans to cited passages so the UI can highlight only the evidence."""
+def _annotate_citations(
+    answer_text: str,
+    hits: list[dict],
+    quotes: dict[int, list[str]] | None = None,
+    session_id: str | None = None,
+) -> list[dict]:
+    """Say, for each cited passage, exactly which of its text answered.
+
+    Adds to a cited hit: `quotes` (the text), `quote_source` ("model" when the
+    model's own verbatim quote was verified, "matcher" when the best-matching
+    sentence stood in), `highlights` (spans in the chunk text, UTF-16 units, for
+    the citation card) and `location` (where in the original document). A
+    passage with no confident answer gets none of them - no highlight is
+    better than a wrong one.
+    """
+    quotes = quotes or {}
+    infos: dict[str, dict] = {}
+    if session_id:
+        try:
+            infos = store.location_info(
+                sorted({h["source_id"] for h in hits if h.get("source_id")}), session_id
+            )
+        except Exception:  # noqa: BLE001 - see _locate
+            log.warning("could not load source locations", exc_info=True)
+
     annotated: list[dict] = []
     for index, hit in enumerate(hits, start=1):
         clue = dict(hit)
-        highlight = _citation_highlight(answer_text, hit.get("text", ""), index)
-        if highlight is not None:
-            clue["highlight"] = {"start": highlight[0], "end": highlight[1]}
         annotated.append(clue)
+        if not re.search(rf"\[{index}\]", answer_text):
+            continue
+        found = citing.resolve(answer_text, index, hit.get("text", ""), quotes.get(index, []))
+        if found is None:
+            continue
+        spans = citing.to_utf16_spans(hit["text"], found["spans"])
+        clue["quotes"] = found["quotes"]
+        clue["quote_source"] = found["source"]
+        clue["highlights"] = [{"start": a, "end": b} for a, b in spans]
+        clue["highlight"] = clue["highlights"][0]  # the first; older clients read this
+        clue["highlight_unit"] = "utf16"
+        try:
+            clue["location"] = _locate(hit, found, infos.get(hit.get("source_id")))
+        except Exception:  # noqa: BLE001
+            log.warning("could not locate a citation in its source", exc_info=True)
+            clue["location"] = None
     return annotated
 
 
@@ -175,7 +201,9 @@ def ask(question: str, session: db.SessionRow) -> dict:
                 **reported.as_dict(),
             )
 
-        search.hits = _annotate_citations(audit.text, search.hits)
+        search.hits = _annotate_citations(
+            audit.text, search.hits, audit.quotes, session_id
+        )
 
         cost = usage.Request(
             model=reported.model or config.resolved_model(),

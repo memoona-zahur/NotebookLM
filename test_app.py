@@ -1340,7 +1340,8 @@ def test_a_named_word_is_highlighted_where_it_appears(client: TestClient) -> Non
     empty = client.post("/api/sessions", json={"name": "empty"}).json()["id"]
     assert client.get(
         "/api/occurrences", params={"term": "velocity", "session_id": empty}
-    ).json() == {"term": "velocity", "occurrences": [], "count": 0, "truncated": False}
+    ).json() == {"term": "velocity", "occurrences": [], "count": 0, "truncated": False,
+                 "unit": "utf16"}
 
     assert client.get(
         "/api/occurrences", params={"term": "  ", "session_id": session}
@@ -2071,6 +2072,326 @@ def test_migration_0007_round_trips_on_a_fresh_database(client: TestClient) -> N
         with psycopg.connect(ADMIN_URL, autocommit=True) as admin:
             admin.execute(sql.SQL("DROP DATABASE IF EXISTS {}").format(sql.Identifier(name)))
     print("  migration 0007 upgrades, downgrades and upgrades again: OK")
+
+
+QUOTE_TRAILER = (
+    "Escape velocity is approximately 11.2 km/s [1].\n\n"
+    "QUOTES:\n"
+    "[1] \"Escape velocity from the Earth's surface is approximately 11.2 km/s.\"\n"
+)
+
+
+def test_quote_trailer_is_parsed_and_never_shown(client: TestClient) -> None:
+    """The model's QUOTES block is data for the app, not part of the answer."""
+    raw = (
+        "It is 11.2 km/s [1], and the Moon's is lower [2].\n\n**Quotes:**\n"
+        "[1] \u201csecond best words\u201d\n"
+        "\u30101\u3011 \"another piece\"\n"
+        "[2] 'moon words here'\n"
+        "[9] \"a passage that does not exist\"\n"
+    )
+    body, quotes = llm.split_quotes(raw)
+    assert body == "It is 11.2 km/s [1], and the Moon's is lower [2].", body
+    assert quotes[1] == ["second best words", "another piece"], quotes
+    assert quotes[2] == ["moon words here"], quotes
+
+    grounded = llm._finish(raw, passages=2)
+    assert "QUOTES" not in grounded.text.upper(), grounded.text
+    # [9] is not a passage, and the [n] markers in the trailer are not citations.
+    assert 9 not in grounded.quotes and grounded.invalid == [], grounded
+    assert grounded.cited == [1, 2], grounded.cited
+
+    # No trailer at all is an ordinary answer, not an error.
+    plain, none = llm.split_quotes("Just an answer [1].")
+    assert plain == "Just an answer [1]." and none == {}
+    # A header with nothing usable under it is removed rather than shown.
+    assert llm.split_quotes("Answer [1].\n\nQUOTES:\n")[0] == "Answer [1]."
+    print("  the QUOTES trailer is parsed tolerantly and stripped from the answer: OK")
+
+
+def test_every_provider_is_asked_for_quotes_and_gets_them_back(client: TestClient) -> None:
+    """The trailer needs nothing provider-specific, so each provider path works."""
+    sid = client.post("/api/sessions", json={"name": "quotes providers"}).json()["id"]
+    upload(client, "orbit.pdf", make_pdf(), session_id=sid)
+    for name in ("groq", "openai", "ollama"):
+        sink: list = []
+        with provider(name), stubbed(QUOTE_TRAILER, sink):
+            res = client.post(
+                "/api/ask", params={"session_id": sid}, json={"question": RELEVANT_Q}
+            ).json()
+        system = sink[0][0]["content"]
+        assert "QUOTES:" in system, name
+        assert "QUOTES:" in sink[0][1]["content"], "the reminder after the question"
+        assert "[Source" not in system, "the prompt must say [N], not [Source N]"
+        assert "QUOTES" not in res["answer"].upper(), res["answer"]
+        cited = [c for c in res["citations"] if c.get("quote_source")]
+        assert cited and cited[0]["quote_source"] == "model", (name, res["citations"])
+        assert cited[0]["quotes"] == ["Escape velocity from the Earth's surface is approximately 11.2 km/s."]
+    client.delete(f"/api/sessions/{sid}")
+    print("  groq, openai and ollama are all asked for quotes and parsed alike: OK")
+
+
+def test_a_quote_that_is_not_verbatim_is_never_trusted(client: TestClient) -> None:
+    """A quote the passage does not contain is dropped; the matcher may stand in."""
+    sid = client.post("/api/sessions", json={"name": "quotes fallback"}).json()["id"]
+    upload(client, "orbit.txt", SAMPLE.encode(), session_id=sid)
+
+    invented = (
+        "Escape velocity is approximately 11.2 km/s [1].\n\nQUOTES:\n"
+        "[1] \"Escape velocity is exactly 11.186 kilometres per second.\"\n"
+    )
+    with stubbed(invented):
+        res = client.post("/api/ask", params={"session_id": sid},
+                          json={"question": RELEVANT_Q}).json()
+    hit = res["citations"][0]
+    assert hit["quote_source"] == "matcher", hit
+    assert hit["quotes"] == ["Escape velocity from the Earth's surface is approximately 11.2 km/s."], hit["quotes"]
+    start, end = hit["highlight"]["start"], hit["highlight"]["end"]
+    assert hit["text"][start:end] == hit["quotes"][0]
+    assert "11.186" not in json.dumps(hit["quotes"])
+
+    # A claim that matches nothing in the passage: no highlight at all.
+    unrelated = "Reaction wheels cost a great deal of money in Norway [1]."
+    with stubbed(unrelated):
+        res = client.post("/api/ask", params={"session_id": sid},
+                          json={"question": RELEVANT_Q}).json()
+    hit = res["citations"][0]
+    assert "highlights" not in hit and "highlight" not in hit and "location" not in hit, hit
+    client.delete(f"/api/sessions/{sid}")
+    print("  an invented quote falls back to the matcher; a weak match shows nothing: OK")
+
+
+def test_folding_survives_hyphenation_ligatures_and_soft_hyphens(client: TestClient) -> None:
+    from app import citing
+
+    text = "Intro. The well-\nknown \ufb01nancial rules are un\u00adambiguous here. Done."
+    for quote, expect in (
+        ("well-known financial rules", "well-\nknown \ufb01nancial rules"),
+        ("wellknown financial rules", "well-\nknown \ufb01nancial rules"),
+        ("well-known \ufb01nancial rules", "well-\nknown \ufb01nancial rules"),
+        ("financial rules are unambiguous", "\ufb01nancial rules are un\u00adambiguous"),
+    ):
+        span = citing.find_quote(quote, text)
+        assert span is not None, quote
+        assert text[span[0]:span[1]] == expect, (quote, text[span[0]:span[1]])
+    # Only what was quoted is covered: nothing before, nothing after.
+    assert citing.find_quote("Intro. The well-known", text) == (0, text.index("known") + 5)
+    # Words that are simply not there stay not found, and too-short quotes are refused.
+    assert citing.find_quote("well-known financial laws", text) is None
+    assert citing.find_quote("rules", text) is None
+    print("  hyphenation, a ligature and a soft hyphen fold without moving the span: OK")
+
+
+def test_the_sentence_splitter_leaves_numbers_and_abbreviations_alone(client: TestClient) -> None:
+    from app import citing
+
+    def split(text):
+        return [text[a:b] for a, b in citing.sentence_spans(text)]
+
+    assert split("Growth was 3.5 percent last year. It fell later.") == [
+        "Growth was 3.5 percent last year.", "It fell later."]
+    assert split("Ask Dr. Smith about it. Then wait.") == ["Ask Dr. Smith about it.", "Then wait."]
+    assert split("See Sec. 4.2 for details. Next Section follows.") == [
+        "See Sec. 4.2 for details.", "Next Section follows."]
+    assert split("Use tools, e.g. a hammer, for this. Done.") == [
+        "Use tools, e.g. a hammer, for this.", "Done."]
+    assert split("Written by J. K. Rowling. She won.") == ["Written by J. K. Rowling.", "She won."]
+    # A hard wrap inside prose is not a sentence end; a table row is a unit.
+    assert split("The rules that govern wide-\nreaching changes apply.") == [
+        "The rules that govern wide-\nreaching changes apply."]
+    rows = "region: EMEA | revenue: 412300\nregion: APAC | revenue: 3000"
+    assert split(rows) == rows.split("\n")
+    print("  the splitter does not break on decimals, abbreviations or hard wraps: OK")
+
+
+def test_the_claim_is_only_the_cited_sentence_and_csv_is_never_all_marked(client: TestClient) -> None:
+    from app import citing
+
+    answer = ("Revenue in EMEA was 412300 [1]. Unrelated: reaction wheels use no propellant [2]. "
+              "The Moon is far away.")
+    assert citing.claim_for(answer, 1) == "Revenue in EMEA was 412300 ."
+    assert "wheels" not in citing.claim_for(answer, 1) and "Moon" not in citing.claim_for(answer, 2)
+
+    chunk = ("region: EMEA | revenue_usd: 412300 | units: 90\n"
+             "region: APAC | revenue_usd: 55120 | units: 12\n"
+             "region: AMER | revenue_usd: 99800 | units: 40")
+    found = citing.resolve("The EMEA region made revenue 412300 [1].", 1, chunk, [])
+    assert found and found["source"] == "matcher", found
+    marked = chunk[found["spans"][0][0]:found["spans"][0][1]]
+    assert marked == "region: EMEA | revenue_usd: 412300 | units: 90", marked
+
+    # One long row and nothing to split it on: marking all of it marks nothing useful.
+    blob = " | ".join(f"col{i}: value{i}" for i in range(40))
+    single = citing.resolve("The value of col7 is value7 [1].", 1, blob, [])
+    assert single is None or blob[single["spans"][0][0]:single["spans"][0][1]] != blob, single
+    print("  the claim is one sentence and sentence-less chunks are never wholly marked: OK")
+
+
+def test_several_quotes_are_all_kept_in_document_order(client: TestClient) -> None:
+    from app import citing
+
+    text = ("Reaction wheels generate torque without consuming propellant. "
+            "A spacecraft carries three wheels in a pyramid. "
+            "Escape velocity is 11.2 km/s.")
+    found = citing.resolve("Wheels give torque [1].", 1, text, [
+        "A spacecraft carries three wheels in a pyramid.",
+        "Reaction wheels generate torque without consuming propellant.",
+        "A spacecraft carries three wheels in a pyramid.",  # duplicate
+        "x " * 200,                                          # over-long and not in the text
+    ])
+    assert found["source"] == "model" and len(found["quotes"]) == 2, found
+    assert found["quotes"][0].startswith("Reaction wheels"), found
+    assert [text[a:b] for a, b in found["spans"]] == found["quotes"]
+    # An over-long quote is cut to its best sentence; two sentences is allowed.
+    long_quote = text
+    trimmed = citing.fit_quote(long_quote, "Escape velocity is 11.2 km/s")
+    assert trimmed == "Escape velocity is 11.2 km/s.", trimmed
+    print("  several quotes per passage are kept in order; over-long ones are trimmed: OK")
+
+
+def test_offsets_handed_to_the_browser_are_utf16(client: TestClient) -> None:
+    from app import citing
+
+    text = "\U0001F600 find cat here"
+    assert (text.index("cat"), text.index("cat") + 3) == (7, 10), "Python counts code points"
+    assert citing.to_utf16_spans(text, [(7, 10)]) == [(8, 11)]
+    units = text.encode("utf-16-le")
+    assert units[8 * 2:11 * 2].decode("utf-16-le") == "cat", "what a JS slice sees"
+    assert citing.to_utf16_spans(text, [(0, 1), (2, 6)]) == [(0, 2), (3, 7)]
+
+    sid = client.post("/api/sessions", json={"name": "utf16"}).json()["id"]
+    upload(client, "emoji.txt", ("\U0001F600 find cat here, and a fluffy cat is a cat. " * 3).encode(),
+           session_id=sid)
+    occurrences = client.get("/api/occurrences", params={"term": "cat", "session_id": sid}).json()
+    assert occurrences["unit"] == "utf16"
+    row = occurrences["occurrences"][0]
+    units = row["text"].encode("utf-16-le")
+    assert all(units[a * 2:b * 2].decode("utf-16-le") == "cat" for a, b in row["matches"]), row["matches"]
+
+    with stubbed("A cat is mentioned [1].\n\nQUOTES:\n[1] \"find cat here, and a fluffy cat\"\n"):
+        res = client.post("/api/ask", params={"session_id": sid},
+                          json={"question": "find cat here"}).json()
+    hit = res["citations"][0]
+    units = hit["text"].encode("utf-16-le")
+    a, b = hit["highlight"]["start"], hit["highlight"]["end"]
+    assert hit["highlight_unit"] == "utf16"
+    assert units[a * 2:b * 2].decode("utf-16-le") == "find cat here, and a fluffy cat"
+    client.delete(f"/api/sessions/{sid}")
+    print("  citation and word-highlight offsets are UTF-16 (emoji repro): OK")
+
+
+def _quote_pdf(path: Path) -> None:
+    """Two pages; page 2 repeats a phrase that page 1 also has, plus a line-break hyphen."""
+    doc = pymupdf.open()
+    first = doc.new_page()
+    first.insert_text((72, 100), "Introduction page", fontsize=14)
+    first.insert_text((72, 130), "The coolant pressure limit is 5.5 bar in normal operation.", fontsize=11)
+    second = doc.new_page()
+    second.insert_text((72, 100), "Appendix", fontsize=14)
+    second.insert_text((72, 130), "Remember: the coolant pressure limit is 5.5 bar in normal operation.", fontsize=11)
+    second.insert_text((72, 160), "The shutdown procedure is well-", fontsize=11)
+    second.insert_text((72, 175), "known to every trained operator on site.", fontsize=11)
+    doc.save(path)
+    doc.close()
+
+
+def test_pdf_rectangles_cover_the_quote_and_nothing_else(client: TestClient) -> None:
+    from app import pdfloc
+
+    tmp = TMP / "pdfloc"
+    tmp.mkdir(parents=True, exist_ok=True)
+    path = tmp / "quotes.pdf"
+    _quote_pdf(path)
+    doc = pymupdf.open(path)
+    try:
+        wanted = doc[1].search_for("the coolant pressure limit is 5.5 bar")[0]
+        wheel = doc[1].search_for("is well-")[0]
+    finally:
+        doc.close()
+
+    located = pdfloc.rects_for_quotes(path, 2, [("the coolant pressure limit is 5.5 bar", None)])
+    assert located and located["page"] == 2 and len(located["rects"]) == 1, located
+    x0, y0, x1, y1 = located["rects"][0]
+    # Inside the line, tight to the quote: not the whole line, not the page.
+    assert wanted.x0 - 2 <= x0 <= wanted.x0 + 40 and x1 <= wanted.x1 + 3, (located, wanted)
+    assert y1 - y0 < 20 and x1 - x0 < 300, located
+
+    # A line-break hyphen: one rectangle per physical line, both on the page.
+    broken = pdfloc.rects_for_quotes(path, 2, [("shutdown procedure is well-known to every trained operator", None)])
+    assert broken and len(broken["rects"]) == 2, broken
+    assert broken["rects"][0][1] < broken["rects"][1][1], "first line above second"
+    assert broken["rects"][0][0] <= wheel.x0 + 1
+
+    # Not on this page: nothing, rather than a rectangle somewhere else.
+    assert pdfloc.rects_for_quotes(path, 1, [("shutdown procedure is well-known", None)]) is None
+    # The same phrase on both pages resolves per page.
+    assert pdfloc.rects_for_quotes(path, 1, [("coolant pressure limit is 5.5 bar", None)])["page"] == 1
+    print("  PDF rectangles are tight to the quote, per line, on the right page: OK")
+
+
+def test_a_repeated_phrase_uses_the_chunk_position_only_to_choose(client: TestClient) -> None:
+    from app import pdfloc
+
+    tmp = TMP / "pdfloc"
+    tmp.mkdir(parents=True, exist_ok=True)
+    path = tmp / "repeat.pdf"
+    doc = pymupdf.open()
+    page = doc.new_page()
+    page.insert_text((72, 100), "Valve alpha: the safety valve must stay closed at all times.", fontsize=11)
+    page.insert_text((72, 400), "Valve omega: the safety valve must stay closed at all times.", fontsize=11)
+    doc.save(path)
+    doc.close()
+    phrase = "the safety valve must stay closed at all times"
+    early = pdfloc.rects_for_quotes(path, 1, [(phrase, 0.05)])["rects"][0]
+    late = pdfloc.rects_for_quotes(path, 1, [(phrase, 0.95)])["rects"][0]
+    assert early[1] < 200 < late[1], (early, late)
+    # With no position the first is taken; and a unique phrase ignores any position.
+    assert pdfloc.rects_for_quotes(path, 1, [(phrase, None)])["rects"][0][1] < 200
+    unique = "Valve omega"
+    assert pdfloc.rects_for_quotes(path, 1, [(unique, 0.0)])["rects"][0][1] > 300
+    print("  a repeated phrase is chosen by relative position; a unique one ignores it: OK")
+
+
+def test_a_citation_carries_its_location_and_keeps_it_on_reload(client: TestClient) -> None:
+    sid = client.post("/api/sessions", json={"name": "locations"}).json()["id"]
+    pdf = TMP / "pdfloc" / "ask.pdf"
+    pdf.parent.mkdir(parents=True, exist_ok=True)
+    _quote_pdf(pdf)
+    upload(client, "ask.pdf", pdf.read_bytes(), session_id=sid)
+    upload(client, "orbit.md", ("# Orbits\n\n" + SAMPLE).encode(), session_id=sid)
+
+    answer = ("The limit is 5.5 bar [1].\n\nQUOTES:\n"
+              "[1] \"the coolant pressure limit is 5.5 bar in normal operation\"\n")
+    with stubbed(answer):
+        live = client.post("/api/ask", params={"session_id": sid},
+                           json={"question": "What is the coolant pressure limit?"}).json()
+    top = live["citations"][0]
+    assert top["source"] == "ask.pdf", top["source"]
+    location = top["location"]
+    assert location["kind"] == "pdf" and location["page"] in (1, 2), location
+    assert location["rects"] and location["page_width"] > 0
+
+    with stubbed("Escape velocity is 11.2 km/s [1].\n\nQUOTES:\n"
+                 "[1] \"approximately 11.2 km/s\"\n"):
+        text_answer = client.post("/api/ask", params={"session_id": sid},
+                                  json={"question": RELEVANT_Q}).json()
+    md = next(c for c in text_answer["citations"] if c["source"] == "orbit.md")
+    assert md["location"] and md["location"]["kind"] == "text", md
+    assert md["location"]["unit"] == "cp"
+    parsed = db_text(md["source_id"])
+    span = md["location"]["spans"][0]
+    assert parsed[span["start"]:span["end"]] == "approximately 11.2 km/s", span
+
+    replayed = client.get(f"/api/sessions/{sid}").json()["history"]
+    assert [m["citations"] for m in replayed if m["role"] == "assistant"] == \
+        [live["citations"], text_answer["citations"]], "location did not survive a reload"
+    client.delete(f"/api/sessions/{sid}")
+    print("  a citation's location is computed, persisted and survives a reload: OK")
+
+
+def db_text(source_id: str) -> str:
+    with db.connection() as conn:
+        return conn.execute("SELECT parsed_text FROM sources WHERE id = %s", (source_id,)).fetchone()[0]
 
 
 def test_a_chunking_config_that_could_hang_cannot_hang(client: TestClient) -> None:
@@ -4266,6 +4587,13 @@ ORDER = [
     ("pdf chunks stay inside their page", test_pdf_chunks_fall_inside_their_page),
     ("offsets stored and backfilled", test_offsets_are_stored_and_returned),
     ("migration 0007 round trip", test_migration_0007_round_trips_on_a_fresh_database),
+    ("quote trailer parsed and stripped", test_quote_trailer_is_parsed_and_never_shown),
+    ("folding: hyphen, ligature, soft hyphen", test_folding_survives_hyphenation_ligatures_and_soft_hyphens),
+    ("sentence splitter", test_the_sentence_splitter_leaves_numbers_and_abbreviations_alone),
+    ("claim isolation, csv chunk", test_the_claim_is_only_the_cited_sentence_and_csv_is_never_all_marked),
+    ("several quotes kept", test_several_quotes_are_all_kept_in_document_order),
+    ("pdf rectangles tight", test_pdf_rectangles_cover_the_quote_and_nothing_else),
+    ("repeated phrase chosen by position", test_a_repeated_phrase_uses_the_chunk_position_only_to_choose),
     ("status and indexing", test_status_and_indexing),
     ("retrieval quality", test_retrieval_quality),
     ("ask returns answer + audit", test_ask_returns_answer_and_audit),
@@ -4402,6 +4730,10 @@ ORDER = [
     ("bakeoff resolves gold by text", test_bakeoff_resolves_gold_by_text_not_position),
     ("bakeoff records a relative gold path", test_bakeoff_records_a_relative_gold_path),
     ("source deletion", test_source_deletion),
+    ("every provider asked for quotes", test_every_provider_is_asked_for_quotes_and_gets_them_back),
+    ("invented quote not trusted", test_a_quote_that_is_not_verbatim_is_never_trusted),
+    ("utf-16 offsets", test_offsets_handed_to_the_browser_are_utf16),
+    ("location persisted across reload", test_a_citation_carries_its_location_and_keeps_it_on_reload),
 ]
 
 
