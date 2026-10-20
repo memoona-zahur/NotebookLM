@@ -203,6 +203,20 @@ sequenceDiagram
     UI->>UI: append turn, refreshStatus(), Answer.jsx renders evidence strip
 ```
 
+### From `[n]` to the quoted text in the original document
+
+After generation, `answering._annotate_citations` turns each cited passage into a
+precise location. The model ends its reply with a `QUOTES:` trailer
+(`llm.split_quotes` strips it before anything is shown or counted). For each
+cited passage `citing.resolve` keeps only quotes that are verbatim in the chunk
+after folding (`citing.normalise`: ligatures, soft hyphens, line-break hyphens,
+whitespace) and otherwise falls back to the best-matching sentence, or to no
+highlight. `_locate` then finds the quote in the original: for a PDF
+`pdfloc.rects_for_quotes` reads the page's characters and returns one rectangle per
+line; for anything else the span is located in `sources.parsed_text`. All of it is
+stored in `messages.citations`. The browser opens `DocumentViewer.jsx`, which asks
+`GET /sources/{id}/page/{n}.png` or `GET /sources/{id}/text` (both session-scoped).
+
 ### Inside `search_detailed` (`store.py:669`)
 
 ```mermaid
@@ -270,6 +284,8 @@ PostgreSQL (alembic, migrations/versions)
   0004 usage_events       kind, model, tokens, latency, session, created_at
   0005 ingest_observability  sources.token_max, fit_splits, avg_chars, max_chars
   0006 source_view        sources.file_bytes, size_splits  (nullable, unbackfilled)
+  0007 source_location    sources.parsed_text, page_offsets; chunks.char_start/char_end
+                          (nullable; reindex backfills)
 
 UPLOAD_DIR        original files, named uuid4hex + suffix  (reindex needs no re-upload)
 

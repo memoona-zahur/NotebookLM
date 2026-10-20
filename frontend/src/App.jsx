@@ -563,6 +563,8 @@ export default function App() {
           sourceCount={status ? status.sources.length : 0}
           notebookName={active ? active.name : ""}
           createdAt={createdAt}
+          sessionId={activeId}
+          onReindexSource={reindexSource}
         />
         <Composer onSend={send} busy={pending} />
       </main>

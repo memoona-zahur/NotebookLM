@@ -1975,3 +1975,109 @@ mark.hit,
     padding-right: 16px;
   }
 }
+
+/* -- Document viewer: the original, opened at the quoted place --------------- */
+
+.cite-open {
+  margin: 6px 0 2px;
+  padding: 4px 10px;
+  font: inherit;
+  font-size: 12px;
+  color: var(--accent, #1a73e8);
+  background: transparent;
+  border: 1px solid currentColor;
+  border-radius: 14px;
+  cursor: pointer;
+}
+
+.viewer-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.45);
+}
+
+.viewer {
+  display: flex;
+  flex-direction: column;
+  width: min(900px, 94vw);
+  max-height: 92vh;
+  background: var(--surface, #fff);
+  color: inherit;
+  border-radius: 12px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3);
+  overflow: hidden;
+}
+
+.viewer-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 16px;
+  border-bottom: 1px solid rgba(128, 128, 128, 0.25);
+}
+
+.viewer-title {
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.viewer-close {
+  font-size: 22px;
+  line-height: 1;
+  background: none;
+  border: 0;
+  color: inherit;
+  cursor: pointer;
+}
+
+.viewer-body {
+  overflow: auto;
+  padding: 12px 16px 16px;
+}
+
+.viewer-sheet {
+  position: relative;
+  margin: 0 auto;
+  max-width: 760px;
+}
+
+.viewer-sheet img {
+  display: block;
+  width: 100%;
+  height: auto;
+  background: #fff;
+}
+
+/* Only the quoted lines: a box per line, over the page, never over the margins. */
+.viewer-rect {
+  position: absolute;
+  background: rgba(255, 213, 0, 0.4);
+  mix-blend-mode: multiply;
+  pointer-events: none;
+}
+
+.viewer-text pre {
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font: inherit;
+  line-height: 1.55;
+}
+
+.viewer-mark {
+  background: rgba(255, 213, 0, 0.55);
+  color: inherit;
+  border-radius: 2px;
+}
+
+.viewer-note {
+  margin: 8px 0;
+  font-size: 13px;
+  opacity: 0.7;
+}

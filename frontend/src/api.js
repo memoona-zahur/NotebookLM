@@ -104,6 +104,26 @@ export const api = {
     if (sessionId) url.searchParams.set("session_id", sessionId);
     return url.toString();
   },
+  // A rendered page of a stored PDF, as an image URL. `scale` is clamped
+  // server-side; the viewer asks for a size that stays sharp when zoomed.
+  sourcePageUrl: (sessionId, sourceId, page, scale = 1.5) => {
+    const url = new URL(
+      baseUrl + `/api/sources/${encodeURIComponent(sourceId)}/page/${Number(page)}.png`,
+      window.location.origin
+    );
+    if (sessionId) url.searchParams.set("session_id", sessionId);
+    url.searchParams.set("scale", String(scale));
+    return url.toString();
+  },
+  // The parsed text around some spans, with the spans marked (in UTF-16 units
+  // relative to the returned text). `spans` are `{start, end}` code-point
+  // offsets into the source's parsed text, as a citation's `location` holds.
+  sourceText: (sessionId, sourceId, spans) =>
+    request(
+      `/api/sources/${encodeURIComponent(sourceId)}/text?` +
+        (spans || []).map((s) => `span=${Number(s.start)}:${Number(s.end)}`).join("&"),
+      { sessionId }
+    ),
   // Every chunk of one source, with its size. Fetched when a source row is
   // opened rather than with the status, so a notebook with a dozen sources
   // does not pay for eleven documents nobody asked about.

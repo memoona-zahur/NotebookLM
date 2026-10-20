@@ -1,5 +1,6 @@
 import React, { useEffect } from "react";
 import { Markdown } from "./markdown.jsx";
+import { highlightsOf } from "./offsets.js";
 
 /**
  * Renders answer text, turning `[n]` markers into clickable citation chips.
@@ -35,7 +36,10 @@ export function useCitationLinks(threadRef) {
       if (!link) return;
       event.preventDefault();
 
-      const target = root.querySelector(`#${CSS.escape(link.getAttribute("href").slice(1))}`);
+      // Looked up inside the chip's own turn: every turn numbers its cards from
+      // 1, so a search from the thread root would always find the first turn's.
+      const scope = link.closest("article") || root;
+      const target = scope.querySelector(`#${CSS.escape(link.getAttribute("href").slice(1))}`);
       if (!target) return;
 
       root.querySelectorAll("a.ref.active").forEach((el) => el.classList.remove("active"));
@@ -58,29 +62,38 @@ export function useCitationLinks(threadRef) {
   }, [threadRef]);
 }
 
-function SourceHighlight({ text, highlight }) {
-  if (!highlight || !Number.isInteger(highlight.start) || !Number.isInteger(highlight.end)) {
-    return <>{text}</>;
-  }
-
-  const start = Math.max(0, Math.min(highlight.start, text.length));
-  const end = Math.max(start, Math.min(highlight.end, text.length));
-  if (start >= end || end <= start) {
-    return <>{text}</>;
-  }
-
-  return (
-    <>
-      {text.slice(0, start)}
-      <mark className="source-highlight">{text.slice(start, end)}</mark>
-      {text.slice(end)}
-    </>
-  );
+/**
+ * The passage text with only the answering spans marked. `spans` are UTF-16
+ * ranges inside `text` (see offsets.js), already clipped and ordered.
+ */
+function SourceHighlight({ text, spans }) {
+  if (!spans.length) return <>{text}</>;
+  const parts = [];
+  let at = 0;
+  spans.forEach((span, i) => {
+    if (span.start > at) parts.push(text.slice(at, span.start));
+    parts.push(
+      <mark key={i} className="source-highlight">
+        {text.slice(span.start, span.end)}
+      </mark>,
+    );
+    at = span.end;
+  });
+  if (at < text.length) parts.push(text.slice(at));
+  return <>{parts}</>;
 }
 
 /** A retrieved passage, collapsed to a header and expandable to the full text. */
-export function Citation({ citation, index, cited }) {
+export function Citation({ citation, index, cited, onOpen, onReindex }) {
   const wasCited = !cited || !cited.length || cited.includes(index + 1);
+  // Nothing to open: the source was indexed before positions were recorded (a
+  // PDF is the exception - its page is enough to find the quote again).
+  const needsReindex =
+    wasCited &&
+    !citation.location &&
+    !citation.page &&
+    citation.char_start == null &&
+    Boolean(citation.source_id);
   return (
     <div
       className={`cite${wasCited ? "" : " uncited"}`}
@@ -106,8 +119,21 @@ export function Citation({ citation, index, cited }) {
         {wasCited ? <span className="cite-cited" title="Cited by the answer" /> : null}
       </button>
       <pre className="snippet">
-        <SourceHighlight text={citation.text} highlight={wasCited ? citation.highlight : null} />
+        <SourceHighlight
+          text={citation.text}
+          spans={wasCited ? highlightsOf(citation) : []}
+        />
       </pre>
+      {wasCited && citation.location && onOpen ? (
+        <button type="button" className="cite-open" onClick={() => onOpen(citation)}>
+          Open in document
+        </button>
+      ) : null}
+      {needsReindex && onReindex ? (
+        <button type="button" className="cite-open" onClick={() => onReindex(citation)}>
+          Re-index to open in document
+        </button>
+      ) : null}
     </div>
   );
 }

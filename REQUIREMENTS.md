@@ -179,7 +179,7 @@ Presented in this order in every demo, because each earns the next:
 |---|---|---|
 | HTTP API | **FastAPI** (app version `2.0.0`) | `app/main.py:37` |
 | Database | **PostgreSQL 16 + `pgvector`** | one store for rows and vectors |
-| Migrations | **Alembic** (`0001`–`0006`) | hand-written SQL, no ORM |
+| Migrations | **Alembic** (`0001`–`0007`) | hand-written SQL, no ORM |
 | Embedding model | `sentence-transformers/all-MiniLM-L6-v2`, **384-d**, local | `app/config.py:72` |
 | Re-ranker | `cross-encoder/ms-marco-MiniLM-L-6-v2` | `app/config.py:89` |
 | Default LLM | Groq **`openai/gpt-oss-120b`** | `app/config.py:181` |
@@ -519,7 +519,13 @@ Priority key: **M** = MUST, **S** = SHOULD, **C** = COULD, **W** = WON'T now.
 | FR-45 | M | Occurrence spans MUST be computed server-side from the same text the client renders, so highlights cannot disagree. | occurrence tests |
 | FR-46 | S | The composer SHOULD recognise `highlight <word>` (and variants) and never send that clause to the model; a combined "question + highlight" message MUST split the two. | `highlightIntent` tests |
 | FR-47 | M | Occurrence results MUST be capped (40 passages) with a `truncated` flag. | occurrence tests |
-| FR-48 | S | Clicking an inline citation SHOULD open the source preview and highlight **only the answering sentence** (approximate, best-matching sentence in the passage); the rest of the passage is shown unhighlighted. | `Answer.jsx`; `_annotate_citations` |
+| FR-48 | M | Clicking an inline citation MUST open the **original document** at the place the answer came from and highlight **only** the text that answers the question — nothing before or after it. If no confident span exists, NO highlight is shown rather than a wrong one. | `DocumentViewer.jsx`; `_annotate_citations`; viewer tests |
+| FR-48a | M | For every cited passage the model MUST be asked for the verbatim supporting span(s) (a `QUOTES:` trailer, provider-independent). A quote MUST be accepted only if it is a verbatim substring of the cited chunk after folding ligatures, soft hyphens, line-break hyphenation and whitespace; quotes over ~300 characters or 2 sentences MUST be trimmed to one sentence or rejected. The trailer MUST NOT reach the user or be counted as citations. | `llm.split_quotes`, `citing.validate_quotes`; quote tests |
+| FR-48b | M | When no quote validates, the system MUST fall back to the one chunk sentence that best matches the one answer sentence carrying the marker (decimal/abbreviation-safe splitter, content-token F1 ≥ 0.35, ≥ 2 shared tokens); sentence-less chunks (CSV, code, tables) MUST NOT be wholly marked; a weak match MUST yield no highlight. `quote_source` records `model`, `matcher` or none. | `citing.best_unit`; matcher tests |
+| FR-48c | M | Each chunk MUST record its position in the source (`chunks.char_start/char_end` into `sources.parsed_text`; PDF page starts in `sources.page_offsets`). A citation MUST carry a `location` — PDF page rectangles from the page's own characters, or spans in the parsed text — persisted in `messages.citations`, so it survives a reload. A repeated phrase on a page MUST be disambiguated by relative position only when it occurs more than once. | `parsers.parse_document`, `pdfloc`; location tests |
+| FR-48d | M | The viewer MUST be served from the current session only (`GET /api/sources/{id}/page/{n}.png`, `GET /api/sources/{id}/text`), with page-render scale and pixels capped and cached, and MUST render source text as inert text, never markup. The original file route keeps `nosniff` and serves scriptable types as `text/plain`. | viewer endpoint tests; `DocumentViewer.test.jsx` |
+| FR-48e | M | Offsets sent to the browser (citation highlights, text marks, word-occurrence spans) MUST be UTF-16 code units; a legacy payload without a unit MUST be converted client-side. | UTF-16 repro tests |
+| FR-48f | S | A cited passage from a source indexed before migration 0007 (no recorded positions) SHOULD offer "Re-index to open in document" instead of failing; re-indexing keeps the source id. | `Citation` tests; `store.reindex` |
 
 ### 6.8 Cost, usage, and observability
 
@@ -618,7 +624,7 @@ Priority key: **M** = MUST, **S** = SHOULD, **C** = COULD, **W** = WON'T now.
 
 ## 8. Data model and persistence
 
-Postgres holds **everything** (rows *and* vectors). Migrations are `0001`–`0006`.
+Postgres holds **everything** (rows *and* vectors). Migrations are `0001`–`0007`.
 
 ```mermaid
 erDiagram
@@ -642,6 +648,8 @@ erDiagram
         int  fit_splits "0005"
         bigint file_bytes "0006"
         int  size_splits "0006"
+        text parsed_text "0007, nullable"
+        int[] page_offsets "0007, PDF only"
     }
     chunks {
         bigserial id PK
@@ -651,6 +659,8 @@ erDiagram
         text heading
         text text
         bool numeric_heavy
+        int  char_start "0007, nullable"
+        int  char_end "0007, nullable"
         vector embedding "384-d, HNSW cosine"
     }
     messages {
@@ -870,9 +880,9 @@ number is quoted from a source that does not exist.
 
 Runs, in order:
 
-1. **Backend** — `python test_app.py`: **130 checks**, against a scratch Postgres it
+1. **Backend** — `python test_app.py`: **148 checks**, against a scratch Postgres it
    creates and drops (never real data).
-2. **Frontend** — `npm test` (Vitest + jsdom): **182 checks**, `fetch` mocked.
+2. **Frontend** — `npm test` (Vitest + jsdom): **200 checks**, `fetch` mocked.
 3. **Production build** — `npm run build` (Vite).
 
 A green run is the definition of "done" for any change.
@@ -899,7 +909,7 @@ A green run is the definition of "done" for any change.
 
 The release is acceptable when **all** hold:
 
-- [ ] `./run_tests.sh` is green (130 + 182 + build).
+- [ ] `./run_tests.sh` is green (148 + 200 + build).
 - [ ] `GET /api/status` returns 200 and reports the live provider, model, counts.
 - [ ] A fresh notebook can upload a source, answer a covered question with citations, and
       refuse an uncovered one with `no_match`.
@@ -976,7 +986,6 @@ The release is acceptable when **all** hold:
 - Streaming answers.
 - Model-based query rewriting.
 - Hierarchical, graph, and agentic RAG.
-- Deep-linking a citation to the page of the original file.
 - Persisting combined "question + highlight" metadata across reload.
 
 ### 16.2 Recommended next work, in priority order
@@ -1021,7 +1030,7 @@ policy, a CSV of incident counts).
 | 1 | 0:00 | Open a fresh notebook | "It tells me there is nothing to ask yet, and offers both ways to fix that." |
 | 2 | 0:20 | Upload the three files; watch the count reach 3 | "PDF, DOCX, Markdown, CSV. OCR for scans; a document that yields no text is refused with a reason, not indexed empty." |
 | 3 | 0:50 | Ask *"What is the notice period for termination?"* | "Grounded answer with `[1]`, `[2]`." |
-| 4 | 1:20 | Click a citation marker | "It opens the exact passage and marks only the answering sentence; a confidence chip, best score, and token cost are shown." |
+| 4 | 1:20 | Click a citation marker | "It opens the original document at that place and marks only the quoted text; a confidence chip, best score, and token cost are shown." |
 | 5 | 1:50 | Ask *"What is our policy on sabbatical leave?"* | "**Refused.** Best match below the floor, model never called, cost $0 — no confident guess with citations on top." |
 | 6 | 2:20 | Reload the page, reopen the notebook | "Citations still work: provenance is stored with the message, not just the response." |
 | 7 | 2:45 | Type `Hi` | "Not a failed search — a conversation. It distinguishes 'I could not find it' from 'that was not a question'." |
@@ -1053,7 +1062,7 @@ defences, and audited per-query cost.
 - Delivered a **cost/observability** layer: provider-reported tokens, split latency
   percentiles, a dated price table where unknown prices are `None` not `$0`, and opt-in
   privacy-split tracing.
-- Shipped **130 backend + 182 frontend** tests and a **one-command gate**
+- Shipped **148 backend + 200 frontend** tests and a **one-command gate**
   (`./run_tests.sh`) covering grounding, injection, sessions, OCR, cost, and the frontend.
 
 **Skills demonstrated.** RAG architecture · hybrid retrieval & re-ranking · Postgres +
@@ -1065,7 +1074,7 @@ metrics design · security (SSRF, prompt injection) · observability · technica
 ## 20. Requirements checklist (definition of done)
 
 - [ ] All **MUST** requirements (§6, §7) are implemented and verified.
-- [ ] `./run_tests.sh` is green (130 backend + 182 frontend + build).
+- [ ] `./run_tests.sh` is green (148 backend + 200 frontend + build).
 - [ ] `/api/status`, `/api/ask`, `/api/sources`, `/api/sessions` match §9.
 - [ ] Schema matches §8 (migrations at head; tests assert column agreement).
 - [ ] Configuration matches §10.
@@ -1087,8 +1096,8 @@ metrics design · security (SSRF, prompt injection) · observability · technica
 ### Appendix B — Verified facts (spot-check list)
 
 - 39 file suffixes: `python -c "from app.parsers import SUPPORTED; print(len(SUPPORTED))"`.
-- Test counts: `./run_tests.sh` output (130 / 182).
-- Migrations: `ls migrations/versions/` → `0001`…`0006`.
+- Test counts: `./run_tests.sh` output (148 / 200).
+- Migrations: `ls migrations/versions/` → `0001`…`0007`.
 - Corpus: 28 files in `experiments/corpus/`; cloze set 122 items (115 answerable, 7 traps).
 - Prices (as of 2026-10-07): `gpt-oss-120b` $0.15/$0.60, `gpt-oss-20b` $0.075/$0.30 per 1M.
 

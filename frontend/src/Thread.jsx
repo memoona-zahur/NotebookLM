@@ -1,5 +1,6 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Answer, Citation, Evidence, useCitationLinks } from "./Answer.jsx";
+import { DocumentViewer } from "./DocumentViewer.jsx";
 import { EXPLORE } from "./suggestions.js";
 
 function Thinking() {
@@ -28,13 +29,23 @@ function Thinking() {
  * The fallbacks are for turns written before the evidence was stored. They keep
  * an old transcript readable rather than rendering a bare string.
  */
-function Turn({ turn }) {
+function Turn({ turn, onOpen, onReindex }) {
   const text = turn.text ?? turn.content ?? "";
   const citations = turn.citations || [];
   const evidence = turn.evidence || null;
 
   return (
-    <article className={`turn ${turn.role}`}>
+    <article
+      className={`turn ${turn.role}`}
+      onClick={(event) => {
+        // A citation chip also opens the document at the quoted place, when
+        // the server found one. The scroll-to-card behaviour is unchanged.
+        const chip = event.target.closest?.("a.ref");
+        if (!chip || !onOpen) return;
+        const cited = citations[Number(chip.dataset.cite) - 1];
+        if (cited?.location) onOpen(cited);
+      }}
+    >
       <div className="who">
         <span className="dot" aria-hidden="true" />
         {turn.role === "user" ? "You" : "NotebookLM"}
@@ -57,6 +68,8 @@ function Turn({ turn }) {
                   citation={citation}
                   index={index}
                   cited={evidence?.cited}
+                  onOpen={onOpen}
+                  onReindex={onReindex}
                 />
               ))}
             </div>
@@ -79,8 +92,11 @@ export function Thread({
   sourceCount = 0,
   notebookName = "",
   createdAt = "",
+  sessionId = null,
+  onReindexSource = null,
 }) {
   const ref = useRef(null);
+  const [viewing, setViewing] = useState(null);
   useCitationLinks(ref);
 
   useEffect(() => {
@@ -216,7 +232,16 @@ export function Thread({
     <div className="thread" ref={ref}>
       <div className="thread-inner">
         {turns.map((turn, i) => (
-          <Turn key={i} turn={turn} />
+          <Turn
+            key={i}
+            turn={turn}
+            onOpen={setViewing}
+            onReindex={
+              onReindexSource
+                ? (c) => onReindexSource({ id: c.source_id, name: c.source })
+                : null
+            }
+          />
         ))}
         {pending ? (
           <article className="turn assistant">
@@ -228,6 +253,13 @@ export function Thread({
           </article>
         ) : null}
       </div>
+      {viewing ? (
+        <DocumentViewer
+          sessionId={sessionId}
+          citation={viewing}
+          onClose={() => setViewing(null)}
+        />
+      ) : null}
     </div>
   );
 }

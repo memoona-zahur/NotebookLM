@@ -526,6 +526,25 @@ class VectorStore:
             for row in rows
         }
 
+    def parsed_window(
+        self, source_id: str, session_id: str, start: int, end: int
+    ) -> tuple[str | None, int] | None:
+        """`parsed_text[start:end]` and the text's full length, scoped to a session.
+
+        None means the source is not in this session. A source whose text was
+        never recorded (indexed before 0007) answers `(None, 0)`: it exists, and
+        re-indexing it is what fills the text in.
+        """
+        with db.connection() as conn:
+            row = conn.execute(
+                "SELECT substr(parsed_text, %s, %s), COALESCE(length(parsed_text), 0), "
+                "parsed_text IS NOT NULL FROM sources WHERE id = %s AND session_id = %s",
+                (start + 1, max(0, end - start), source_id, session_id),
+            ).fetchone()
+        if row is None:
+            return None
+        return (row[0] if row[2] else None), int(row[1])
+
     def region(self, source_id: str, start: int, end: int) -> str | None:
         """`parsed_text[start:end]` of a source, cut in the database.
 

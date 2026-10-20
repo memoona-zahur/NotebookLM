@@ -11,14 +11,17 @@ query is a Pydantic field, but the *responses* are bounded in
 
 import mimetypes
 import re
+import threading
 import uuid
+from collections import OrderedDict
 from pathlib import Path
 
-from fastapi import APIRouter, File, HTTPException, Request, UploadFile
-from fastapi.responses import FileResponse
+from fastapi import APIRouter, File, HTTPException, Query, Request, UploadFile
+from fastapi.responses import FileResponse, Response
 from pydantic import BaseModel, Field
 
 from .. import config
+from .. import citing
 from ..parsers import SUPPORTED, UnreadableDocument, count_tokens
 from ..payloads import resolve_session
 from ..store import MAX_TERM_CHARS, store
@@ -212,6 +215,154 @@ def source_file(source_id: str, session_id: str | None = None) -> FileResponse:
             "X-Content-Type-Options": "nosniff",
         },
     )
+
+
+# -- the document viewer ----------------------------------------------------
+#
+# A citation opens the original document at the place the answer came from. A PDF
+# is shown as an image of the page with rectangles drawn over it; everything else
+# is shown as the text the parser produced. Both are served as data - a PNG and a
+# JSON string - never as markup, so nothing in an uploaded file can run.
+
+PAGE_SCALE_MIN, PAGE_SCALE_MAX = 0.5, 3.0
+# The longest side of a rendered page, whatever scale is asked for: a poster-size
+# page at scale 3 would otherwise be a 100 MB bitmap.
+PAGE_MAX_PIXELS = 4096
+PAGE_CACHE_SIZE = 32
+# Characters of parsed text served on each side of the span being looked at.
+TEXT_WINDOW = 40_000
+
+_page_cache: "OrderedDict[tuple, bytes]" = OrderedDict()
+_page_cache_lock = threading.Lock()
+
+
+def _render_page(path: Path, page_number: int, scale: float) -> bytes | None:
+    """PNG bytes of one PDF page, or None if the page does not exist.
+
+    Cached by file identity (path, size, mtime) as well as page and scale, so a
+    re-uploaded or re-indexed file never serves a stale image, and bounded so the
+    cache cannot grow with the library.
+    """
+    import pymupdf
+
+    stat = path.stat()
+    key = (str(path), stat.st_size, stat.st_mtime_ns, page_number, round(scale, 2))
+    with _page_cache_lock:
+        if key in _page_cache:
+            _page_cache.move_to_end(key)
+            return _page_cache[key]
+
+    doc = pymupdf.open(path)
+    try:
+        if not 1 <= page_number <= doc.page_count:
+            return None
+        page = doc[page_number - 1]
+        longest = max(page.rect.width, page.rect.height) or 1.0
+        effective = min(scale, PAGE_MAX_PIXELS / longest)
+        png = page.get_pixmap(matrix=pymupdf.Matrix(effective, effective)).tobytes("png")
+    finally:
+        doc.close()
+
+    with _page_cache_lock:
+        _page_cache[key] = png
+        while len(_page_cache) > PAGE_CACHE_SIZE:
+            _page_cache.popitem(last=False)
+    return png
+
+
+def _owned_file(source_id: str, session_id: str | None) -> tuple[str, Path]:
+    """The name and stored path of a source in this session, or a 404.
+
+    The same two refusals as `/file`: another session's source is "not in this
+    notebook", and a path outside `UPLOAD_DIR` is never read.
+    """
+    session = resolve_session(session_id)
+    found = store.original_file(source_id, str(session.id))
+    if found is None:
+        raise HTTPException(404, "That source is not in this notebook.")
+    name, path = found
+    try:
+        inside = path.resolve().is_relative_to(config.UPLOAD_DIR.resolve())
+    except OSError:
+        inside = False
+    if not inside or not path.is_file():
+        raise HTTPException(404, "The original file is not available.")
+    return name, path
+
+
+@router.get("/sources/{source_id}/page/{page:int}.png")
+def source_page(
+    source_id: str, page: int, scale: float = 1.5, session_id: str | None = None
+) -> Response:
+    """One page of a stored PDF as a PNG, for the citation viewer.
+
+    A plain `def`, so rendering runs in the worker pool rather than on the event
+    loop. `scale` is clamped, not rejected: a client that asks for 50 gets the
+    largest image the server is willing to make.
+    """
+    _, path = _owned_file(source_id, session_id)
+    if path.suffix.lower() != ".pdf":
+        raise HTTPException(404, "That source is not a PDF.")
+    scale = min(PAGE_SCALE_MAX, max(PAGE_SCALE_MIN, scale))
+    png = _render_page(path, page, scale)
+    if png is None:
+        raise HTTPException(404, "That page does not exist.")
+    return Response(
+        png,
+        media_type="image/png",
+        headers={"X-Content-Type-Options": "nosniff", "Cache-Control": "private, max-age=300"},
+    )
+
+
+@router.get("/sources/{source_id}/text")
+def source_text(
+    source_id: str,
+    span: list[str] = Query(default=[]),
+    session_id: str | None = None,
+) -> dict:
+    """A window of a source's parsed text with the requested spans marked.
+
+    `span` is `start:end` in code points of the parsed text (what a citation's
+    `location` holds), repeatable. The reply is the text around them and the
+    marks inside it in UTF-16 units relative to that text - the unit the
+    browser slices in - so the page never converts anything. Plain JSON, so the
+    text is data to be rendered, not markup to be parsed.
+
+    A source whose text was not recorded (indexed before 0007) returns
+    `text: null` with `reason: "reindex"`: it exists, and re-indexing fills it.
+    """
+    session = resolve_session(session_id)
+    spans: list[tuple[int, int]] = []
+    for item in span[:50]:
+        try:
+            a, b = (int(part) for part in item.split(":"))
+        except ValueError as exc:
+            raise HTTPException(400, f"Bad span: {item!r} (want start:end)") from exc
+        if a < 0 or b < a:
+            raise HTTPException(400, f"Bad span: {item!r}")
+        spans.append((a, b))
+
+    probe = store.parsed_window(source_id, str(session.id), 0, 0)
+    if probe is None:
+        raise HTTPException(404, "That source is not in this notebook.")
+    _, total = probe
+    if probe[0] is None:
+        return {"text": None, "reason": "reindex", "total": 0, "offset": 0, "marks": [],
+                "unit": "utf16"}
+
+    spans = [(min(a, total), min(b, total)) for a, b in spans]
+    anchor = spans[0] if spans else (0, 0)
+    # Only spans that fit one window are marked; a citation's quotes come from one
+    # chunk, so in practice they all do.
+    spans = [s for s in spans if abs(s[0] - anchor[0]) <= TEXT_WINDOW and abs(s[1] - anchor[1]) <= TEXT_WINDOW]
+    low = max(0, min([s[0] for s in spans] or [0]) - TEXT_WINDOW)
+    high = min(total, max([s[1] for s in spans] or [0]) + TEXT_WINDOW)
+    window = store.parsed_window(source_id, str(session.id), low, high)
+    text = (window[0] if window else None) or ""
+    relative = [(a - low, b - low) for a, b in spans]
+    marks = [{"start": a, "end": b} for a, b in citing.to_utf16_spans(text, relative)]
+    return {"text": text, "offset": low, "total": total, "marks": marks, "unit": "utf16",
+            "before": low > 0, "after": high < total}
 
 
 @router.get("/sources/{source_id}/chunks")

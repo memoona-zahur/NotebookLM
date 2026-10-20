@@ -2394,6 +2394,98 @@ def db_text(source_id: str) -> str:
         return conn.execute("SELECT parsed_text FROM sources WHERE id = %s", (source_id,)).fetchone()[0]
 
 
+def test_the_page_image_endpoint_is_scoped_clamped_and_cached(client: TestClient) -> None:
+    from app.routes import sources as routes
+
+    sid = client.post("/api/sessions", json={"name": "page images"}).json()["id"]
+    other = client.post("/api/sessions", json={"name": "someone else"}).json()["id"]
+    pdf = TMP / "pdfloc" / "pages.pdf"
+    pdf.parent.mkdir(parents=True, exist_ok=True)
+    _quote_pdf(pdf)
+    source = upload(client, "pages.pdf", pdf.read_bytes(), session_id=sid)
+    url = f"/api/sources/{source['id']}/page/2.png"
+
+    res = client.get(url, params={"session_id": sid})
+    assert res.status_code == 200 and res.headers["content-type"] == "image/png", res.headers
+    assert res.content[:8] == b"\x89PNG\r\n\x1a\n"
+    assert res.headers["x-content-type-options"] == "nosniff"
+
+    # Another notebook cannot see this source's pages, and learns nothing about it.
+    assert client.get(url, params={"session_id": other}).status_code == 404
+    assert client.get(f"/api/sources/{uuid.uuid4()}/page/1.png", params={"session_id": sid}).status_code == 404
+    assert client.get(f"/api/sources/{source['id']}/page/3.png", params={"session_id": sid}).status_code == 404
+    assert client.get(f"/api/sources/{source['id']}/page/0.png", params={"session_id": sid}).status_code == 404
+
+    # Scale is clamped: a huge ask is not a huge bitmap, and a tiny one is not empty.
+    big = client.get(url, params={"session_id": sid, "scale": 500}).content
+    small = client.get(url, params={"session_id": sid, "scale": 0.0001}).content
+    big_w, big_h = int.from_bytes(big[16:20], "big"), int.from_bytes(big[20:24], "big")
+    small_w = int.from_bytes(small[16:20], "big")
+    assert max(big_w, big_h) <= routes.PAGE_MAX_PIXELS, (big_w, big_h)
+    assert big_w <= 3.0 * 595 + 1, "scale is capped at 3x"
+    assert small_w >= 0.5 * 595 - 1, small_w
+
+    # The second request for the same page and scale comes from the cache.
+    routes._page_cache.clear()
+    path = Path(db_path(source["id"]))
+    first = routes._render_page(path, 1, 1.5)
+    assert len(routes._page_cache) == 1
+    assert routes._render_page(path, 1, 1.5) is first, "a cache hit returns the same bytes"
+    for page in range(1, 40):
+        routes._page_cache[("x", page)] = b""
+    routes._render_page(path, 2, 1.5)
+    assert len(routes._page_cache) <= routes.PAGE_CACHE_SIZE, "the cache is bounded"
+
+    txt = upload(client, "n.txt", b"plain text source " * 5, session_id=sid)
+    assert client.get(f"/api/sources/{txt['id']}/page/1.png", params={"session_id": sid}).status_code == 404
+    client.delete(f"/api/sessions/{sid}")
+    client.delete(f"/api/sessions/{other}")
+    print("  page images are session-scoped, range-checked, clamped, cached and bounded: OK")
+
+
+def db_path(source_id: str) -> str:
+    with db.connection() as conn:
+        return conn.execute("SELECT storage_path FROM sources WHERE id = %s", (source_id,)).fetchone()[0]
+
+
+def test_the_text_endpoint_marks_spans_in_utf16_and_serves_only_data(client: TestClient) -> None:
+    sid = client.post("/api/sessions", json={"name": "text window"}).json()["id"]
+    other = client.post("/api/sessions", json={"name": "text other"}).json()["id"]
+    body = "\U0001F600 find cat here, <script>alert(1)</script> & more text about a cat."
+    source = upload(client, "w.txt", body.encode(), session_id=sid)
+    parsed = db_text(source["id"])
+    a = parsed.index("cat here")
+    res = client.get(f"/api/sources/{source['id']}/text",
+                     params={"session_id": sid, "span": [f"{a}:{a + 8}"]})
+    assert res.status_code == 200 and res.headers["content-type"].startswith("application/json")
+    data = res.json()
+    assert data["unit"] == "utf16" and data["total"] == len(parsed)
+    units = data["text"].encode("utf-16-le")
+    marks = data["marks"]
+    assert len(marks) == 1
+    assert units[marks[0]["start"] * 2:marks[0]["end"] * 2].decode("utf-16-le") == "cat here", marks
+    assert "<script>" in data["text"], "markup is returned as inert text, not stripped or parsed"
+
+    assert client.get(f"/api/sources/{source['id']}/text",
+                      params={"session_id": other, "span": [f"{a}:{a + 8}"]}).status_code == 404
+    for bad in ("x:y", "5", "9:3", "-1:4"):
+        assert client.get(f"/api/sources/{source['id']}/text",
+                          params={"session_id": sid, "span": [bad]}).status_code == 400, bad
+    # Spans past the end are clamped, not an error.
+    far = client.get(f"/api/sources/{source['id']}/text",
+                     params={"session_id": sid, "span": ["0:999999"]}).json()
+    assert far["marks"][0]["end"] <= len(far["text"].encode("utf-16-le")) // 2
+
+    # A source indexed before 0007 says what to do, rather than showing nothing.
+    with db.connection() as conn:
+        conn.execute("UPDATE sources SET parsed_text = NULL WHERE id = %s", (source["id"],))
+    old = client.get(f"/api/sources/{source['id']}/text", params={"session_id": sid}).json()
+    assert old["text"] is None and old["reason"] == "reindex", old
+    client.delete(f"/api/sessions/{sid}")
+    client.delete(f"/api/sessions/{other}")
+    print("  the text window is session-scoped, UTF-16 marked, inert, and asks for a re-index: OK")
+
+
 def test_a_chunking_config_that_could_hang_cannot_hang(client: TestClient) -> None:
     """`CHUNK_SIZE <= CHUNK_OVERLAP` looped backwards and appended forever.
 
@@ -4734,6 +4826,8 @@ ORDER = [
     ("invented quote not trusted", test_a_quote_that_is_not_verbatim_is_never_trusted),
     ("utf-16 offsets", test_offsets_handed_to_the_browser_are_utf16),
     ("location persisted across reload", test_a_citation_carries_its_location_and_keeps_it_on_reload),
+    ("page image endpoint", test_the_page_image_endpoint_is_scoped_clamped_and_cached),
+    ("text window endpoint", test_the_text_endpoint_marks_spans_in_utf16_and_serves_only_data),
 ]
 
 

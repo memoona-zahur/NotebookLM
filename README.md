@@ -725,6 +725,45 @@ answer, close the tab, come back, and the provenance was gone with the markers p
 at nothing. Nullable because a user turn has neither field; JSONB rather than more tables
 because this is only ever read with its parent row and never queried on its own.
 
+### Clicking a citation opens the original document, marked at the quoted text
+
+A citation used to scroll to a ~900-character chunk with one sentence guessed by word
+overlap. It now opens the uploaded document at the place the answer came from and marks
+**only** the text that answers - or nothing, if no span can be trusted.
+
+1. **The model quotes.** Answers end with a plain-text `QUOTES:` trailer (`[1] "exact
+   words"`). A trailer rather than JSON or a tool call because Groq, OpenAI and Ollama do
+   not share a structured-output feature, JSON mode would take the Markdown body away, and
+   one malformed field would then cost the answer; when a trailer is missing the matcher
+   takes over. The trailer is stripped before the answer is shown or its `[n]` markers are
+   counted.
+2. **Quotes are verified, never trusted.** A quote counts only if it is a verbatim
+   substring of the cited chunk after folding ligatures, soft hyphens, line-break
+   hyphenation and whitespace (`app/citing.py`). A quote over ~300 characters or two
+   sentences is cut to one sentence or rejected.
+3. **Fallback, then nothing.** With no valid quote, the one chunk sentence best matching
+   the one answer sentence that carries the marker is used (content-token F1 >= 0.35; the
+   splitter does not break on `3.5`, `Dr.`, `Sec. 4.2`, `e.g.` or a hard-wrapped line);
+   below that there is no highlight. `quote_source` says which: `model`, `matcher`, or
+   absent.
+4. **Position.** Migration `0007` stores each source's parsed text, each PDF page's start
+   offset and every chunk's absolute `char_start`/`char_end`, so overlapping chunks map to
+   the same place. A PDF quote is located on its page from the page's own characters
+   (`app/pdfloc.py`), one rectangle per line; anything else by offsets into the parsed
+   text. The phrase's position is consulted only to choose between repeats on a page.
+5. **Viewer.** `GET /api/sources/{id}/page/{n}.png` (scale and pixels capped, cached) and
+   `GET /api/sources/{id}/text` (JSON, never markup), both session-scoped. The location is
+   stored in `messages.citations`, so it survives a reload. Sources indexed before `0007`
+   show "Re-index to open in document".
+6. **UTF-16.** Python counts code points and the browser counts UTF-16 units, so every
+   offset sent to the browser is converted (`"😀 find cat here"`: Python `(7, 10)`, sent as
+   `(8, 11)`).
+
+Measured on the 20 first answerable questions of `experiments/gold/gold_set.json`
+(live providers, one run each, so a small `n`): Groq `openai/gpt-oss-120b` supplied a valid
+verbatim quote for 20 of 21 cited passages (95.2%); Ollama `qwen3:4b-instruct-2507` for 9 of
+11 (81.8%), and it cited at all in only 11 of 20 answers. OpenAI was not measured.
+
 ## Handling tables and numbers without losing data
 
 A PDF table page extracts as bare numbers with no headers:
