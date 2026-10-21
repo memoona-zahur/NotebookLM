@@ -244,3 +244,69 @@ describe("readIntent", () => {
     expect(readIntent("   ")).toEqual({ question: null, term: null });
   });
 });
+// -- Phase 2: "show" and the shape of a term -----------------------------------
+
+describe("show is not a highlight verb on its own", () => {
+  it("sends real requests to the model", () => {
+    for (const message of [
+      "show me the refund policy",
+      "show me the late fee",
+      "show the termination clause",
+      "show me what the contract says about payment",
+    ]) {
+      expect(highlightTerm(message)).toBeNull();
+      expect(readIntent(message)).toEqual({ question: message, term: null });
+    }
+  });
+
+  it("still takes the 'where X appears' and 'all occurrences' shapes", () => {
+    expect(highlightTerm("show me where velocity appears")).toBe("velocity");
+    expect(highlightTerm("show me where refund policy shows up")).toBe("refund policy");
+    expect(highlightTerm("show me all occurrences of velocity")).toBe("velocity");
+    expect(highlightTerm("show every mention of escape velocity")).toBe("escape velocity");
+  });
+
+  it("strips a leading 'me' from what is to be found, but keeps the words as written", () => {
+    expect(highlightTerm("highlight me the word velocity")).toBe("velocity");
+    expect(highlightTerm("highlight me velocity")).toBe("velocity");
+    // "the deadline" is what the document says; existing behaviour, deliberately kept.
+    expect(highlightTerm("highlight the deadline")).toBe("the deadline");
+  });
+});
+
+describe("terms beyond ASCII letters", () => {
+  it.each([
+    ["highlight café", "café"],
+    ["highlight $500", "$500"],
+    ["highlight 30%", "30%"],
+    ["highlight 4.8", "4.8"],
+    ["highlight C++", "C++"],
+    ["highlight R&D", "R&D"],
+    ["highlight naïve Bayes", "naïve Bayes"],
+    ["highlight پاکستان", "پاکستان"],
+    ["highlight السلام عليكم", "السلام عليكم"],
+    ["highlight भारत", "भारत"],
+    ["highlight 東京", "東京"],
+  ])("%s", (message, term) => {
+    expect(highlightTerm(message)).toBe(term);
+    expect(readIntent(message)).toEqual({ question: null, term });
+  });
+
+  it("still refuses what is not a term", () => {
+    for (const message of [
+      "highlight 12345",
+      "highlight 2024",
+      "highlight the difference between a and b",
+      "highlight how it works",
+      "highlight why the fee applies",
+      "highlight what the fee is",
+      "highlight 30 days and 2%",
+      "highlight a, b",
+      "highlight (see below)",
+      "highlight one two three four five",
+      "highlight",
+    ]) {
+      expect(highlightTerm(message), message).toBeNull();
+    }
+  });
+});

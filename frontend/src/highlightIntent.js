@@ -48,9 +48,15 @@ const QUOTED = /^["'“”‘’](.+?)["'“”‘’]$/;
 
 /**
  * A term has to look like something a person would search a document for:
- * letters, digits and single spaces, short enough to be a word or a phrase.
+ * letters and digits in any script (marks included, for Devanagari and Arabic),
+ * the few symbols that belong to a figure or a name ($500, 30%, 4.8, C++, R&D),
+ * and spaces, short enough to be a word or a phrase. Still closed: no question
+ * marks, commas, colons or brackets, which is what keeps a sentence out.
  */
-const TERM = /^[A-Za-z0-9][A-Za-z0-9 '\-_]*$/;
+const TERM = /^[\p{L}\p{N}$€£¥#@][\p{L}\p{N}\p{M}$€£¥#@%&+.'’_\-/ ]*$/u;
+
+/** A phrase joined by one of these is two requests, not one thing to find. */
+const CONNECTIVE = /\b(?:and|or|but|then|also|plus)\b/i;
 
 /** Longest term accepted, matching the server's own ceiling. */
 const MAX_TERM = 60;
@@ -73,7 +79,11 @@ const SHAPES = [
   // "where X appears", "show me where X shows up"
   /^(?:show\s+me\s+)?where\s+(.+?)\s+(?:appears|occurs|shows\s+up|turns\s+up|comes\s+up)$/i,
   // The plain ones.
-  /^(?:highlight|mark|circle|underline|emphasise|emphasize|show)\s+(.+)$/i,
+  // "show me all occurrences of X", "show every mention of X". "show" is only a
+  // highlight verb in these shapes (and the "where X appears" ones above):
+  // "show me the refund policy" is a request for an answer, not for a word search.
+  /^show\s+(?:me\s+)?(?:all|every|each)\s+(?:the\s+)?(?:occurrences?|instances?|mentions?|appearances?|uses?|hits?|times?|references?)\s+of\s+(.+)$/i,
+  /^(?:highlight|mark|circle|underline|emphasise|emphasize)\s+(.+)$/i,
 ];
 
 /** Not intent, just a mention of the feature inside a real question. */
@@ -91,9 +101,16 @@ function plausible(term) {
   const trimmed = term.trim().replace(QUOTED, "$1").trim();
   if (!trimmed || trimmed.length > MAX_TERM) return null;
   if (!TERM.test(trimmed)) return null;
-  // At least one letter, or it is just a number standing in for something.
-  if (!/[A-Za-z]/.test(trimmed)) return null;
-  if (trimmed.split(/\s+/).length > MAX_WORDS) return null;
+  // A full stop belongs to a figure ("4.8"), not to "a.b.c.d" or a file name.
+  if (/(?<!\d)\.|\.(?!\d)/.test(trimmed)) return null;
+  // A letter, or a figure that is more than a bare number: "$500", "30%" and
+  // "4.8" are things to find, "12345" is a number standing in for something.
+  const hasLetter = /\p{L}/u.test(trimmed);
+  const figure = /\p{N}/u.test(trimmed) && /[$€£¥%#+.]/.test(trimmed);
+  if (!hasLetter && !figure) return null;
+  const words = trimmed.split(/\s+/);
+  if (words.length > MAX_WORDS) return null;
+  if (words.length > 1 && CONNECTIVE.test(trimmed)) return null;
   if (REFUSALS.some((re) => re.test(trimmed))) return null;
   return trimmed;
 }
@@ -124,7 +141,10 @@ export function highlightTerm(message) {
     const found = text.match(shape);
     if (!found) continue;
 
-    let remainder = found[1].replace(FILLER, "").replace(TAIL, "");
+    // "me" is addressing the assistant, never part of the thing to find
+    // ("highlight me the word velocity"). "the" is left: "the deadline" is what
+    // the document says, and the search is for the words as written.
+    let remainder = found[1].replace(/^me\s+/i, "").replace(FILLER, "").replace(TAIL, "");
     // "all occurrences of" already consumed the of; a leading "of" can survive.
     remainder = remainder.replace(/^of\s+/i, "").trim();
 

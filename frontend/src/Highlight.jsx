@@ -165,6 +165,12 @@ export function Occurrences({ onFind, onClose, autoSearch = null }) {
               <pre className="occ-text">
                 <Highlighted text={occurrence.text} matches={occurrence.matches} />
               </pre>
+              {occurrence.truncated ? (
+                <p className="occ-more">
+                  Showing the first {occurrence.matches.length} of {occurrence.count} in this
+                  passage.
+                </p>
+              ) : null}
             </details>
           ))}
         </>

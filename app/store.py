@@ -19,6 +19,15 @@ OCCURRENCE_PER_CHUNK = 10
 MAX_TERM_CHARS = 80
 
 
+# Whitespace of any kind, and every dash a typesetter might use for a hyphen.
+_PHRASE_GAP = r"[\s\-\u2010-\u2015]+"
+_PHRASE_SPLIT = re.compile(r"[\s\-\u2010-\u2015]+")
+
+
+def _phrase_tokens(term: str) -> list[str]:
+    return [piece for piece in _PHRASE_SPLIT.split(term.strip()) if piece]
+
+
 def _occurrence_pattern(term: str) -> re.Pattern[str] | None:
     """Match `term` case-insensitively, on word boundaries where it is a word.
 
@@ -26,19 +35,69 @@ def _occurrence_pattern(term: str) -> re.Pattern[str] | None:
     for '4' lights up every number in the corpus. Boundaries go on only at the
     edges that start or end on a word character, so a phrase like '(old)' or
     '4.8 ' still matches exactly as written.
+
+    A phrase matches however the document spaced it. Extraction wraps lines,
+    doubles spaces and breaks words at hyphens, so 'escape velocity' must find
+    'escape\\nvelocity', 'escape  velocity' and 'escape-velocity'. The words of
+    the term are matched literally and joined by "any whitespace or dash"; the
+    gap is the only thing relaxed.
     """
-    term = term.strip()
-    if not term:
-        return None
-    lead = r"\b" if term[0].isalnum() or term[0] == "_" else ""
-    trail = r"\b" if term[-1].isalnum() or term[-1] == "_" else ""
-    return re.compile(f"{lead}{re.escape(term)}{trail}", re.IGNORECASE)
+    tokens = _phrase_tokens(term)
+    if not tokens:
+        stripped = term.strip()
+        if not stripped:
+            return None
+        tokens = [stripped]  # a term that is nothing but dashes, matched as typed
+    lead = r"\b" if tokens[0][0].isalnum() or tokens[0][0] == "_" else ""
+    trail = r"\b" if tokens[-1][-1].isalnum() or tokens[-1][-1] == "_" else ""
+    body = _PHRASE_GAP.join(re.escape(token) for token in tokens)
+    return re.compile(f"{lead}{body}{trail}", re.IGNORECASE)
 
 
 def _ilike(term: str) -> str:
-    """A pattern for ILIKE, with the wildcards in the user's term escaped."""
-    escaped = term.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+    """A pattern for ILIKE, with the wildcards in the user's term escaped.
+
+    Only the first word of a phrase is asked of the database: the gap between
+    words varies in the text, so SQL cannot express it, and the regex decides.
+    """
+    tokens = _phrase_tokens(term)
+    first = tokens[0] if tokens else term
+    escaped = first.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
     return f"%{escaped}%"
+
+
+def _drop_overlap_repeats(
+    spans: list[tuple[int, int]], current: dict, previous: dict | None
+) -> list[tuple[int, int]]:
+    """Remove matches that the previous chunk of the same source already holds.
+
+    A match lying wholly inside the region the two chunks share is in both rows;
+    only the earlier row keeps it. A match that starts in the shared region but
+    runs past the end of the earlier chunk is not in that chunk, so it stays.
+
+    With recorded positions the shared region is `previous.end` back to
+    `current.start`. A source indexed before positions were recorded has none,
+    so the region is found by comparing the end of the previous chunk with the
+    start of this one: the longest suffix of one that is a prefix of the other.
+    If no such region exists nothing is removed - the failure mode is a
+    duplicate left in, never a real occurrence dropped.
+    """
+    if previous is None or not spans or previous["source"] != current["source"]:
+        return spans
+
+    shared = 0  # characters at the start of `current` that `previous` also holds
+    if None not in (current["start"], current["end"], previous["start"], previous["end"]):
+        if current["start"] < previous["end"] and previous["start"] <= current["start"]:
+            shared = previous["end"] - current["start"]
+    elif current["position"] == previous["position"] + 1:
+        before, now = previous["text"], current["text"]
+        for length in range(min(len(before), len(now), 600), 0, -1):
+            if before.endswith(now[:length]):
+                shared = length
+                break
+    if shared <= 0:
+        return spans
+    return [(a, b) for a, b in spans if b > shared]
 
 
 def _discard(storage_path) -> None:
@@ -688,11 +747,12 @@ class VectorStore:
         with db.connection() as conn:
             rows = conn.execute(
                 """
-                SELECT s.name, s.kind, c.position, c.page, c.heading, c.text
+                SELECT s.id::text, s.name, s.kind, c.position, c.page, c.heading,
+                       c.text, c.char_start, c.char_end
                 FROM chunks c
                 JOIN sources s ON s.id = c.source_id
                 WHERE s.session_id = %s AND c.text ILIKE %s ESCAPE '\\'
-                ORDER BY s.name, c.position
+                ORDER BY s.name, s.id, c.position
                 """,
                 (session_id, _ilike(term)),
             ).fetchall()
@@ -700,10 +760,18 @@ class VectorStore:
         occurrences: list[dict] = []
         total = 0
         truncated = False
-        for name, kind, position, page, heading, text in rows:
+        previous: dict | None = None
+        for source_id, name, kind, position, page, heading, text, c_start, c_end in rows:
+            current = {"source": source_id, "position": position, "text": text,
+                       "start": c_start, "end": c_end}
             spans = [m.span() for m in pattern.finditer(text)]
+            # Chunks overlap by design, so a word in the overlap is in two rows.
+            # It is one occurrence in the document, and counting it twice
+            # inflates the total and lists the same sentence twice.
+            spans = _drop_overlap_repeats(spans, current, previous)
+            previous = current
             if not spans:
-                continue  # ILIKE and the word-boundary pattern disagree
+                continue  # ILIKE and the word-boundary pattern disagree, or all repeats
             total += len(spans)
             if len(occurrences) >= limit:
                 truncated = True
@@ -721,6 +789,9 @@ class VectorStore:
                     "matches": [list(span) for span in
                                 citing.to_utf16_spans(text, spans[:per_chunk])],
                     "count": len(spans),
+                    # More matches than are returned: the passage shows the first
+                    # `per_chunk` and `count` says how many there really are.
+                    "truncated": len(spans) > per_chunk,
                 }
             )
         return {

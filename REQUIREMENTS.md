@@ -515,10 +515,10 @@ Priority key: **M** = MUST, **S** = SHOULD, **C** = COULD, **W** = WON'T now.
 
 | ID | Pri | Requirement | Verification |
 |---|---|---|---|
-| FR-44 | S | The system SHOULD return every occurrence of a term in a notebook, with exact character spans, word-bounded and case-insensitive. | `GET /api/occurrences`; tests |
+| FR-44 | S | The system SHOULD return every occurrence of a term in a notebook, with exact character spans, word-bounded and case-insensitive; a phrase MUST match across newlines, repeated spaces and hyphens (`escape velocity` = `escape\nvelocity` = `escape-velocity`). | `GET /api/occurrences`; tests |
 | FR-45 | M | Occurrence spans MUST be computed server-side from the same text the client renders, so highlights cannot disagree. | occurrence tests |
-| FR-46 | S | The composer SHOULD recognise `highlight <word>` (and variants) and never send that clause to the model; a combined "question + highlight" message MUST split the two. | `highlightIntent` tests |
-| FR-47 | M | Occurrence results MUST be capped (40 passages) with a `truncated` flag. | occurrence tests |
+| FR-46 | S | The composer SHOULD recognise `highlight <word>` (and variants) and never send that clause to the model ("show" counts only in "show me where X appears" / "show all occurrences of X"; terms may be any-script letters and figures such as `$500`, `30%`, `4.8`, `C++`); a combined "question + highlight" message MUST split the two. | `highlightIntent` tests |
+| FR-47 | M | Occurrence results MUST be capped (40 passages) with a `truncated` flag; a passage with more matches than the per-chunk cap (10) MUST be flagged `truncated` itself, and a word that sits in the overlap of two chunks MUST be counted once. | occurrence tests |
 | FR-48 | M | Clicking an inline citation MUST open the **original document** at the place the answer came from and highlight **only** the text that answers the question — nothing before or after it. If no confident span exists, NO highlight is shown rather than a wrong one. | `DocumentViewer.jsx`; `_annotate_citations`; viewer tests |
 | FR-48a | M | For every cited passage the model MUST be asked for the verbatim supporting span(s) (a `QUOTES:` trailer, provider-independent). A quote MUST be accepted only if it is a verbatim substring of the cited chunk after folding ligatures, soft hyphens, line-break hyphenation and whitespace; quotes over ~300 characters or 2 sentences MUST be trimmed to one sentence or rejected. The trailer MUST NOT reach the user or be counted as citations. | `llm.split_quotes`, `citing.validate_quotes`; quote tests |
 | FR-48b | M | When no quote validates, the system MUST fall back to the one chunk sentence that best matches the one answer sentence carrying the marker (decimal/abbreviation-safe splitter, content-token F1 ≥ 0.35, ≥ 2 shared tokens); sentence-less chunks (CSV, code, tables) MUST NOT be wholly marked; a weak match MUST yield no highlight. `quote_source` records `model`, `matcher` or none. | `citing.best_unit`; matcher tests |
@@ -880,9 +880,9 @@ number is quoted from a source that does not exist.
 
 Runs, in order:
 
-1. **Backend** — `python test_app.py`: **148 checks**, against a scratch Postgres it
+1. **Backend** — `python test_app.py`: **151 checks**, against a scratch Postgres it
    creates and drops (never real data).
-2. **Frontend** — `npm test` (Vitest + jsdom): **200 checks**, `fetch` mocked.
+2. **Frontend** — `npm test` (Vitest + jsdom): **216 checks**, `fetch` mocked.
 3. **Production build** — `npm run build` (Vite).
 
 A green run is the definition of "done" for any change.
@@ -909,7 +909,7 @@ A green run is the definition of "done" for any change.
 
 The release is acceptable when **all** hold:
 
-- [ ] `./run_tests.sh` is green (148 + 200 + build).
+- [ ] `./run_tests.sh` is green (151 + 216 + build).
 - [ ] `GET /api/status` returns 200 and reports the live provider, model, counts.
 - [ ] A fresh notebook can upload a source, answer a covered question with citations, and
       refuse an uncovered one with `no_match`.
@@ -1062,7 +1062,7 @@ defences, and audited per-query cost.
 - Delivered a **cost/observability** layer: provider-reported tokens, split latency
   percentiles, a dated price table where unknown prices are `None` not `$0`, and opt-in
   privacy-split tracing.
-- Shipped **148 backend + 200 frontend** tests and a **one-command gate**
+- Shipped **151 backend + 216 frontend** tests and a **one-command gate**
   (`./run_tests.sh`) covering grounding, injection, sessions, OCR, cost, and the frontend.
 
 **Skills demonstrated.** RAG architecture · hybrid retrieval & re-ranking · Postgres +
@@ -1074,7 +1074,7 @@ metrics design · security (SSRF, prompt injection) · observability · technica
 ## 20. Requirements checklist (definition of done)
 
 - [ ] All **MUST** requirements (§6, §7) are implemented and verified.
-- [ ] `./run_tests.sh` is green (148 backend + 200 frontend + build).
+- [ ] `./run_tests.sh` is green (151 backend + 216 frontend + build).
 - [ ] `/api/status`, `/api/ask`, `/api/sources`, `/api/sessions` match §9.
 - [ ] Schema matches §8 (migrations at head; tests assert column agreement).
 - [ ] Configuration matches §10.
@@ -1096,7 +1096,7 @@ metrics design · security (SSRF, prompt injection) · observability · technica
 ### Appendix B — Verified facts (spot-check list)
 
 - 39 file suffixes: `python -c "from app.parsers import SUPPORTED; print(len(SUPPORTED))"`.
-- Test counts: `./run_tests.sh` output (148 / 200).
+- Test counts: `./run_tests.sh` output (151 / 216).
 - Migrations: `ls migrations/versions/` → `0001`…`0007`.
 - Corpus: 28 files in `experiments/corpus/`; cloze set 122 items (115 answerable, 7 traps).
 - Prices (as of 2026-10-07): `gpt-oss-120b` $0.15/$0.60, `gpt-oss-20b` $0.075/$0.30 per 1M.

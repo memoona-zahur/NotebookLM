@@ -2486,6 +2486,107 @@ def test_the_text_endpoint_marks_spans_in_utf16_and_serves_only_data(client: Tes
     print("  the text window is session-scoped, UTF-16 marked, inert, and asks for a re-index: OK")
 
 
+def _overlap_document() -> tuple[str, str]:
+    """A long text with one rare word planted inside the overlap of two chunks."""
+    text = "lorem ipsum dolor sit amet consectetur. " * 120
+    spans = parsers.chunk_spans(text, cfg.CHUNK_SIZE, cfg.CHUNK_OVERLAP)
+    assert spans[1][0] < spans[0][1], "the fixture needs two overlapping chunks"
+    low, high = spans[1][0] + 10, spans[0][1] - 10
+    at = text.index("lorem", low)
+    assert at + 5 < high, (low, at, high)
+    # Same length as the word it replaces, so no chunk boundary moves.
+    return text[:at] + "zebra" + text[at + 5:], "zebra"
+
+
+def test_a_word_in_the_overlap_of_two_chunks_is_counted_once(client: TestClient) -> None:
+    """Overlapping chunks both contain the overlap, so one word is in two rows.
+
+    Reported as two occurrences it inflates the count and lists the same
+    sentence twice. The fix keys on position in the source, and falls back to
+    comparing neighbouring chunks for a source indexed before positions were
+    recorded.
+    """
+    text, word = _overlap_document()
+    sid = client.post("/api/sessions", json={"name": "overlap count"}).json()["id"]
+    source = upload(client, "overlap.txt", text.encode(), session_id=sid)
+
+    chunks = client.get(f"/api/sources/{source['id']}/chunks", params={"session_id": sid}).json()["chunks"]
+    holding = [c for c in chunks if word in c["text"]]
+    assert len(holding) == 2, "fixture: the word must sit in two chunks"
+
+    found = client.get("/api/occurrences", params={"term": word, "session_id": sid}).json()
+    assert found["count"] == 1, found["count"]
+    assert len(found["occurrences"]) == 1, [o["position"] for o in found["occurrences"]]
+
+    # A source indexed before positions were recorded is deduplicated by comparing
+    # neighbouring chunks.
+    with db.connection() as conn:
+        conn.execute("UPDATE chunks SET char_start = NULL, char_end = NULL WHERE source_id = %s", (source["id"],))
+    legacy = client.get("/api/occurrences", params={"term": word, "session_id": sid}).json()
+    assert legacy["count"] == 1 and len(legacy["occurrences"]) == 1, legacy["count"]
+
+    # Two real occurrences in two chunks stay two.
+    far = text + " " + ("zebra is here. " * 1)
+    two = upload(client, "two.txt", (far + "\n\n" + "filler words go here. " * 80 + "zebra again.").encode(), session_id=sid)
+    both = client.get("/api/occurrences", params={"term": word, "session_id": sid}).json()
+    assert both["count"] >= 3, both["count"]
+    client.delete(f"/api/sessions/{sid}")
+    print("  a word in the overlap of two chunks is one occurrence, not two: OK")
+
+
+def test_a_phrase_matches_across_newlines_spaces_and_hyphens(client: TestClient) -> None:
+    from app.store import _occurrence_pattern
+
+    # The pattern itself, on every gap an extractor produces.
+    pattern = _occurrence_pattern("escape velocity")
+    for text in ("escape velocity", "escape\nvelocity", "escape  velocity",
+                 "escape\r\n  velocity", "escape-velocity", "escape\u2011velocity",
+                 "escape\u2013velocity", "Escape Velocity"):
+        assert pattern.search(text), repr(text)
+    for text in ("escapevelocity", "escape of velocity", "scape velocity", "escape velocities"):
+        assert not pattern.search(text), repr(text)
+    assert _occurrence_pattern("escape-velocity").search("escape\nvelocity")
+
+    # And end to end. Markdown keeps the line break inside a paragraph; the
+    # ingest cleaner collapses runs of spaces, so the double space is covered above.
+    sid = client.post("/api/sessions", json={"name": "phrase gaps"}).json()["id"]
+    body = (
+        "# Notes\n\n"
+        "The escape\nvelocity of Earth is 11.2 km/s. "
+        "The escape-velocity formula is short. Plain escape velocity too. "
+        "Unrelated escapevelocity and escape of velocity do not count. "
+        "Also 100% sure and 100_percent should not confuse the wildcard escaping."
+    )
+    upload(client, "gaps.md", body.encode(), session_id=sid)
+    found = client.get("/api/occurrences", params={"term": "escape velocity", "session_id": sid}).json()
+    row = found["occurrences"][0]
+    marked = [row["text"][a:b] for a, b in row["matches"]]
+    assert marked == ["escape\nvelocity", "escape-velocity", "escape velocity"], marked
+    assert found["count"] == 3
+    dashed = client.get("/api/occurrences", params={"term": "escape-velocity", "session_id": sid}).json()
+    assert dashed["count"] == 3, dashed["count"]
+    # Whole-word matching and wildcard escaping are intact.
+    assert client.get("/api/occurrences", params={"term": "scape velocity", "session_id": sid}).json()["count"] == 0
+    assert client.get("/api/occurrences", params={"term": "100%", "session_id": sid}).json()["count"] == 1
+    assert client.get("/api/occurrences", params={"term": "100_", "session_id": sid}).json()["count"] == 0
+    client.delete(f"/api/sessions/{sid}")
+    print("  phrases match across newlines, double spaces and hyphens: OK")
+
+
+def test_a_chunk_with_more_matches_than_the_cap_says_so(client: TestClient) -> None:
+    sid = client.post("/api/sessions", json={"name": "chunk cap"}).json()["id"]
+    upload(client, "many.txt", ("cat " * 30).encode(), session_id=sid)
+    upload(client, "few.txt", b"One cat sat here. " * 2, session_id=sid)
+    found = client.get("/api/occurrences", params={"term": "cat", "session_id": sid}).json()
+    by_source = {o["source"]: o for o in found["occurrences"]}
+    many, few = by_source["many.txt"], by_source["few.txt"]
+    assert many["count"] == 30 and len(many["matches"]) == 10 and many["truncated"] is True, many["count"]
+    assert few["count"] == 2 and few["truncated"] is False
+    assert found["count"] == 32, "the total still counts every match"
+    client.delete(f"/api/sessions/{sid}")
+    print("  a chunk whose matches were capped is flagged truncated: OK")
+
+
 def test_a_chunking_config_that_could_hang_cannot_hang(client: TestClient) -> None:
     """`CHUNK_SIZE <= CHUNK_OVERLAP` looped backwards and appended forever.
 
@@ -4828,6 +4929,9 @@ ORDER = [
     ("location persisted across reload", test_a_citation_carries_its_location_and_keeps_it_on_reload),
     ("page image endpoint", test_the_page_image_endpoint_is_scoped_clamped_and_cached),
     ("text window endpoint", test_the_text_endpoint_marks_spans_in_utf16_and_serves_only_data),
+    ("overlap counted once", test_a_word_in_the_overlap_of_two_chunks_is_counted_once),
+    ("phrase gaps", test_a_phrase_matches_across_newlines_spaces_and_hyphens),
+    ("per-chunk cap flagged", test_a_chunk_with_more_matches_than_the_cap_says_so),
 ]
 
 
@@ -4842,7 +4946,10 @@ def main() -> int:
     # each of those is opted into by naming its parameters here, and a small
     # recording stand-in is built for the ones that do.
     patcher = pytest.MonkeyPatch()
+    only = os.getenv("TEST_ONLY")
     for name, fn in ORDER:
+        if only and only.lower() not in name.lower():
+            continue
         print(f"\n> {name}")
         # Optional params like `tmp_path` have defaults and are not fixtures, so
         # only the ones this runner can actually supply are filled in.
@@ -4859,7 +4966,7 @@ def main() -> int:
             print(f"  FAIL: {type(exc).__name__}: {exc}")
 
     print("\n" + "=" * 60)
-    print(f"{passed}/{len(ORDER)} passed")
+    print(f"{passed}/{passed + len(failed)} passed")
     for name, exc in failed:
         print(f"  FAILED  {name}: {type(exc).__name__}: {exc}")
     return 1 if failed else 0

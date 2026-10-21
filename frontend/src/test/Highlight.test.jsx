@@ -263,4 +263,26 @@ describe("Occurrences", () => {
 
     expect(await screen.findByText(/showing the first ones/i)).toBeInTheDocument();
   });
+
+  it("says when one passage has more matches than it shows", async () => {
+    const user = userEvent.setup();
+    const text = "cat ".repeat(30);
+    const matches = Array.from({ length: 10 }, (_, k) => [k * 4, k * 4 + 3]);
+    const result = {
+      term: "cat",
+      count: 30,
+      truncated: false,
+      occurrences: [
+        { source: "many.txt", kind: "txt", position: 0, page: 0, heading: "", text,
+          matches, count: 30, truncated: true },
+        { source: "few.txt", kind: "txt", position: 0, page: 0, heading: "", text: "a cat",
+          matches: [[2, 5]], count: 1, truncated: false },
+      ],
+    };
+    render(<Occurrences onFind={vi.fn().mockResolvedValue(result)} onClose={vi.fn()} />);
+    await user.type(screen.getByLabelText(/word to highlight/i), "cat{Enter}");
+
+    expect(await screen.findByText(/showing the first 10 of 30 in this passage/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/in this passage/i)).toHaveLength(1);
+  });
 });
