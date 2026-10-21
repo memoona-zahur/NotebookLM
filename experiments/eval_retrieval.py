@@ -203,11 +203,11 @@ def report(rows, verbose=True):
     trap_ok = sum(1 for _, _, x in trap if not x["answered"])
 
     by_format = defaultdict(lambda: [0, 0, 0, 0])
-    for name, fmt, x in rel:
+    for _name, fmt, x in rel:
         b = by_format[fmt]
         b[0] += x["answered"]
         b[1] += 1
-    for name, fmt, x in trap:
+    for _name, fmt, x in trap:
         b = by_format[fmt]
         b[2] += not x["answered"]
         b[3] += 1

@@ -700,7 +700,7 @@ erDiagram
 | `messages.citations/evidence` JSONB | read only with the parent row; lets provenance survive reload. |
 | `usage_events.session_id ON DELETE SET NULL` | the spend happened whether or not the notebook still exists. |
 | Tokens stored, **dollars computed at read time** | a persisted dollar figure would silently go stale. |
-| `EMBED_DIM` duplicated (config + migration) | documented; changing model = new migration. |
+| `EMBED_DIM` duplicated (config + migration) | a constant, not an env var; changing the model's width = new migration. |
 
 ---
 
@@ -783,7 +783,7 @@ All optional, read from `.env`. Defaults shown.
 | `UPLOAD_DIR` | `./data/uploads` | Originals; deletion boundary |
 | `MAX_UPLOAD_MB` | `100` | Upload ceiling (413 beyond) |
 | `EMBED_MODEL` | `sentence-transformers/all-MiniLM-L6-v2` | Local embedder |
-| `EMBED_DIM` | `384` | Vector width (must match migration) |
+| ~~`EMBED_DIM`~~ | `384` (constant in `app/config.py`, **not** an env var) | Vector width; fixed by migration `0001`, changing the model's width needs a new migration |
 | `EMBED_MAX_TOKENS` | `256` | Embedding wordpiece window (0 disables) |
 | `CHUNK_SIZE` | `900` | Characters per chunk |
 | `CHUNK_OVERLAP` | `150` | Overlap (clamped ≤ `CHUNK_SIZE/2`) |
@@ -811,6 +811,8 @@ All optional, read from `.env`. Defaults shown.
 | `OCR_DPI` | `300` | Rasterisation DPI |
 | `OCR_MAX_PAGES` | `50` | OCR page cap |
 | `LLM_PROVIDER` | auto | Force `groq`/`openai`/`ollama` |
+| `LLM_TIMEOUT` / `LLM_MAX_RETRIES` | `60` / `1` | Seconds an LLM call may take; retries on a dropped connection |
+| `INDEX_CONCURRENCY` | `2` | Uploads parsed and embedded at once; others wait |
 | `GROQ_API_KEY` / `GROQ_MODEL` / `GROQ_BASE_URL` | – / `openai/gpt-oss-120b` / Groq | Groq |
 | `OPENAI_API_KEY` / `OPENAI_MODEL` | – / `gpt-4o-mini` | OpenAI |
 | `OLLAMA_URL` / `OLLAMA_MODEL` | `http://localhost:11434` / `llama3.1` | Ollama |

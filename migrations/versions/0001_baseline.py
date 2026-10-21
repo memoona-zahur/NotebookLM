@@ -10,7 +10,6 @@ Create Date: 2026-01-15
 """
 
 from alembic import op
-from sqlalchemy import text
 
 revision = "0001_baseline"
 down_revision = None

@@ -1193,9 +1193,34 @@ def test_the_prompt_tells_the_model_sources_are_data(client: TestClient) -> None
     assert "ignore them" in lowered, SYSTEM_PROMPT
     # The client renders a defined Markdown subset, so the prompt has to name the
     # limit. Asking for Markdown and then stripping it is how an answer arrives
-    # full of literal '**' or '<table>'.
-    assert "plain text only" in lowered, SYSTEM_PROMPT
-    assert "no html" in lowered, SYSTEM_PROMPT
+    # full of literal '**' or '<table>'. It must not say "plain text only" either:
+    # that forbids the bold and lists the renderer shows.
+    assert "plain text only" not in lowered, SYSTEM_PROMPT
+    assert "**bold**" in SYSTEM_PROMPT and "do not use tables" in lowered, SYSTEM_PROMPT
+    assert "html" in lowered, SYSTEM_PROMPT
+
+
+def test_the_prompt_asks_for_the_citation_format_the_parser_reads(client: TestClient) -> None:
+    """The prompt said "[Source 1]" while passages were labelled "[1]" and only
+    "[n]" counted as a citation, so following the prompt literally produced an
+    answer with no citations and an `ungrounded` flag."""
+    from app import llm
+
+    for prompt in (llm.SYSTEM_PROMPT, llm.ANSWER_PROMPT):
+        assert "[Source" not in prompt, "the label in the prompt is [N], not [Source N]"
+        assert "[1], [2]" in prompt
+        # Modes the app never supplies are not described to the model.
+        assert "inventory" not in prompt.lower() and "product knowledge" not in prompt.lower()
+
+    messages = llm._build_messages("q?", [{"text": "fact", "source": "a.txt"}], [])
+    assert "[1] (source: a.txt" in messages[1]["content"], "passages are labelled [1]"
+    # Literal compliance: an answer written the way the prompt says counts.
+    followed = llm._finish("The fact is true [1].", passages=1)
+    assert followed.cited == [1] and not followed.ungrounded
+    # And the old literal form does not, which is what made the prompt wrong.
+    old = llm._finish("The fact is true [Source 1].", passages=1)
+    assert old.cited == [] and old.ungrounded
+    print("  the prompt asks for [N], the format the parser and the labels use: OK")
 
 
 def test_static_and_empty_question(client: TestClient) -> None:
@@ -2527,7 +2552,7 @@ def test_a_word_in_the_overlap_of_two_chunks_is_counted_once(client: TestClient)
 
     # Two real occurrences in two chunks stay two.
     far = text + " " + ("zebra is here. " * 1)
-    two = upload(client, "two.txt", (far + "\n\n" + "filler words go here. " * 80 + "zebra again.").encode(), session_id=sid)
+    upload(client, "two.txt", (far + "\n\n" + "filler words go here. " * 80 + "zebra again.").encode(), session_id=sid)
     both = client.get("/api/occurrences", params={"term": word, "session_id": sid}).json()
     assert both["count"] >= 3, both["count"]
     client.delete(f"/api/sessions/{sid}")
@@ -2585,6 +2610,263 @@ def test_a_chunk_with_more_matches_than_the_cap_says_so(client: TestClient) -> N
     assert found["count"] == 32, "the total still counts every match"
     client.delete(f"/api/sessions/{sid}")
     print("  a chunk whose matches were capped is flagged truncated: OK")
+
+
+@contextlib.contextmanager
+def live_server():
+    """The app on a real socket and a real event loop.
+
+    The TestClient gives every request a loop of its own, so a handler that
+    blocks the loop blocks nobody else and the bug under test cannot show. A
+    real server has one loop, which is the thing that was being frozen.
+    """
+    import threading
+    import time as _time
+
+    import uvicorn
+
+    with socket.socket() as probe:
+        probe.bind(("127.0.0.1", 0))
+        port = probe.getsockname()[1]
+    server = uvicorn.Server(uvicorn.Config(app, host="127.0.0.1", port=port,
+                                           log_level="error", lifespan="off"))
+    thread = threading.Thread(target=server.run, daemon=True)
+    thread.start()
+    for _ in range(100):
+        if server.started:
+            break
+        _time.sleep(0.05)
+    assert server.started, "the test server did not start"
+    try:
+        yield f"http://127.0.0.1:{port}"
+    finally:
+        server.should_exit = True
+        thread.join(timeout=10)
+
+
+def test_a_slow_upload_does_not_freeze_the_server_and_indexing_is_limited(client: TestClient) -> None:
+    import threading
+    import time as _time
+
+    import httpx
+
+    from app.store import store as real_store
+
+    sid = client.post("/api/sessions", json={"name": "slow index"}).json()["id"]
+    # Status loads the re-ranker the first time it is asked; that is a one-off
+    # cost of its own and would be mistaken for the event loop being blocked.
+    client.get("/api/status", params={"session_id": sid})
+    real_add = real_store.add
+    state = {"active": 0, "peak": 0}
+    gate = threading.Lock()
+
+    def slow_add(*args, **kwargs):
+        with gate:
+            state["active"] += 1
+            state["peak"] = max(state["peak"], state["active"])
+        try:
+            _time.sleep(1.2)
+            return real_add(*args, **kwargs)
+        finally:
+            with gate:
+                state["active"] -= 1
+
+    real_store.add = slow_add
+    results: list = []
+    try:
+        with live_server() as base:
+            def post(n: int) -> None:
+                r = httpx.post(f"{base}/api/sources", params={"session_id": sid}, timeout=60,
+                               files={"file": (f"slow{n}.txt", f"unique document number {n} ".encode() * 20)})
+                results.append(r.status_code)
+
+            threads = [threading.Thread(target=post, args=(n,)) for n in range(3)]
+            for t in threads:
+                t.start()
+            _time.sleep(0.4)  # all three are in flight
+            started = _time.perf_counter()
+            status = httpx.get(f"{base}/api/status", params={"session_id": sid}, timeout=30)
+            waited = _time.perf_counter() - started
+            for t in threads:
+                t.join(timeout=60)
+    finally:
+        real_store.add = real_add
+    assert status.status_code == 200
+    assert waited < 0.9, f"/api/status waited {waited:.2f}s behind an upload: the loop is blocked"
+    assert results == [200, 200, 200], results
+    assert state["peak"] == cfg.INDEX_CONCURRENCY == 2, state
+    client.delete(f"/api/sessions/{sid}")
+    print(f"  uploads run off the event loop (status answered in {waited:.2f}s), at most 2 at a time: OK")
+
+
+def test_the_model_loads_once_under_concurrent_first_use(client: TestClient) -> None:
+    import threading
+    import time as _time
+
+    from app import embeddings
+
+    loads = []
+    real_class, real_model = embeddings.SentenceTransformer, embeddings._model
+
+    class Slow:
+        def __init__(self, name):
+            loads.append(name)
+            _time.sleep(0.3)
+
+    embeddings.SentenceTransformer, embeddings._model = Slow, None
+    try:
+        got = []
+        threads = [threading.Thread(target=lambda: got.append(embeddings.get_model())) for _ in range(8)]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join()
+    finally:
+        embeddings.SentenceTransformer, embeddings._model = real_class, real_model
+    assert len(loads) == 1, f"the embedding model was loaded {len(loads)} times"
+    assert len({id(m) for m in got}) == 1
+    print("  concurrent first use loads the embedding model once: OK")
+
+
+def test_the_lexical_cache_survives_concurrent_queries_and_invalidation(client: TestClient) -> None:
+    import threading
+
+    from app.store import store
+
+    sid = client.post("/api/sessions", json={"name": "bm25 race"}).json()["id"]
+    upload(client, "race.txt", b"Escape velocity from the Earth is 11.2 km/s. " * 30, session_id=sid)
+    errors: list[BaseException] = []
+
+    def hammer(invalidate: bool) -> None:
+        try:
+            for _ in range(60):
+                if invalidate:
+                    store._invalidate(sid)
+                else:
+                    assert store._lexical_for(sid).ids
+        except BaseException as exc:  # noqa: BLE001
+            errors.append(exc)
+
+    threads = [threading.Thread(target=hammer, args=(i % 3 == 0,)) for i in range(9)]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join()
+    assert not errors, errors[:2]
+    client.delete(f"/api/sessions/{sid}")
+    print("  the BM25 cache holds up under concurrent queries and invalidation: OK")
+
+
+def test_llm_calls_have_a_timeout(client: TestClient) -> None:
+    import openai
+    from types import SimpleNamespace
+
+    seen = {}
+
+    class FakeOpenAI:
+        def __init__(self, **kwargs):
+            seen.update(kwargs)
+            create = lambda **_: SimpleNamespace(  # noqa: E731
+                choices=[SimpleNamespace(message=SimpleNamespace(content="ok [1]"))],
+                usage=SimpleNamespace(prompt_tokens=3, completion_tokens=2),
+            )
+            self.chat = SimpleNamespace(completions=SimpleNamespace(create=create))
+
+    real = openai.OpenAI
+    openai.OpenAI = FakeOpenAI
+    try:
+        llm._openai_compatible([{"role": "user", "content": "hi"}], "http://x", "k", "m")
+    finally:
+        openai.OpenAI = real
+    assert seen["timeout"] == cfg.LLM_TIMEOUT and 0 < cfg.LLM_TIMEOUT <= 120, seen
+    assert seen["max_retries"] == cfg.LLM_MAX_RETRIES, seen
+    print("  the OpenAI-compatible client is built with an explicit timeout and retry cap: OK")
+
+
+def test_dense_retrieval_stays_exact_with_many_notebooks(client: TestClient) -> None:
+    """An HNSW index plus a session filter can silently return too few rows.
+
+    HNSW yields a fixed number of nearest neighbours *across the whole table* and
+    the session filter is applied after, so a small notebook in a big database
+    could get a handful of rows - or none - of the pool it asked for. Measured
+    here rather than assumed: the planner does not use the index for this query
+    at all (it finds the session's sources, reads their chunks and sorts by
+    distance), so the result is exact. This test keeps it that way - if a
+    planner or schema change ever routes the query through HNSW, the rows
+    returned or their order will differ from the exact answer and this fails.
+    """
+    import math
+    import random
+
+    rng = random.Random(7)
+
+    def unit() -> list[float]:
+        v = [rng.gauss(0, 1) for _ in range(cfg.EMBED_DIM)]
+        norm = math.sqrt(sum(x * x for x in v))
+        return [x / norm for x in v]
+
+    sessions = []
+    with db.connection() as conn:
+        for i in range(12):
+            sid = conn.execute("INSERT INTO sessions (name) VALUES (%s) RETURNING id", (f"ann {i}",)).fetchone()[0]
+            src = conn.execute(
+                "INSERT INTO sources (session_id, name, kind) VALUES (%s, %s, 'txt') RETURNING id", (sid, f"d{i}")
+            ).fetchone()[0]
+            with conn.cursor() as cur:
+                cur.executemany(
+                    "INSERT INTO chunks (source_id, position, text, embedding) VALUES (%s, %s, %s, %s)",
+                    [(src, j, f"t{i}-{j}", unit()) for j in range(60)],
+                )
+            sessions.append(sid)
+        conn.execute("ANALYZE chunks")
+    try:
+        query, pool, target = unit(), 24, sessions[3]
+        sql_text = ("SELECT c.id FROM chunks c JOIN sources s ON s.id = c.source_id WHERE s.session_id = %s "
+                    "ORDER BY c.embedding <=> %s::vector LIMIT %s")
+        with db.connection() as conn:
+            exact = [r[0] for r in conn.execute(
+                sql_text.replace("ORDER BY c.embedding <=> %s::vector", "ORDER BY c.embedding <=> %s::vector"),
+                (target, query, pool)).fetchall()]
+            for setting in ("SET enable_seqscan = off", "SET enable_indexscan = off; SET enable_bitmapscan = off"):
+                conn.execute(setting)
+                got = [r[0] for r in conn.execute(sql_text, (target, query, pool)).fetchall()]
+                conn.execute("RESET ALL")
+                assert got == exact, (setting, len(got), len(exact))
+            plan = "\n".join(r[0] for r in conn.execute("EXPLAIN " + sql_text, (target, query, pool)).fetchall())
+        assert len(exact) == pool, f"asked for {pool}, the notebook has 60 chunks, got {len(exact)}"
+        assert "hnsw" not in plan.lower(), "the dense query is meant to be an exact, session-filtered scan\n" + plan[:400]
+    finally:
+        with db.connection() as conn:
+            conn.execute("DELETE FROM sessions WHERE id = ANY(%s)", (sessions,))
+    print("  dense retrieval returns the full, exact pool with 12 notebooks in the table: OK")
+
+
+def test_a_query_scores_the_whole_corpus_with_bm25_once(client: TestClient) -> None:
+    """Coverage came from a second whole-corpus BM25 pass per query; it now rides
+    along with the one that ranks."""
+    from app import lexical
+    from app.store import store
+
+    sid = client.post("/api/sessions", json={"name": "one bm25 pass"}).json()["id"]
+    upload(client, "a.txt", b"Escape velocity from the Earth is 11.2 km/s. " * 20, session_id=sid)
+    upload(client, "b.txt", b"The orbital period of the station is 90 minutes. " * 20, session_id=sid)
+    calls = []
+    real = lexical.BM25.top
+
+    def counting(self, *args, **kwargs):
+        calls.append(args)
+        return real(self, *args, **kwargs)
+
+    lexical.BM25.top = counting
+    try:
+        result = store.search_detailed("What is the escape velocity?", session_id=sid)
+    finally:
+        lexical.BM25.top = real
+    assert len(calls) == 1, f"BM25.top ran {len(calls)} times for one query"
+    assert result.hits and all("support" in hit for hit in result.hits)
+    assert max(hit["support"] for hit in result.hits) > 0, "coverage must still reach the admission test"
+    client.delete(f"/api/sessions/{sid}")
+    print("  one BM25 pass per query, coverage included: OK")
 
 
 def test_a_chunking_config_that_could_hang_cannot_hang(client: TestClient) -> None:
@@ -4460,7 +4742,7 @@ def test_web_search_cost_is_recorded_and_survives_deletion(
     cost = {"model": "openai/gpt-oss-20b", "prompt_tokens": 9000,
             "completion_tokens": 40, "search_ms": 5.0}
 
-    monkeypatch.setattr(websearch, "find", lambda q, l: ([], dict(cost, search_ms=5.0)))
+    monkeypatch.setattr(websearch, "find", lambda q, _limit: ([], dict(cost, search_ms=5.0)))
 
     with provider("groq", GROQ_API_KEY="stub-key"):
         res = client.post(
@@ -4541,6 +4823,70 @@ def test_a_redirect_cannot_smuggle_the_app_onto_a_private_address(
     # The decisive assertion: only the first hop was ever requested.
     assert requested == [f"http://{public}/start"], requested
     print("  a redirect into private space is stopped before it is requested: OK")
+
+
+def test_ranges_a_hand_written_list_forgets_are_refused(client: TestClient, monkeypatch) -> None:
+    """100.64.0.0/10 is neither private nor loopback by Python's flags, and it is
+    where cloud metadata services live (100.100.100.200). Judging by `is_global`
+    refuses everything not publicly routable, including the IPv4-mapped forms."""
+    import httpx
+
+    def resolves_to(address: str):
+        family = 10 if ":" in address else 2
+        monkeypatch.setattr(socket, "getaddrinfo", lambda host, *a, **k: [(family, 1, 6, "", (address, 80))])
+
+    for bad in ("100.100.100.200", "100.64.0.1", "100.127.255.254", "::ffff:100.100.100.200",
+                "::ffff:127.0.0.1", "192.0.0.8", "198.18.0.1", "169.254.169.254", "10.0.0.5",
+                "192.168.1.1", "172.16.0.9", "127.0.0.1", "::1", "fe80::1", "fc00::1",
+                "0.0.0.0", "224.0.0.1", "240.0.0.1", "2001:db8::1"):
+        resolves_to(bad)
+        try:
+            websearch._public_addresses("example.org")
+        except websearch.WebSearchUnavailable as exc:
+            assert "non-public" in str(exc), (bad, exc)
+        else:
+            raise AssertionError(f"{bad} must be refused")
+
+    for good in ("93.184.216.34", "8.8.8.8", "2606:4700:4700::1111", "::ffff:8.8.8.8"):
+        resolves_to(good)
+        assert websearch._public_addresses("example.org") == [good]
+
+    # And as a redirect hop: nothing is requested at the carrier-grade address.
+    requested: list[str] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        requested.append(str(request.url))
+        return httpx.Response(302, headers={"location": "http://100.100.100.200/latest/meta-data/"})
+
+    real_client = httpx.Client
+    monkeypatch.setattr(socket, "getaddrinfo",
+                        lambda host, *a, **k: [(2, 1, 6, "", ("100.100.100.200" if host.startswith("100.") else "93.184.216.34", 80))])
+    monkeypatch.setattr(httpx, "Client", lambda **kw: real_client(transport=httpx.MockTransport(handler), **kw))
+    try:
+        websearch.fetch(websearch.Candidate(url="http://example.org/start"))
+    except websearch.WebSearchUnavailable as exc:
+        assert "non-public" in str(exc), exc
+    else:
+        raise AssertionError("a redirect into 100.64.0.0/10 must be refused")
+    assert requested == ["http://example.org/start"], requested
+    print("  carrier-grade NAT, IPv4-mapped and reserved ranges are refused, hop by hop: OK")
+
+
+def test_the_fetcher_does_not_claim_to_respect_robots(client: TestClient, monkeypatch) -> None:
+    import httpx
+
+    seen: list[str] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen.append(request.headers["user-agent"])
+        return httpx.Response(200, headers={"content-type": "text/plain"}, content=b"hello " * 20)
+
+    real_client = httpx.Client
+    monkeypatch.setattr(socket, "getaddrinfo", lambda host, *a, **k: [(2, 1, 6, "", ("93.184.216.34", 80))])
+    monkeypatch.setattr(httpx, "Client", lambda **kw: real_client(transport=httpx.MockTransport(handler), **kw))
+    websearch.fetch(websearch.Candidate(url="http://example.org/page"))
+    assert seen and "robots" not in seen[0].lower(), seen
+    print("  the User-Agent makes no robots.txt claim the code does not keep: OK")
 
 
 def test_urls_with_parentheses_survive_extraction(client: TestClient) -> None:
@@ -4932,6 +5278,15 @@ ORDER = [
     ("overlap counted once", test_a_word_in_the_overlap_of_two_chunks_is_counted_once),
     ("phrase gaps", test_a_phrase_matches_across_newlines_spaces_and_hyphens),
     ("per-chunk cap flagged", test_a_chunk_with_more_matches_than_the_cap_says_so),
+    ("prompt asks for [N]", test_the_prompt_asks_for_the_citation_format_the_parser_reads),
+    ("upload off the event loop", test_a_slow_upload_does_not_freeze_the_server_and_indexing_is_limited),
+    ("model loads once", test_the_model_loads_once_under_concurrent_first_use),
+    ("lexical cache race", test_the_lexical_cache_survives_concurrent_queries_and_invalidation),
+    ("llm timeout", test_llm_calls_have_a_timeout),
+    ("ssrf: non-global ranges", test_ranges_a_hand_written_list_forgets_are_refused),
+    ("user-agent honest", test_the_fetcher_does_not_claim_to_respect_robots),
+    ("dense retrieval exact with many notebooks", test_dense_retrieval_stays_exact_with_many_notebooks),
+    ("one bm25 pass", test_a_query_scores_the_whole_corpus_with_bm25_once),
 ]
 
 

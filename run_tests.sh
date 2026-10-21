@@ -56,6 +56,12 @@ else
   db_is_up || { echo "Postgres never became reachable on :55432" >&2; exit 1; }
 fi
 
+step "Lint: Python (ruff)"
+"$PY" -m ruff check .
+
+step "Lint: frontend (eslint)"
+(cd frontend && npm run lint)
+
 step "Backend: API, retrieval, sessions, migrations"
 TEST_DATABASE_ADMIN_URL="$TEST_DB_URL" "$PY" test_app.py
 

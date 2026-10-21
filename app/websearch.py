@@ -116,7 +116,12 @@ def find(query: str, limit: int) -> tuple[list[Candidate], dict]:
 
     from openai import OpenAI
 
-    client = OpenAI(base_url=config.GROQ_BASE_URL, api_key=config.GROQ_API_KEY)
+    client = OpenAI(
+        base_url=config.GROQ_BASE_URL,
+        api_key=config.GROQ_API_KEY,
+        timeout=config.WEB_SEARCH_TIMEOUT,
+        max_retries=config.LLM_MAX_RETRIES,
+    )
     started = time.perf_counter()
     try:
         response = client.chat.completions.create(
@@ -222,14 +227,13 @@ def _public_addresses(host: str) -> list[str]:
         mapped = getattr(ip, "ipv4_mapped", None)
         if mapped is not None:
             ip = mapped
-        if (
-            ip.is_private
-            or ip.is_loopback
-            or ip.is_link_local
-            or ip.is_multicast
-            or ip.is_reserved
-            or ip.is_unspecified
-        ):
+        # `is_global` is the registry's own answer to "is this routable on the
+        # public internet", so it also refuses ranges a hand-written list of
+        # `is_private`/`is_loopback`/... forgets: 100.64.0.0/10 (carrier-grade
+        # NAT, where cloud metadata services such as 100.100.100.200 live),
+        # 192.0.0.0/24, 198.18.0.0/15 and the documentation ranges. Multicast is
+        # not "global" in that sense for our purposes either, so it is explicit.
+        if not ip.is_global or ip.is_multicast:
             raise WebSearchUnavailable(
                 f"Refusing to fetch {host}: it resolves to the non-public "
                 f"address {address}."
@@ -300,9 +304,10 @@ def fetch(candidate: Candidate) -> FetchedPage:
             headers={
                 # Some sites serve a bare page to an unrecognised agent, and the
                 # user asked to read these pages, so ask as a reader would.
-                "User-Agent": (
-                    "NotebookLM/1.0 (+source ingestion; respects robots)"
-                ),
+                # No claim about robots.txt: nothing here reads it, and the
+                # header used to say it did. Each fetch is one page the user
+                # asked for, not a crawl.
+                "User-Agent": "NotebookLM/1.0 (+source ingestion; user-requested fetch)",
                 "Accept": "text/html,application/pdf,text/plain;q=0.9,*/*;q=0.5",
             },
         ) as client:

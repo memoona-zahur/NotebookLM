@@ -766,7 +766,7 @@ def main() -> int:
         f"  {len(gold['items'])} items: {answerable} answerable, {traps} traps, "
         f"{len(unknown)} answerability unknown"
     )
-    print(f"  verified by a human: 0 - nothing in this file is evidence yet")
+    print("  verified by a human: 0 - nothing in this file is evidence yet")
     if unknown:
         print(f"  needs a fact written by hand: {', '.join(unknown)}")
     return 0

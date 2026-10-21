@@ -15,7 +15,7 @@ export function Highlighted({ text, matches = [], className }) {
   const spans = [...matches]
     .filter(([start, end]) => Number.isInteger(start) && Number.isInteger(end) && start < end)
     .sort((a, b) => a[0] - b[0])
-    .filter(([start, end], i, all) => i === 0 || start >= all[i - 1][1]);
+    .filter(([start], i, all) => i === 0 || start >= all[i - 1][1]);
 
   if (!spans.length) return <>{text}</>;
 
@@ -91,14 +91,6 @@ export function Occurrences({ onFind, onClose, autoSearch = null }) {
     const wanted = term.trim();
     if (!wanted) return;
     runSearch(wanted);
-  }
-
-  function clear() {
-    request.current += 1;
-    setTerm("");
-    setResult(null);
-    setError(null);
-    setBusy(false);
   }
 
   const shown = result ? result.count : 0;

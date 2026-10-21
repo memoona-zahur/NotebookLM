@@ -61,5 +61,7 @@ jobs:
       - name: OCR language data (otherwise the OCR tests skip)
         run: python -m app.ocr --install eng
 
-      - name: Backend, frontend, build
+      # ./run_tests.sh runs ruff and eslint first, then the backend suite, the
+      # frontend suite and the production build - the same order as locally.
+      - name: Lint, backend, frontend, build
         run: ./run_tests.sh

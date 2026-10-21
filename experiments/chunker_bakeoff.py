@@ -30,14 +30,13 @@ from __future__ import annotations
 import argparse
 import json
 import sys
-from collections import defaultdict
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from app import config, db  # noqa: E402
 from app.store import VectorStore  # noqa: E402
-from experiments import corpus, eval_gold, metrics  # noqa: E402
+from experiments import eval_gold, metrics  # noqa: E402
 
 HERE = Path(__file__).resolve().parent
 REPO = HERE.parent
@@ -79,7 +78,6 @@ def resolve_gold(item: dict, chunks: list[tuple[str, str]]) -> list[str]:
     Matching on text rather than on position is what lets one label set score
     several chunking settings at all.
     """
-    ids = [chunk_id for chunk_id, _ in chunks]
     out: list[str] = []
     for fact in item["required_facts"]:
         needle = metrics.normalize(fact)

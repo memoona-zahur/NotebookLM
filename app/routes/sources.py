@@ -9,14 +9,17 @@ query is a Pydantic field, but the *responses* are bounded in
 `app/websearch.py`, because their sizes are not known until they are read.
 """
 
+import asyncio
 import mimetypes
 import re
 import threading
 import uuid
+import weakref
 from collections import OrderedDict
 from pathlib import Path
 
 from fastapi import APIRouter, File, HTTPException, Query, Request, UploadFile
+from fastapi.concurrency import run_in_threadpool
 from fastapi.responses import FileResponse, Response
 from pydantic import BaseModel, Field
 
@@ -74,6 +77,23 @@ def occurrences(term: str, request: Request, session_id: str | None = None) -> d
     return store.find_occurrences(term, str(session.id))
 
 
+# At most INDEX_CONCURRENCY uploads are parsed and embedded at once; the rest wait
+# here, on the event loop, without holding a worker thread. One semaphore per
+# running loop: an asyncio primitive belongs to the loop that first waits on it,
+# and the test client runs each request on a loop of its own.
+_index_slots: "weakref.WeakKeyDictionary[asyncio.AbstractEventLoop, asyncio.Semaphore]" = (
+    weakref.WeakKeyDictionary()
+)
+
+
+def _slots() -> asyncio.Semaphore:
+    loop = asyncio.get_running_loop()
+    slots = _index_slots.get(loop)
+    if slots is None:
+        slots = _index_slots[loop] = asyncio.Semaphore(config.INDEX_CONCURRENCY)
+    return slots
+
+
 @router.post("/sources")
 async def add_source(
     request: Request,
@@ -95,9 +115,13 @@ async def add_source(
     await _write_upload(file, target)
 
     try:
-        source = store.add(
-            target, display_name=original.name, session_id=str(session.id)
-        )
+        # Parsing, OCR and embedding are seconds of blocking CPU. Called directly
+        # from this coroutine they froze the whole event loop - every other
+        # request, including /api/status, waited for the upload to finish.
+        async with _slots():
+            source = await run_in_threadpool(
+                store.add, target, display_name=original.name, session_id=str(session.id)
+            )
     except UnreadableDocument as exc:
         # Readable file, unusable content. The parser's message says what to do
         # about it, so it is not flattened into a generic parse failure.

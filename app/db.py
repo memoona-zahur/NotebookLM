@@ -11,6 +11,7 @@ The schema is owned by Alembic in `migrations/`, not by this module; see
 from __future__ import annotations
 
 import os
+import threading
 from contextlib import contextmanager
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -21,6 +22,7 @@ from psycopg.types.json import Json
 from . import config
 
 _pool = None
+_pool_lock = threading.Lock()
 
 
 @dataclass
@@ -39,15 +41,19 @@ def pool():
     """Lazily built connection pool. Rebuilt when DATABASE_URL changes."""
     global _pool
     if _pool is None:
-        from psycopg_pool import ConnectionPool
+        # Two threads that both see None would each build a pool and one would
+        # leak its connections for the life of the process.
+        with _pool_lock:
+            if _pool is None:
+                from psycopg_pool import ConnectionPool
 
-        _pool = ConnectionPool(
-            dsn(),
-            min_size=1,
-            max_size=int(os.getenv("DB_POOL_MAX", "8")),
-            timeout=10.0,
-            open=True,
-        )
+                _pool = ConnectionPool(
+                    dsn(),
+                    min_size=1,
+                    max_size=int(os.getenv("DB_POOL_MAX", "8")),
+                    timeout=10.0,
+                    open=True,
+                )
     return _pool
 
 
@@ -439,7 +445,7 @@ def usage_report(session_id: str | None = None, totals: dict | None = None) -> d
         ).fetchall()
         questions = 0
         pending_question: str | None = None
-        for row_id, created_at, role, content, cost in rows:
+        for _row_id, created_at, role, content, cost in rows:
             if role == "user":
                 questions += 1
                 text = " ".join(str(content or "").split())
@@ -511,7 +517,7 @@ def usage_report(session_id: str | None = None, totals: dict | None = None) -> d
             + " ORDER BY id ASC",
             params,
         ).fetchall()
-        for row_id, created_at, kind, model, prompt_tokens, completion_tokens, latency_ms in rows:
+        for _row_id, created_at, kind, model, prompt_tokens, completion_tokens, latency_ms in rows:
             model_name = str(model or config.resolved_model())
             item_cost = config.estimate_cost_usd(
                 model_name, int(prompt_tokens or 0), int(completion_tokens or 0)

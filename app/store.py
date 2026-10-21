@@ -1,5 +1,6 @@
 import hashlib
 import re
+import threading
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -280,6 +281,10 @@ class VectorStore:
     def __init__(self) -> None:
         self._lexical: dict[str, BM25] = {}
         self._revision: dict[str, int] = {}
+        # Questions and uploads run on different threads. The index is built
+        # outside the lock (it reads the database) and only the swap is guarded,
+        # so a slow rebuild never blocks another session's question.
+        self._lock = threading.Lock()
 
     # -- caching -----------------------------------------------------------
 
@@ -295,18 +300,23 @@ class VectorStore:
     def _lexical_for(self, session_id: str) -> BM25:
         """BM25 over the session's chunks, rebuilt only when it changed."""
         revision = self._session_revision(session_id)
-        if self._revision.get(session_id) != revision:
-            with db.connection() as conn:
-                rows = conn.execute(
-                    "SELECT c.id::text, c.text FROM chunks c "
-                    "JOIN sources s ON s.id = c.source_id WHERE s.session_id = %s",
-                    (session_id,),
-                ).fetchall()
-            index = BM25()
-            index.fit([row[0] for row in rows], [row[1] for row in rows])
+        with self._lock:
+            if self._revision.get(session_id) == revision and session_id in self._lexical:
+                return self._lexical[session_id]
+        with db.connection() as conn:
+            rows = conn.execute(
+                "SELECT c.id::text, c.text FROM chunks c "
+                "JOIN sources s ON s.id = c.source_id WHERE s.session_id = %s",
+                (session_id,),
+            ).fetchall()
+        index = BM25()
+        index.fit([row[0] for row in rows], [row[1] for row in rows])
+        with self._lock:
             self._lexical[session_id] = index
             self._revision[session_id] = revision
-        return self._lexical[session_id]
+        # The local, not `self._lexical[session_id]`: another thread may have
+        # invalidated the session between the swap and this line.
+        return index
 
     # -- writes ------------------------------------------------------------
 
@@ -524,8 +534,9 @@ class VectorStore:
             _discard(path)
 
     def _invalidate(self, session_id: str) -> None:
-        self._lexical.pop(session_id, None)
-        self._revision.pop(session_id, None)
+        with self._lock:
+            self._lexical.pop(session_id, None)
+            self._revision.pop(session_id, None)
 
     def forget(self, session_id: str) -> None:
         """Drop every cache for a deleted session."""
@@ -916,12 +927,12 @@ class VectorStore:
                     remember(row[0], row[5], row[6], row[2], row[3], row[1], row[4], score,
                              row[8], row[9])
 
-            covers = dict(
-                (cid, cov) for cid, _s, cov in lexical.top(query, len(lexical.ids))
-            )
-            for chunk_id, _bm25, _cov in lexical_ranked:
+            # Coverage rides along with each lexical hit. It used to be read from a
+            # second `top()` over the whole corpus - a full BM25 pass per query to
+            # look up numbers this list already held for the only ids that use them.
+            for chunk_id, _bm25, coverage in lexical_ranked:
                 if chunk_id in by_id:
-                    by_id[chunk_id]["support"] = covers.get(chunk_id, 0.0)
+                    by_id[chunk_id]["support"] = coverage
 
             fused = fuse(
                 [(hit["chunk_id"], hit["score"]) for hit in dense_ranked],
@@ -1051,7 +1062,7 @@ class VectorStore:
         # Backfill: a single-source notebook would otherwise be capped at
         # MAX_PER_SOURCE chunks regardless of TOP_K. The cap is a preference for
         # diversity, never a reason to return fewer passages than asked for.
-        for index, hit in enumerate(hits):
+        for index in range(len(hits)):
             if len(kept) >= limit:
                 break
             if index not in taken:

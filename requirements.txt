@@ -18,3 +18,6 @@ pydantic>=2.7
 # Tests only. Kept here rather than in a separate file so that the documented
 # `pip install -r requirements.txt` gives a checkout that can run ./run_tests.sh.
 pytest>=8.0
+
+# Lint (ruff.toml). Run by ./run_tests.sh and by CI.
+ruff>=0.6

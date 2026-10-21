@@ -25,6 +25,9 @@ import threading
 from . import config
 
 _lock = threading.Lock()
+# The cross-encoder has a tokenizer of its own with the same shared-state hazard
+# as the embedder's; predictions are serialised for the same reason.
+_predict_lock = threading.Lock()
 _model = None
 _checked = False
 
@@ -79,7 +82,8 @@ def rerank(query: str, hits: list[dict]) -> list[dict]:
 
     pool = hits[: max(2, config.RERANK_POOL)]
     try:
-        scores = model.predict([(query, hit["text"]) for hit in pool])
+        with _predict_lock:
+            scores = model.predict([(query, hit["text"]) for hit in pool])
     except Exception:  # noqa: BLE001
         return hits
 

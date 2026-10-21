@@ -1,0 +1,23 @@
+# Lint, not format: the codebase has its own style (long explanatory comments,
+# wrapped by hand) and a formatter would rewrite every file for no benefit.
+# The rule set is the one that finds bugs: pyflakes (unused names, undefined
+# names, f-strings without placeholders), pycodestyle errors, and bugbear.
+target-version = "py310"
+line-length = 120
+extend-exclude = ["experiments/corpus", "migrations/versions/__pycache__", "static"]
+
+[lint]
+select = ["E", "F", "B", "W"]
+ignore = [
+    "E501",  # line length: comments and SQL strings are wrapped for reading, not by a number
+    "B008",  # FastAPI's File(...)/Query(...) defaults are the framework's idiom
+    "B904",  # `raise ... from` is used where the cause matters, not everywhere
+    "B905",  # zip(x, x[1:]) is deliberately unequal; strict= would raise on every use
+    "W292",  # files without a trailing newline: formatting, not a defect
+]
+
+[lint.per-file-ignores]
+"test_app.py" = ["E402", "B011", "B023", "E731"]  # env is set before imports; lambdas in stubs
+"experiments/*.py" = ["E402"]
+"experiments/metrics.py" = ["B023"]  # a self-check that calls each lambda inside the loop that binds it
+"migrations/env.py" = ["E402"]

@@ -1,23 +1,42 @@
-from functools import lru_cache
+import threading
 
 from sentence_transformers import SentenceTransformer
 
 from . import config
 
+# Indexing now runs in worker threads while questions are being answered, so two
+# things that were safe on one thread need a guard:
+#
+# - loading the model. `lru_cache` does not stop two threads that miss together
+#   from both loading it (twice the memory, a slow first request each);
+# - using it. The fast tokenizer inside the model is shared state, and calling it
+#   from two threads at once is a known source of "Already borrowed" errors;
+#   `token_count` (used while chunking) and `encode` (used to embed) both reach
+#   it. Inference is CPU-bound, so serialising it costs little.
+_load_lock = threading.Lock()
+_use_lock = threading.RLock()
+_model: SentenceTransformer | None = None
 
-@lru_cache(maxsize=1)
+
 def get_model() -> SentenceTransformer:
-    return SentenceTransformer(config.EMBED_MODEL)
+    global _model
+    if _model is None:
+        with _load_lock:
+            if _model is None:
+                _model = SentenceTransformer(config.EMBED_MODEL)
+    return _model
 
 
 def embed_texts(texts: list[str]) -> list[list[float]]:
-    vectors = get_model().encode(
-        texts,
-        batch_size=32,
-        convert_to_numpy=True,
-        normalize_embeddings=True,
-        show_progress_bar=False,
-    )
+    model = get_model()
+    with _use_lock:
+        vectors = model.encode(
+            texts,
+            batch_size=32,
+            convert_to_numpy=True,
+            normalize_embeddings=True,
+            show_progress_bar=False,
+        )
     return vectors.tolist()
 
 
@@ -40,7 +59,9 @@ def token_count(text: str) -> int:
     warning off, which is safe here and only here: no other caller of this
     tokenizer wants an over-long input.
     """
-    return len(get_model().tokenizer(text, truncation=False, verbose=False)["input_ids"])
+    model = get_model()
+    with _use_lock:
+        return len(model.tokenizer(text, truncation=False, verbose=False)["input_ids"])
 
 
 def score_against_query(query_vector: list[float], texts: list[str]) -> list[float]:

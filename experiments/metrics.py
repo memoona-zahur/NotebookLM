@@ -111,7 +111,7 @@ def reciprocal_rank(expected: Sequence[object], retrieved: Sequence[object], k: 
     """
     gold = _require_gold(expected)
     considered = retrieved if k is None else retrieved[: _require_k(k)]
-    for rank, item in _ranked(gold, considered):
+    for rank, _item in _ranked(gold, considered):
         return 1.0 / rank
     return 0.0
 

@@ -452,7 +452,7 @@ def _record_items(
     constant |= {key for key in fields if META_FIELD.search(key)}
 
     built: list[dict] = []
-    for position, group in groups:
+    for _position, group in groups:
         if len(built) >= per_document:
             break
         if len(group) < 3:
@@ -825,7 +825,7 @@ def _items_for_document(
                 keys_in_doc[key] = keys_in_doc.get(key, 0) + 1
 
     seen_questions: set[str] = set()
-    for position, line, continuation in _candidate_lines(blocks):
+    for _position, line, continuation in _candidate_lines(blocks):
         if len(built) >= per_document:
             break
         clozed = _cloze_from_line(line, continuation)
@@ -1079,7 +1079,7 @@ def main() -> int:
     args.out.write_text(json.dumps(gold, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     print(f"wrote {args.out}")
     print(f"  {gold['checked']} items pass their own checks, {gold['failed']} fail")
-    print(f"  verified by a human: 0 - these are machine-checked, not reviewed")
+    print("  verified by a human: 0 - these are machine-checked, not reviewed")
     return 0 if not gold["failed"] else 1
 
 

@@ -364,7 +364,6 @@ def run(
         _print_detail(rows, leaks, k)
 
     scored_verified = all(bool(item["verified_by_human"]) for item in scorable)
-    machine_only = bool(scorable) and not scored_verified
     report = {
         "k": k,
         "mode": mode,

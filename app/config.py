@@ -83,8 +83,9 @@ EMBED_MAX_TOKENS = int(os.getenv("EMBED_MAX_TOKENS", "256"))
 # Second-stage re-ranking. The dense/BM25/RRF pass above is cheap and recall
 # oriented; a cross-encoder reads the query and the chunk together and is far
 # more accurate, and far more expensive, which is why it runs on the shortlist
-# rather than the corpus. Off by default until it is measured - a re-ranker that
-# moves metrics in the wrong direction is worse than no re-ranker.
+# rather than the corpus. On by default: it was measured (see the retrieval
+# eval) and every failure degrades to "leave the order alone". Set
+# RERANK_ENABLED=0 to turn it off.
 RERANK_ENABLED = os.getenv("RERANK_ENABLED", "1") not in {"0", "false", "no"}
 RERANK_MODEL = os.getenv("RERANK_MODEL", "cross-encoder/ms-marco-MiniLM-L-6-v2")
 # How many fused candidates are handed to the cross-encoder. Above TOP_K so the
@@ -209,6 +210,19 @@ WEB_SEARCH_MAX_PAGES = int(os.getenv("WEB_SEARCH_MAX_PAGES", "5"))
 # is genuinely slow - 8-15s is normal - and a fetch that has not answered by
 # this point is not going to.
 WEB_SEARCH_TIMEOUT = int(os.getenv("WEB_SEARCH_TIMEOUT", "60"))
+
+# Seconds an LLM call may take before it is abandoned with a 503. The OpenAI
+# client's own default is ten minutes, during which a worker thread and the
+# user's spinner are both stuck. One retry, because a single dropped connection
+# is the common failure and three of them in a row is an outage.
+LLM_TIMEOUT = float(os.getenv("LLM_TIMEOUT", "60"))
+LLM_MAX_RETRIES = int(os.getenv("LLM_MAX_RETRIES", "1"))
+
+# How many uploads may be parsed and embedded at once. Indexing is CPU-bound and
+# holds a worker thread for as long as a large PDF takes; without a limit a
+# burst of uploads takes every worker and a question has to queue behind them.
+# Further uploads wait their turn rather than fail.
+INDEX_CONCURRENCY = max(1, int(os.getenv("INDEX_CONCURRENCY", "2")))
 WEB_FETCH_TIMEOUT = int(os.getenv("WEB_FETCH_TIMEOUT", "20"))
 
 # Ceiling on one fetched page, applied while reading rather than after, so an

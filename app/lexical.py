@@ -24,11 +24,9 @@ STOPWORDS = {
     "this", "to", "up", "was", "we", "were", "what", "when", "where", "which",
     "who", "whom", "why", "will", "with", "would", "you", "your", "about",
     "after", "all", "also", "any", "because", "before", "between", "both",
-    "could", "did", "do", "does", "each", "give", "just", "like", "make",
+    "could", "each", "give", "just", "like", "make",
     "many", "more", "most", "much", "must", "no", "not", "only", "other",
-    "over", "own", "same", "should", "some", "such", "take", "than", "them",
-    "very", "want", "was", "well", "were", "what", "when", "which", "while",
-    "will", "with", "would", "you",
+    "over", "own", "same", "should", "some", "such", "take", "very", "want", "well", "while",
 }
 
 _CAMEL_RE = re.compile(r"[A-Z]+(?![a-z])|[A-Z][a-z0-9]*|[a-z0-9]+")
