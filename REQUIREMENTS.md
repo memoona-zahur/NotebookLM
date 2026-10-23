@@ -932,7 +932,7 @@ A green run is the definition of "done" for any change.
 
 The release is acceptable when **all** hold:
 
-- [ ] `./run_tests.sh` is green (165 + 218 + build).
+- [ ] `./run_tests.sh` is green (165 + 219 + build).
 - [ ] `GET /api/status` returns 200 and reports the live provider, model, counts.
 - [ ] A fresh notebook can upload a source, answer a covered question with citations, and
       refuse an uncovered one with `no_match`.
@@ -1087,7 +1087,7 @@ defences, and audited per-query cost.
 - Delivered a **cost/observability** layer: provider-reported tokens, split latency
   percentiles, a dated price table where unknown prices are `None` not `$0`, and opt-in
   privacy-split tracing.
-- Shipped **165 backend + 218 frontend** tests and a **one-command gate**
+- Shipped **165 backend + 219 frontend** tests and a **one-command gate**
   (`./run_tests.sh`) covering grounding, injection, sessions, OCR, cost, and the frontend.
 
 **Skills demonstrated.** RAG architecture · hybrid retrieval & re-ranking · Postgres +
@@ -1099,7 +1099,7 @@ metrics design · security (SSRF, prompt injection) · observability · technica
 ## 20. Requirements checklist (definition of done)
 
 - [ ] All **MUST** requirements (§6, §7) are implemented and verified.
-- [ ] `./run_tests.sh` is green (165 backend + 218 frontend + build).
+- [ ] `./run_tests.sh` is green (165 backend + 219 frontend + build).
 - [ ] `/api/status`, `/api/ask`, `/api/sources`, `/api/sessions` match §9.
 - [ ] Schema matches §8 (migrations at head; tests assert column agreement).
 - [ ] Configuration matches §10.
@@ -1120,7 +1120,7 @@ metrics design · security (SSRF, prompt injection) · observability · technica
 ### Appendix B — Verified facts (spot-check list)
 
 - 39 file suffixes: `python -c "from app.parsers import SUPPORTED; print(len(SUPPORTED))"`.
-- Test counts: `./run_tests.sh` output (165 / 218).
+- Test counts: `./run_tests.sh` output (165 / 219).
 - Migrations: `ls migrations/versions/` → `0001`…`0007`.
 - Corpus: 28 files in `experiments/corpus/`; cloze set 122 items (115 answerable, 7 traps).
 - Prices (as of 2026-10-07): `gpt-oss-120b` $0.15/$0.60, `gpt-oss-20b` $0.075/$0.30 per 1M.

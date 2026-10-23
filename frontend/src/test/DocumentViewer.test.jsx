@@ -122,6 +122,21 @@ describe("Citation card", () => {
     expect(screen.queryByText(/ask the question again/i)).toBeNull();
   });
 
+  it("explains why there is nothing to open instead of showing a bare card", () => {
+    const gone = { ...base, page: 2, char_start: 5, quotes: ["Alpha one."] };
+    const { rerender } = render(<Citation citation={gone} index={0} cited={[1]} onOpen={() => {}} />);
+    expect(screen.getByText(/original file is no longer available/i)).toBeInTheDocument();
+
+    rerender(<Citation citation={{ ...base, page: 2, char_start: 5 }} index={0} cited={[1]} onOpen={() => {}} />);
+    expect(screen.getByText(/no exact sentence could be matched/i)).toBeInTheDocument();
+
+    // With a location there is a button, not a note; uncited passages say nothing.
+    rerender(<Citation citation={{ ...gone, location: { kind: "text", source_id: "s", source: "n", spans: [] } }} index={0} cited={[1]} onOpen={() => {}} />);
+    expect(screen.queryByText(/no longer available/i)).toBeNull();
+    rerender(<Citation citation={gone} index={1} cited={[1]} onOpen={() => {}} />);
+    expect(screen.queryByText(/no longer available/i)).toBeNull();
+  });
+
   it("does not ask for a re-index when the passage was not cited, or for a PDF page", () => {
     const { rerender } = render(<Citation citation={{ ...base, char_start: null }} index={1} cited={[1]} onReindex={() => {}} />);
     expect(screen.queryByRole("button", { name: /re-index/i })).toBeNull();

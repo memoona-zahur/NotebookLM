@@ -14,6 +14,8 @@ docker compose up --build
 
 Open http://127.0.0.1:8000, upload a document, and ask a question.
 
+Click a citation `[1]` to open the original document at the quoted text. (A document uploaded with an older version of this project has no positions recorded: use **Re-index** on the source, or upload it again.)
+
 The first start downloads two small models (about 90 MB each) from Hugging Face, so it needs internet and the first question is slow. Without a key the app still starts but cannot answer.
 
 To run every check (lint, backend, frontend, build) - needs Docker, Python and Node, and a bash shell:
@@ -240,7 +242,7 @@ all of them run.
 ```bash
 cd frontend
 npm install
-npm test           # 218 checks, jsdom, no database or API key needed
+npm test           # 219 checks, jsdom, no database or API key needed
 npm run test:watch # re-runs on save
 ```
 

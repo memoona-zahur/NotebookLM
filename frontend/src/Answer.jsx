@@ -147,6 +147,16 @@ export function Citation({ citation, index, cited, onOpen, onReindex }) {
           {reindex === "busy" ? "Re-indexing…" : "Re-index to open in document"}
         </button>
       ) : null}
+      {wasCited && !citation.location && !needsReindex && onOpen ? (
+        // Say why there is nothing to open, instead of a card that looks
+        // unfinished: either the quote was found but the original file is gone,
+        // or no sentence matched confidently enough to point at.
+        <p className="cite-note">
+          {citation.quotes?.length
+            ? "The original file is no longer available to open. Upload it again to see this passage in the document."
+            : "No exact sentence could be matched with confidence, so none is highlighted."}
+        </p>
+      ) : null}
       {needsReindex && reindex === "done" ? (
         <p className="cite-note">
           Re-indexed. Ask the question again and this passage will open in the document.
