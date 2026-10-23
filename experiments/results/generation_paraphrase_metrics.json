@@ -6,7 +6,7 @@
   "model": "openai/gpt-oss-120b",
   "n": {
     "answerable_scored": 55,
-    "answered_by_model": 47,
+    "answered_by_model": 52,
     "items_in_set": 55,
     "limit": null,
     "refused_by_floor": 3,
@@ -15,24 +15,24 @@
   "provider": "groq",
   "rows": [
     {
-      "answer": "The mash tun should be held at about **66\u202f\u00b0C**; a single\u2011infusion mash at this temperature favours a balanced (rounded) body in the beer[1].",
+      "answer": "The mash tun should be held at about **66\u202f\u00b0C**; a single\u2011infusion mash at that temperature favours a balanced (rounded) body in the beer.\u202f[1]",
       "cited": [
         1
       ],
       "context_chars": 1576,
       "cost": {
         "called": true,
-        "completion_tokens": 345,
+        "completion_tokens": 317,
         "estimated": false,
-        "latency_ms": 1300.6,
+        "latency_ms": 1535.5,
         "model": "openai/gpt-oss-120b",
         "prompt_tokens": 1446,
-        "total_tokens": 1791
+        "total_tokens": 1763
       },
       "id": "P000",
       "invalid": [],
       "kind": "paraphrase",
-      "latency_ms": 1744.5,
+      "latency_ms": 2000.2,
       "metrics": {
         "citations": {
           "citations": 1,
@@ -47,7 +47,7 @@
               "citations": [
                 1
               ],
-              "claim": "The mash tun should be held at about **66\u202f\u00b0C**; a single\u2011infusion mash at this temperature favours a balanced (rounded) body in the beer[1].",
+              "claim": "The mash tun should be held at about **66\u202f\u00b0C**; a single\u2011infusion mash at that temperature favours a balanced (rounded) body in the beer.\u202f[1]",
               "dangling": [],
               "grounded": true,
               "missing": [
@@ -97,24 +97,24 @@
       "verdict": "answered"
     },
     {
-      "answer": "Fining agents such as gelatin or potassium metabisulphite are added during packaging; they bind any residual oxygen, preventing it from oxidising the finished beer[1].",
+      "answer": "Fining agents such as gelatin or potassium metabisulphite bind the oxygen that would otherwise oxidise the finished beer, preventing it from spoiling after packaging.\u202f[1]",
       "cited": [
         1
       ],
       "context_chars": 996,
       "cost": {
         "called": true,
-        "completion_tokens": 352,
+        "completion_tokens": 292,
         "estimated": false,
-        "latency_ms": 1564.9,
+        "latency_ms": 1259.6,
         "model": "openai/gpt-oss-120b",
         "prompt_tokens": 1305,
-        "total_tokens": 1657
+        "total_tokens": 1597
       },
       "id": "P001",
       "invalid": [],
       "kind": "paraphrase",
-      "latency_ms": 1566.0,
+      "latency_ms": 1260.7,
       "metrics": {
         "citations": {
           "citations": 1,
@@ -129,18 +129,16 @@
               "citations": [
                 1
               ],
-              "claim": "Fining agents such as gelatin or potassium metabisulphite are added during packaging; they bind any residual oxygen, preventing it from oxidising the finished beer[1].",
+              "claim": "Fining agents such as gelatin or potassium metabisulphite bind the oxygen that would otherwise oxidise the finished beer, preventing it from spoiling after packaging.\u202f[1]",
               "dangling": [],
               "grounded": true,
               "missing": [
                 "1",
-                "added",
                 "bind",
-                "during",
-                "oxidising",
-                "preventing"
+                "preventing",
+                "spoiling"
               ],
-              "support": 0.625
+              "support": 0.733
             }
           ],
           "grounded": 1,
@@ -165,7 +163,7 @@
             "which also binds oxygen that would otherwise oxidise the finished beer"
           ],
           "score": 0.0,
-          "substance": 0.5,
+          "substance": 0.8333333333333334,
           "total": 1,
           "verbatim": 0.0
         },
@@ -179,191 +177,22 @@
       "verdict": "answered"
     },
     {
-      "answer": "A start gravity of\u202f1.048 that finishes around\u202f1.010 indicates normal attenuation and shows the fermentation proceeded as expected for an ale.\u202f[1]",
-      "cited": [
-        1
-      ],
+      "answer": "A final gravity of about\u202f1.010 from an original gravity near\u202f1.048 indicates the fermentation proceeded as expected for an ale (\u224879\u202f% apparent attenuation).",
+      "cited": [],
       "context_chars": 1576,
       "cost": {
         "called": true,
-        "completion_tokens": 337,
+        "completion_tokens": 359,
         "estimated": false,
-        "latency_ms": 1197.1,
+        "latency_ms": 1518.0,
         "model": "openai/gpt-oss-120b",
         "prompt_tokens": 1442,
-        "total_tokens": 1779
+        "total_tokens": 1801
       },
       "id": "P002",
       "invalid": [],
       "kind": "paraphrase",
-      "latency_ms": 1198.2,
-      "metrics": {
-        "citations": {
-          "citations": 1,
-          "load_bearing": 1,
-          "score": 1.0,
-          "unused": []
-        },
-        "faithfulness": {
-          "cited_claims": 1,
-          "claims": [
-            {
-              "citations": [
-                1
-              ],
-              "claim": "A start gravity of\u202f1.048 that finishes around\u202f1.010 indicates normal attenuation and shows the fermentation proceeded as expected for an ale.\u202f[1]",
-              "dangling": [],
-              "grounded": false,
-              "missing": [
-                "1",
-                "around",
-                "expected",
-                "fermentation",
-                "finishes",
-                "gravity",
-                "indicates",
-                "proceeded",
-                "shows",
-                "start"
-              ],
-              "support": 0.333
-            }
-          ],
-          "grounded": 0,
-          "score": 0.0,
-          "threshold": 0.34,
-          "unsupported": [
-            "A start gravity of\u202f1.048 that finishes around\u202f1.010 indicates normal attenuation and shows the fermentation proceeded as expected for an ale.\u202f[1]"
-          ]
-        },
-        "reference": {
-          "covered": false,
-          "exact": false,
-          "expected": [
-            "A wort that started at 1.048 and finished at 1.010 is about 79 percent apparent attenuation"
-          ],
-          "matched": null,
-          "partial": false
-        },
-        "refused": false,
-        "relevancy": {
-          "found": [],
-          "kind": "missed",
-          "missing": [
-            "A wort that started at 1.048 and finished at 1.010 is about 79 percent apparent attenuation"
-          ],
-          "score": 0.0,
-          "substance": 0.3333333333333333,
-          "total": 1,
-          "verbatim": 0.0
-        },
-        "uncited_claims": 0,
-        "verdict": "answered"
-      },
-      "question": "What gravity readings suggest the fermentation went as expected for an ale?",
-      "retrieval_best_score": 0.5486,
-      "source": "brew-guide.pdf",
-      "ungrounded": false,
-      "verdict": "answered"
-    },
-    {
-      "answer": "Each treatment is replicated four times, so there are four repeat plots for every treatment in the field trials. [1]",
-      "cited": [
-        1
-      ],
-      "context_chars": 512,
-      "cost": {
-        "called": true,
-        "completion_tokens": 140,
-        "estimated": false,
-        "latency_ms": 935.3,
-        "model": "openai/gpt-oss-120b",
-        "prompt_tokens": 1267,
-        "total_tokens": 1407
-      },
-      "id": "P003",
-      "invalid": [],
-      "kind": "paraphrase",
-      "latency_ms": 936.5,
-      "metrics": {
-        "citations": {
-          "citations": 1,
-          "load_bearing": 1,
-          "score": 1.0,
-          "unused": []
-        },
-        "faithfulness": {
-          "cited_claims": 1,
-          "claims": [
-            {
-              "citations": [
-                1
-              ],
-              "claim": "Each treatment is replicated four times, so there are four repeat plots for every treatment in the field trials. [1]",
-              "dangling": [],
-              "grounded": true,
-              "missing": [
-                "1",
-                "plots",
-                "repeat",
-                "replicated",
-                "times"
-              ],
-              "support": 0.583
-            }
-          ],
-          "grounded": 1,
-          "score": 1.0,
-          "threshold": 0.34,
-          "unsupported": []
-        },
-        "reference": {
-          "covered": false,
-          "exact": false,
-          "expected": [
-            "four replicates per treatment"
-          ],
-          "matched": null,
-          "partial": false
-        },
-        "refused": false,
-        "relevancy": {
-          "found": [],
-          "kind": "missed",
-          "missing": [
-            "four replicates per treatment"
-          ],
-          "score": 0.0,
-          "substance": 0.6666666666666666,
-          "total": 1,
-          "verbatim": 0.0
-        },
-        "uncited_claims": 0,
-        "verdict": "answered"
-      },
-      "question": "How many repeat plots of each treatment are laid out in the field trials?",
-      "retrieval_best_score": 0.7324,
-      "source": "agronomy.docx",
-      "ungrounded": false,
-      "verdict": "answered"
-    },
-    {
-      "answer": "The trial manager, who is the protocol owner, signs off the randomisation seed before drilling.",
-      "cited": [],
-      "context_chars": 265,
-      "cost": {
-        "called": true,
-        "completion_tokens": 270,
-        "estimated": false,
-        "latency_ms": 1039.1,
-        "model": "openai/gpt-oss-120b",
-        "prompt_tokens": 1214,
-        "total_tokens": 1484
-      },
-      "id": "P004",
-      "invalid": [],
-      "kind": "paraphrase",
-      "latency_ms": 1040.2,
+      "latency_ms": 1519.3,
       "metrics": {
         "citations": {
           "citations": 0,
@@ -380,54 +209,54 @@
           "unsupported": []
         },
         "reference": {
-          "covered": true,
-          "exact": true,
+          "covered": false,
+          "exact": false,
           "expected": [
-            "signs off the randomisation seed before drilling"
+            "A wort that started at 1.048 and finished at 1.010 is about 79 percent apparent attenuation"
           ],
-          "matched": "signs off the randomisation seed before drilling",
+          "matched": null,
           "partial": false
         },
         "refused": false,
         "relevancy": {
-          "found": [
-            "signs off the randomisation seed before drilling"
+          "found": [],
+          "kind": "missed",
+          "missing": [
+            "A wort that started at 1.048 and finished at 1.010 is about 79 percent apparent attenuation"
           ],
-          "kind": "complete",
-          "missing": [],
-          "score": 1.0,
-          "substance": 1.0,
+          "score": 0.0,
+          "substance": 0.5555555555555556,
           "total": 1,
-          "verbatim": 1.0
+          "verbatim": 0.0
         },
         "uncited_claims": 1,
         "verdict": "answered"
       },
-      "question": "Who approves the random allocation seed before sowing starts?",
-      "retrieval_best_score": 0.4833,
-      "source": "agronomy.docx",
+      "question": "What gravity readings suggest the fermentation went as expected for an ale?",
+      "retrieval_best_score": 0.5486,
+      "source": "brew-guide.pdf",
       "ungrounded": true,
       "verdict": "answered"
     },
     {
-      "answer": "Yields are reported at a moisture content of fourteen percent.\u202f[1]",
+      "answer": "Each treatment is laid out with four repeat plots (four replicates per treatment) in the field trials. [1]",
       "cited": [
         1
       ],
-      "context_chars": 1085,
+      "context_chars": 512,
       "cost": {
         "called": true,
-        "completion_tokens": 228,
+        "completion_tokens": 207,
         "estimated": false,
-        "latency_ms": 1569.1,
+        "latency_ms": 1006.1,
         "model": "openai/gpt-oss-120b",
-        "prompt_tokens": 1416,
-        "total_tokens": 1644
+        "prompt_tokens": 1267,
+        "total_tokens": 1474
       },
-      "id": "P005",
+      "id": "P003",
       "invalid": [],
       "kind": "paraphrase",
-      "latency_ms": 1570.2,
+      "latency_ms": 1007.2,
       "metrics": {
         "citations": {
           "citations": 1,
@@ -442,7 +271,148 @@
               "citations": [
                 1
               ],
-              "claim": "Yields are reported at a moisture content of fourteen percent.\u202f[1]",
+              "claim": "Each treatment is laid out with four repeat plots (four replicates per treatment) in the field trials. [1]",
+              "dangling": [],
+              "grounded": true,
+              "missing": [
+                "1",
+                "plots",
+                "repeat"
+              ],
+              "support": 0.769
+            }
+          ],
+          "grounded": 1,
+          "score": 1.0,
+          "threshold": 0.34,
+          "unsupported": []
+        },
+        "reference": {
+          "covered": true,
+          "exact": true,
+          "expected": [
+            "four replicates per treatment"
+          ],
+          "matched": "four replicates per treatment",
+          "partial": false
+        },
+        "refused": false,
+        "relevancy": {
+          "found": [
+            "four replicates per treatment"
+          ],
+          "kind": "complete",
+          "missing": [],
+          "score": 1.0,
+          "substance": 1.0,
+          "total": 1,
+          "verbatim": 1.0
+        },
+        "uncited_claims": 0,
+        "verdict": "answered"
+      },
+      "question": "How many repeat plots of each treatment are laid out in the field trials?",
+      "retrieval_best_score": 0.7324,
+      "source": "agronomy.docx",
+      "ungrounded": false,
+      "verdict": "answered"
+    },
+    {
+      "answer": "The trial manager (the protocol owner) signs off the random allocation seed before sowing begins.",
+      "cited": [],
+      "context_chars": 265,
+      "cost": {
+        "called": true,
+        "completion_tokens": 180,
+        "estimated": false,
+        "latency_ms": 1134.6,
+        "model": "openai/gpt-oss-120b",
+        "prompt_tokens": 1214,
+        "total_tokens": 1394
+      },
+      "id": "P004",
+      "invalid": [],
+      "kind": "paraphrase",
+      "latency_ms": 1135.7,
+      "metrics": {
+        "citations": {
+          "citations": 0,
+          "load_bearing": 0,
+          "score": 0.0,
+          "unused": []
+        },
+        "faithfulness": {
+          "cited_claims": 0,
+          "claims": [],
+          "grounded": 0,
+          "score": 0.0,
+          "threshold": 0.34,
+          "unsupported": []
+        },
+        "reference": {
+          "covered": false,
+          "exact": false,
+          "expected": [
+            "signs off the randomisation seed before drilling"
+          ],
+          "matched": null,
+          "partial": false
+        },
+        "refused": false,
+        "relevancy": {
+          "found": [],
+          "kind": "missed",
+          "missing": [
+            "signs off the randomisation seed before drilling"
+          ],
+          "score": 0.0,
+          "substance": 0.5,
+          "total": 1,
+          "verbatim": 0.0
+        },
+        "uncited_claims": 1,
+        "verdict": "answered"
+      },
+      "question": "Who approves the random allocation seed before sowing starts?",
+      "retrieval_best_score": 0.4833,
+      "source": "agronomy.docx",
+      "ungrounded": true,
+      "verdict": "answered"
+    },
+    {
+      "answer": "Yields are reported at a moisture content of fourteen percent. [1]",
+      "cited": [
+        1
+      ],
+      "context_chars": 1085,
+      "cost": {
+        "called": true,
+        "completion_tokens": 259,
+        "estimated": false,
+        "latency_ms": 1061.3,
+        "model": "openai/gpt-oss-120b",
+        "prompt_tokens": 1416,
+        "total_tokens": 1675
+      },
+      "id": "P005",
+      "invalid": [],
+      "kind": "paraphrase",
+      "latency_ms": 1062.4,
+      "metrics": {
+        "citations": {
+          "citations": 1,
+          "load_bearing": 1,
+          "score": 1.0,
+          "unused": []
+        },
+        "faithfulness": {
+          "cited_claims": 1,
+          "claims": [
+            {
+              "citations": [
+                1
+              ],
+              "claim": "Yields are reported at a moisture content of fourteen percent. [1]",
               "dangling": [],
               "grounded": true,
               "missing": [
@@ -489,24 +459,24 @@
       "verdict": "answered"
     },
     {
-      "answer": "The protocol specifies that a trial must be processed within **ten working days after harvest**[1].",
+      "answer": "The trial must be processed within **ten working days after harvest**[1].",
       "cited": [
         1
       ],
       "context_chars": 790,
       "cost": {
         "called": true,
-        "completion_tokens": 193,
+        "completion_tokens": 165,
         "estimated": false,
-        "latency_ms": 1184.1,
+        "latency_ms": 10027.9,
         "model": "openai/gpt-oss-120b",
         "prompt_tokens": 1409,
-        "total_tokens": 1602
+        "total_tokens": 1574
       },
       "id": "P006",
       "invalid": [],
       "kind": "paraphrase",
-      "latency_ms": 1185.2,
+      "latency_ms": 10028.9,
       "metrics": {
         "citations": {
           "citations": 1,
@@ -521,18 +491,16 @@
               "citations": [
                 1
               ],
-              "claim": "The protocol specifies that a trial must be processed within **ten working days after harvest**[1].",
+              "claim": "The trial must be processed within **ten working days after harvest**[1].",
               "dangling": [],
               "grounded": true,
               "missing": [
                 "1",
                 "must",
                 "processed",
-                "protocol",
-                "specifies",
                 "within"
               ],
-              "support": 0.455
+              "support": 0.556
             }
           ],
           "grounded": 1,
@@ -571,24 +539,24 @@
       "verdict": "answered"
     },
     {
-      "answer": "The high nitrogen treatment reaches harvest after **118 days**[1].",
+      "answer": "The high nitrogen treatment reaches harvest after **118\u202fdays**[1].",
       "cited": [
         1
       ],
       "context_chars": 586,
       "cost": {
         "called": true,
-        "completion_tokens": 214,
+        "completion_tokens": 309,
         "estimated": false,
-        "latency_ms": 2310.0,
+        "latency_ms": 31344.6,
         "model": "openai/gpt-oss-120b",
         "prompt_tokens": 1352,
-        "total_tokens": 1566
+        "total_tokens": 1661
       },
       "id": "P007",
       "invalid": [],
       "kind": "paraphrase",
-      "latency_ms": 2311.1,
+      "latency_ms": 31345.7,
       "metrics": {
         "citations": {
           "citations": 1,
@@ -603,7 +571,7 @@
               "citations": [
                 1
               ],
-              "claim": "The high nitrogen treatment reaches harvest after **118 days**[1].",
+              "claim": "The high nitrogen treatment reaches harvest after **118\u202fdays**[1].",
               "dangling": [],
               "grounded": true,
               "missing": [
@@ -652,24 +620,24 @@
       "verdict": "answered"
     },
     {
-      "answer": "Turnover frequency counts the molecules converted at each active site every second.\u202f[1]",
+      "answer": "Turnover frequency is the quantity that counts the molecules converted at each active site every second.\u202f[1]",
       "cited": [
         1
       ],
       "context_chars": 227,
       "cost": {
         "called": true,
-        "completion_tokens": 163,
+        "completion_tokens": 195,
         "estimated": false,
-        "latency_ms": 822.8,
+        "latency_ms": 918.8,
         "model": "openai/gpt-oss-120b",
         "prompt_tokens": 1123,
-        "total_tokens": 1286
+        "total_tokens": 1318
       },
       "id": "P008",
       "invalid": [],
       "kind": "paraphrase",
-      "latency_ms": 823.8,
+      "latency_ms": 919.9,
       "metrics": {
         "citations": {
           "citations": 1,
@@ -684,15 +652,16 @@
               "citations": [
                 1
               ],
-              "claim": "Turnover frequency counts the molecules converted at each active site every second.\u202f[1]",
+              "claim": "Turnover frequency is the quantity that counts the molecules converted at each active site every second.\u202f[1]",
               "dangling": [],
               "grounded": true,
               "missing": [
                 "1",
                 "counts",
-                "every"
+                "every",
+                "quantity"
               ],
-              "support": 0.7
+              "support": 0.636
             }
           ],
           "grounded": 1,
@@ -731,24 +700,24 @@
       "verdict": "answered"
     },
     {
-      "answer": "A catalyst that binds its reactant too tightly \u201cpoisons the site and stops the cycle,\u201d preventing the reaction from proceeding efficiently.\u202f[1]",
+      "answer": "A catalyst that binds its reactant too tightly poisons the active site, preventing the catalytic cycle from proceeding.\u202f[1]",
       "cited": [
         1
       ],
       "context_chars": 484,
       "cost": {
         "called": true,
-        "completion_tokens": 200,
+        "completion_tokens": 225,
         "estimated": false,
-        "latency_ms": 837.8,
+        "latency_ms": 938.1,
         "model": "openai/gpt-oss-120b",
         "prompt_tokens": 1194,
-        "total_tokens": 1394
+        "total_tokens": 1419
       },
       "id": "P009",
       "invalid": [],
       "kind": "paraphrase",
-      "latency_ms": 838.9,
+      "latency_ms": 939.2,
       "metrics": {
         "citations": {
           "citations": 1,
@@ -763,18 +732,18 @@
               "citations": [
                 1
               ],
-              "claim": "A catalyst that binds its reactant too tightly \u201cpoisons the site and stops the cycle,\u201d preventing the reaction from proceeding efficiently.\u202f[1]",
+              "claim": "A catalyst that binds its reactant too tightly poisons the active site, preventing the catalytic cycle from proceeding.\u202f[1]",
               "dangling": [],
               "grounded": true,
               "missing": [
                 "1",
-                "efficiently",
+                "active",
+                "catalytic",
                 "preventing",
                 "proceeding",
-                "reaction",
                 "tightly"
               ],
-              "support": 0.571
+              "support": 0.538
             }
           ],
           "grounded": 1,
@@ -799,7 +768,7 @@
             "binding too strongly poisons the site and stops the cycle"
           ],
           "score": 0.0,
-          "substance": 0.7142857142857143,
+          "substance": 0.5714285714285714,
           "total": 1,
           "verbatim": 0.0
         },
@@ -813,24 +782,24 @@
       "verdict": "answered"
     },
     {
-      "answer": "The Eley\u2011Rideal pathway is distinct because it involves a gas\u2011phase molecule striking an already adsorbed species, while the Langmuir\u2011Hinshelwood route requires that both reactants first adsorb on the surface before they react.\u202f[1]",
+      "answer": "The Eley\u2011Rideal route differs because it involves a gas\u2011phase molecule striking an already adsorbed species, whereas the Langmuir\u2011Hinshelwood route requires that both reactants first adsorb on the surface before reacting.\u202f[1]",
       "cited": [
         1
       ],
       "context_chars": 207,
       "cost": {
         "called": true,
-        "completion_tokens": 324,
+        "completion_tokens": 287,
         "estimated": false,
-        "latency_ms": 1051.8,
+        "latency_ms": 9192.0,
         "model": "openai/gpt-oss-120b",
         "prompt_tokens": 1133,
-        "total_tokens": 1457
+        "total_tokens": 1420
       },
       "id": "P010",
       "invalid": [],
       "kind": "paraphrase",
-      "latency_ms": 1052.9,
+      "latency_ms": 9193.0,
       "metrics": {
         "citations": {
           "citations": 1,
@@ -845,25 +814,24 @@
               "citations": [
                 1
               ],
-              "claim": "The Eley\u2011Rideal pathway is distinct because it involves a gas\u2011phase molecule striking an already adsorbed species, while the Langmuir\u2011Hinshelwood route requires that both reactants first adsorb on the surface before they react.\u202f[1]",
+              "claim": "The Eley\u2011Rideal route differs because it involves a gas\u2011phase molecule striking an already adsorbed species, whereas the Langmuir\u2011Hinshelwood route requires that both reactants first adsorb on the surface before reacting.\u202f[1]",
               "dangling": [],
               "grounded": true,
               "missing": [
                 "1",
                 "already",
                 "because",
-                "distinct",
+                "differs",
                 "first",
                 "involves",
                 "molecule",
-                "pathway",
-                "react",
                 "requires",
                 "route",
                 "striking",
-                "surface"
+                "surface",
+                "whereas"
               ],
-              "support": 0.458
+              "support": 0.52
             }
           ],
           "grounded": 1,
@@ -902,107 +870,86 @@
       "verdict": "answered"
     },
     {
-      "answer": "Small catalyst particles merge because of **sintering**, which is driven by the migration of the tiny particles that coalesce into larger ones, permanently lowering the available surface area[1].",
-      "cited": [
-        1
-      ],
+      "answer": "Sintering causes small catalyst particles to migrate and coalesce into larger ones, which irreversibly reduces the available surface area.",
+      "cited": [],
       "context_chars": 484,
       "cost": {
         "called": true,
-        "completion_tokens": 278,
+        "completion_tokens": 235,
         "estimated": false,
-        "latency_ms": 1023.2,
+        "latency_ms": 11808.4,
         "model": "openai/gpt-oss-120b",
         "prompt_tokens": 1192,
-        "total_tokens": 1470
+        "total_tokens": 1427
       },
       "id": "P011",
       "invalid": [],
       "kind": "paraphrase",
-      "latency_ms": 1024.3,
+      "latency_ms": 11809.6,
       "metrics": {
         "citations": {
-          "citations": 1,
-          "load_bearing": 1,
-          "score": 1.0,
+          "citations": 0,
+          "load_bearing": 0,
+          "score": 0.0,
           "unused": []
         },
         "faithfulness": {
-          "cited_claims": 1,
-          "claims": [
-            {
-              "citations": [
-                1
-              ],
-              "claim": "Small catalyst particles merge because of **sintering**, which is driven by the migration of the tiny particles that coalesce into larger ones, permanently lowering the available surface area[1].",
-              "dangling": [],
-              "grounded": true,
-              "missing": [
-                "1",
-                "available",
-                "because",
-                "coalesce",
-                "lowering",
-                "permanently",
-                "tiny"
-              ],
-              "support": 0.632
-            }
-          ],
-          "grounded": 1,
-          "score": 1.0,
+          "cited_claims": 0,
+          "claims": [],
+          "grounded": 0,
+          "score": 0.0,
           "threshold": 0.34,
           "unsupported": []
         },
         "reference": {
-          "covered": true,
+          "covered": false,
           "exact": false,
           "expected": [
             "Sintering is driven by the migration of small particles that merge into larger ones"
           ],
-          "matched": "Sintering is driven by the migration of small particles that merge into larger ones",
-          "partial": true
+          "matched": null,
+          "partial": false
         },
         "refused": false,
         "relevancy": {
-          "found": [
+          "found": [],
+          "kind": "missed",
+          "missing": [
             "Sintering is driven by the migration of small particles that merge into larger ones"
           ],
-          "kind": "complete",
-          "missing": [],
-          "score": 1.0,
-          "substance": 1.0,
+          "score": 0.0,
+          "substance": 0.625,
           "total": 1,
           "verbatim": 0.0
         },
-        "uncited_claims": 0,
+        "uncited_claims": 1,
         "verdict": "answered"
       },
       "question": "What makes small catalyst particles merge and lose area for good?",
       "retrieval_best_score": 0.5607,
       "source": "catalysis.txt",
-      "ungrounded": false,
+      "ungrounded": true,
       "verdict": "answered"
     },
     {
-      "answer": "The contract can be ended without fault by giving **ninety days written notice**\u202f[1].",
+      "answer": "The contract can be ended without fault by giving ninety days\u2019 written notice.\u202f[1]",
       "cited": [
         1
       ],
       "context_chars": 246,
       "cost": {
         "called": true,
-        "completion_tokens": 181,
+        "completion_tokens": 115,
         "estimated": false,
-        "latency_ms": 6822.9,
+        "latency_ms": 2847.2,
         "model": "openai/gpt-oss-120b",
         "prompt_tokens": 1141,
-        "total_tokens": 1322
+        "total_tokens": 1256
       },
       "id": "P012",
       "invalid": [],
       "kind": "paraphrase",
-      "latency_ms": 6824.0,
+      "latency_ms": 2848.2,
       "metrics": {
         "citations": {
           "citations": 1,
@@ -1017,7 +964,7 @@
               "citations": [
                 1
               ],
-              "claim": "The contract can be ended without fault by giving **ninety days written notice**\u202f[1].",
+              "claim": "The contract can be ended without fault by giving ninety days\u2019 written notice.\u202f[1]",
               "dangling": [],
               "grounded": true,
               "missing": [
@@ -1074,17 +1021,17 @@
       "context_chars": 246,
       "cost": {
         "called": true,
-        "completion_tokens": 109,
+        "completion_tokens": 126,
         "estimated": false,
-        "latency_ms": 1868.9,
+        "latency_ms": 29958.7,
         "model": "openai/gpt-oss-120b",
         "prompt_tokens": 1137,
-        "total_tokens": 1246
+        "total_tokens": 1263
       },
       "id": "P013",
       "invalid": [],
       "kind": "paraphrase",
-      "latency_ms": 1870.0,
+      "latency_ms": 29959.8,
       "metrics": {
         "citations": {
           "citations": 1,
@@ -1150,12 +1097,12 @@
       "context_chars": 0,
       "cost": {
         "called": true,
-        "completion_tokens": 109,
+        "completion_tokens": 126,
         "estimated": false,
-        "latency_ms": 1868.9,
+        "latency_ms": 29958.7,
         "model": "openai/gpt-oss-120b",
         "prompt_tokens": 1137,
-        "total_tokens": 1246
+        "total_tokens": 1263
       },
       "id": "P014",
       "kind": "paraphrase",
@@ -1205,24 +1152,24 @@
       "verdict": "no_match"
     },
     {
-      "answer": "The buyer must settle an invoice within forty\u2011five days of receiving it[1].",
+      "answer": "The buyer must pay invoices within **45\u202fdays of receipt**[1].",
       "cited": [
         1
       ],
       "context_chars": 499,
       "cost": {
         "called": true,
-        "completion_tokens": 161,
+        "completion_tokens": 133,
         "estimated": false,
-        "latency_ms": 2637.8,
+        "latency_ms": 770.4,
         "model": "openai/gpt-oss-120b",
         "prompt_tokens": 1223,
-        "total_tokens": 1384
+        "total_tokens": 1356
       },
       "id": "P015",
       "invalid": [],
       "kind": "paraphrase",
-      "latency_ms": 2638.9,
+      "latency_ms": 771.5,
       "metrics": {
         "citations": {
           "citations": 1,
@@ -1237,18 +1184,17 @@
               "citations": [
                 1
               ],
-              "claim": "The buyer must settle an invoice within forty\u2011five days of receiving it[1].",
+              "claim": "The buyer must pay invoices within **45\u202fdays of receipt**[1].",
               "dangling": [],
               "grounded": true,
               "missing": [
                 "1",
+                "45",
                 "buyer",
-                "invoice",
                 "must",
-                "receiving",
-                "settle"
+                "pay"
               ],
-              "support": 0.4
+              "support": 0.444
             }
           ],
           "grounded": 1,
@@ -1273,7 +1219,7 @@
             "payable within forty five days of receipt"
           ],
           "score": 0.0,
-          "substance": 0.6666666666666666,
+          "substance": 0.5,
           "total": 1,
           "verbatim": 0.0
         },
@@ -1287,24 +1233,24 @@
       "verdict": "answered"
     },
     {
-      "answer": "A material breach can remain uncured for up to **thirty days** before either party may terminate the agreement immediately.\u202f[1]",
+      "answer": "A material (serious) breach can remain uncured for **thirty days** after notice before either party may terminate the agreement immediately.\u202f[1]",
       "cited": [
         1
       ],
       "context_chars": 779,
       "cost": {
         "called": true,
-        "completion_tokens": 286,
+        "completion_tokens": 246,
         "estimated": false,
-        "latency_ms": 2137.2,
+        "latency_ms": 1480.9,
         "model": "openai/gpt-oss-120b",
         "prompt_tokens": 1297,
-        "total_tokens": 1583
+        "total_tokens": 1543
       },
       "id": "P016",
       "invalid": [],
       "kind": "paraphrase",
-      "latency_ms": 2138.3,
+      "latency_ms": 1482.0,
       "metrics": {
         "citations": {
           "citations": 1,
@@ -1319,15 +1265,15 @@
               "citations": [
                 1
               ],
-              "claim": "A material breach can remain uncured for up to **thirty days** before either party may terminate the agreement immediately.\u202f[1]",
+              "claim": "A material (serious) breach can remain uncured for **thirty days** after notice before either party may terminate the agreement immediately.\u202f[1]",
               "dangling": [],
               "grounded": true,
               "missing": [
                 "1",
                 "remain",
-                "up"
+                "serious"
               ],
-              "support": 0.786
+              "support": 0.8
             }
           ],
           "grounded": 1,
@@ -1336,23 +1282,23 @@
           "unsupported": []
         },
         "reference": {
-          "covered": false,
+          "covered": true,
           "exact": false,
           "expected": [
             "uncured after thirty days notice"
           ],
-          "matched": null,
-          "partial": false
+          "matched": "uncured after thirty days notice",
+          "partial": true
         },
         "refused": false,
         "relevancy": {
-          "found": [],
-          "kind": "missed",
-          "missing": [
+          "found": [
             "uncured after thirty days notice"
           ],
-          "score": 0.0,
-          "substance": 0.75,
+          "kind": "complete",
+          "missing": [],
+          "score": 1.0,
+          "substance": 1.0,
           "total": 1,
           "verbatim": 0.0
         },
@@ -1366,24 +1312,24 @@
       "verdict": "answered"
     },
     {
-      "answer": "The team should begin pressing within two seconds of losing possession. [1]",
+      "answer": "The team should begin pressing **within two seconds** of losing possession[1].",
       "cited": [
         1
       ],
       "context_chars": 293,
       "cost": {
         "called": true,
-        "completion_tokens": 179,
+        "completion_tokens": 141,
         "estimated": false,
-        "latency_ms": 738.0,
+        "latency_ms": 953.1,
         "model": "openai/gpt-oss-120b",
         "prompt_tokens": 1152,
-        "total_tokens": 1331
+        "total_tokens": 1293
       },
       "id": "P017",
       "invalid": [],
       "kind": "paraphrase",
-      "latency_ms": 739.0,
+      "latency_ms": 954.2,
       "metrics": {
         "citations": {
           "citations": 1,
@@ -1398,7 +1344,7 @@
               "citations": [
                 1
               ],
-              "claim": "The team should begin pressing within two seconds of losing possession. [1]",
+              "claim": "The team should begin pressing **within two seconds** of losing possession[1].",
               "dangling": [],
               "grounded": true,
               "missing": [
@@ -1447,24 +1393,24 @@
       "verdict": "answered"
     },
     {
-      "answer": "The defensive block narrows to **nineteen metres** behind the ball[1].",
+      "answer": "The defensive block narrows to **nineteen metres behind the ball**[1].",
       "cited": [
         1
       ],
       "context_chars": 400,
       "cost": {
         "called": true,
-        "completion_tokens": 204,
+        "completion_tokens": 257,
         "estimated": false,
-        "latency_ms": 4067.8,
+        "latency_ms": 8241.4,
         "model": "openai/gpt-oss-120b",
         "prompt_tokens": 1202,
-        "total_tokens": 1406
+        "total_tokens": 1459
       },
       "id": "P018",
       "invalid": [],
       "kind": "paraphrase",
-      "latency_ms": 4069.1,
+      "latency_ms": 8242.5,
       "metrics": {
         "citations": {
           "citations": 1,
@@ -1479,7 +1425,7 @@
               "citations": [
                 1
               ],
-              "claim": "The defensive block narrows to **nineteen metres** behind the ball[1].",
+              "claim": "The defensive block narrows to **nineteen metres behind the ball**[1].",
               "dangling": [],
               "grounded": true,
               "missing": [
@@ -1528,12 +1474,12 @@
       "context_chars": 0,
       "cost": {
         "called": true,
-        "completion_tokens": 204,
+        "completion_tokens": 257,
         "estimated": false,
-        "latency_ms": 4067.8,
+        "latency_ms": 8241.4,
         "model": "openai/gpt-oss-120b",
         "prompt_tokens": 1202,
-        "total_tokens": 1406
+        "total_tokens": 1459
       },
       "id": "P019",
       "kind": "paraphrase",
@@ -1588,17 +1534,17 @@
       "context_chars": 188,
       "cost": {
         "called": true,
-        "completion_tokens": 159,
+        "completion_tokens": 171,
         "estimated": false,
-        "latency_ms": 1122.9,
+        "latency_ms": 10236.6,
         "model": "openai/gpt-oss-120b",
         "prompt_tokens": 1135,
-        "total_tokens": 1294
+        "total_tokens": 1306
       },
       "id": "P020",
       "invalid": [],
       "kind": "paraphrase",
-      "latency_ms": 1124.0,
+      "latency_ms": 10237.6,
       "metrics": {
         "citations": {
           "citations": 0,
@@ -1645,24 +1591,24 @@
       "verdict": "answered"
     },
     {
-      "answer": "The satellite must have its stored energy discharged within five years of its end of life[1].",
+      "answer": "A dead satellite must have its stored energy discharged **within five years of end of life**[1].",
       "cited": [
         1
       ],
       "context_chars": 716,
       "cost": {
         "called": true,
-        "completion_tokens": 222,
+        "completion_tokens": 155,
         "estimated": false,
-        "latency_ms": 1204.0,
+        "latency_ms": 2711.3,
         "model": "openai/gpt-oss-120b",
         "prompt_tokens": 1226,
-        "total_tokens": 1448
+        "total_tokens": 1381
       },
       "id": "P021",
       "invalid": [],
       "kind": "paraphrase",
-      "latency_ms": 1205.1,
+      "latency_ms": 2712.4,
       "metrics": {
         "citations": {
           "citations": 1,
@@ -1677,14 +1623,15 @@
               "citations": [
                 1
               ],
-              "claim": "The satellite must have its stored energy discharged within five years of its end of life[1].",
+              "claim": "A dead satellite must have its stored energy discharged **within five years of end of life**[1].",
               "dangling": [],
               "grounded": true,
               "missing": [
                 "1",
+                "dead",
                 "discharged"
               ],
-              "support": 0.818
+              "support": 0.75
             }
           ],
           "grounded": 1,
@@ -1723,24 +1670,24 @@
       "verdict": "answered"
     },
     {
-      "answer": "Reaction wheels generate a turning (torque) force on a spacecraft without using fuel[1].",
+      "answer": "Reaction wheels (the three\u2011wheeled reaction\u2011wheel assemblies) generate a turning force, or torque, on the spacecraft without using fuel[1].",
       "cited": [
         1
       ],
       "context_chars": 871,
       "cost": {
         "called": true,
-        "completion_tokens": 188,
+        "completion_tokens": 254,
         "estimated": false,
-        "latency_ms": 3916.9,
+        "latency_ms": 1084.4,
         "model": "openai/gpt-oss-120b",
         "prompt_tokens": 1249,
-        "total_tokens": 1437
+        "total_tokens": 1503
       },
       "id": "P022",
       "invalid": [],
       "kind": "paraphrase",
-      "latency_ms": 3917.9,
+      "latency_ms": 30334.8,
       "metrics": {
         "citations": {
           "citations": 1,
@@ -1755,7 +1702,7 @@
               "citations": [
                 1
               ],
-              "claim": "Reaction wheels generate a turning (torque) force on a spacecraft without using fuel[1].",
+              "claim": "Reaction wheels (the three\u2011wheeled reaction\u2011wheel assemblies) generate a turning force, or torque, on the spacecraft without using fuel[1].",
               "dangling": [],
               "grounded": true,
               "missing": [
@@ -1763,10 +1710,12 @@
                 "force",
                 "fuel",
                 "generate",
+                "three",
                 "turning",
-                "using"
+                "using",
+                "wheeled"
               ],
-              "support": 0.455
+              "support": 0.5
             }
           ],
           "grounded": 1,
@@ -1805,24 +1754,24 @@
       "verdict": "answered"
     },
     {
-      "answer": "The debris (junk) density is highest between **700\u202fkm and 1000\u202fkm** altitude[1].",
+      "answer": "The junk (debris) density is worst between **700\u202fkm and 1000\u202fkm** altitude\u202f[1].",
       "cited": [
         1
       ],
       "context_chars": 716,
       "cost": {
         "called": true,
-        "completion_tokens": 188,
+        "completion_tokens": 168,
         "estimated": false,
-        "latency_ms": 4267.8,
+        "latency_ms": 881.4,
         "model": "openai/gpt-oss-120b",
         "prompt_tokens": 1226,
-        "total_tokens": 1414
+        "total_tokens": 1394
       },
       "id": "P023",
       "invalid": [],
       "kind": "paraphrase",
-      "latency_ms": 4268.9,
+      "latency_ms": 882.5,
       "metrics": {
         "citations": {
           "citations": 1,
@@ -1837,14 +1786,15 @@
               "citations": [
                 1
               ],
-              "claim": "The debris (junk) density is highest between **700\u202fkm and 1000\u202fkm** altitude[1].",
+              "claim": "The junk (debris) density is worst between **700\u202fkm and 1000\u202fkm** altitude\u202f[1].",
               "dangling": [],
               "grounded": true,
               "missing": [
                 "1",
-                "junk"
+                "junk",
+                "worst"
               ],
-              "support": 0.818
+              "support": 0.727
             }
           ],
           "grounded": 1,
@@ -1853,23 +1803,23 @@
           "unsupported": []
         },
         "reference": {
-          "covered": true,
+          "covered": false,
           "exact": false,
           "expected": [
             "Debris density is highest between 700 and 1000 km"
           ],
-          "matched": "Debris density is highest between 700 and 1000 km",
-          "partial": true
+          "matched": null,
+          "partial": false
         },
         "refused": false,
         "relevancy": {
-          "found": [
+          "found": [],
+          "kind": "missed",
+          "missing": [
             "Debris density is highest between 700 and 1000 km"
           ],
-          "kind": "complete",
-          "missing": [],
-          "score": 1.0,
-          "substance": 1.0,
+          "score": 0.0,
+          "substance": 0.8571428571428571,
           "total": 1,
           "verbatim": 0.0
         },
@@ -1890,17 +1840,17 @@
       "context_chars": 367,
       "cost": {
         "called": true,
-        "completion_tokens": 191,
+        "completion_tokens": 233,
         "estimated": false,
-        "latency_ms": 993.4,
+        "latency_ms": 1170.1,
         "model": "openai/gpt-oss-120b",
         "prompt_tokens": 1173,
-        "total_tokens": 1364
+        "total_tokens": 1406
       },
       "id": "P024",
       "invalid": [],
       "kind": "paraphrase",
-      "latency_ms": 994.5,
+      "latency_ms": 1171.3,
       "metrics": {
         "citations": {
           "citations": 1,
@@ -1963,24 +1913,24 @@
       "verdict": "answered"
     },
     {
-      "answer": "Cabbages should be spaced about **45\u202fcentimetres** apart in the bed.\u202f[1]",
+      "answer": "Cabbages should be spaced about forty\u2011five centimetres apart in the bed. [1]",
       "cited": [
         1
       ],
       "context_chars": 404,
       "cost": {
         "called": true,
-        "completion_tokens": 117,
+        "completion_tokens": 238,
         "estimated": false,
-        "latency_ms": 2786.7,
+        "latency_ms": 1074.2,
         "model": "openai/gpt-oss-120b",
         "prompt_tokens": 1179,
-        "total_tokens": 1296
+        "total_tokens": 1417
       },
       "id": "P025",
       "invalid": [],
       "kind": "paraphrase",
-      "latency_ms": 2787.9,
+      "latency_ms": 1075.3,
       "metrics": {
         "citations": {
           "citations": 1,
@@ -1995,23 +1945,26 @@
               "citations": [
                 1
               ],
-              "claim": "Cabbages should be spaced about **45\u202fcentimetres** apart in the bed.\u202f[1]",
+              "claim": "Cabbages should be spaced about forty\u2011five centimetres apart in the bed. [1]",
               "dangling": [],
-              "grounded": true,
+              "grounded": false,
               "missing": [
                 "1",
-                "45",
                 "apart",
+                "five",
+                "forty",
                 "should",
                 "spaced"
               ],
-              "support": 0.375
+              "support": 0.333
             }
           ],
-          "grounded": 1,
-          "score": 1.0,
+          "grounded": 0,
+          "score": 0.0,
           "threshold": 0.34,
-          "unsupported": []
+          "unsupported": [
+            "Cabbages should be spaced about forty\u2011five centimetres apart in the bed. [1]"
+          ]
         },
         "reference": {
           "covered": false,
@@ -2030,7 +1983,7 @@
             "Space cabbages at forty-five centimetres"
           ],
           "score": 0.0,
-          "substance": 0.75,
+          "substance": 0.5,
           "total": 1,
           "verbatim": 0.0
         },
@@ -2044,24 +1997,24 @@
       "verdict": "answered"
     },
     {
-      "answer": "Brassica crops should be moved to a fresh bed on a four\u2011year rotation cycle[1].",
+      "answer": "Brassica crops should be moved to a fresh bed on a four\u2011year rotation cycle. [1]",
       "cited": [
         1
       ],
       "context_chars": 661,
       "cost": {
         "called": true,
-        "completion_tokens": 235,
+        "completion_tokens": 200,
         "estimated": false,
-        "latency_ms": 874.3,
+        "latency_ms": 864.8,
         "model": "openai/gpt-oss-120b",
         "prompt_tokens": 1253,
-        "total_tokens": 1488
+        "total_tokens": 1453
       },
       "id": "P026",
       "invalid": [],
       "kind": "paraphrase",
-      "latency_ms": 875.4,
+      "latency_ms": 22041.4,
       "metrics": {
         "citations": {
           "citations": 1,
@@ -2076,7 +2029,7 @@
               "citations": [
                 1
               ],
-              "claim": "Brassica crops should be moved to a fresh bed on a four\u2011year rotation cycle[1].",
+              "claim": "Brassica crops should be moved to a fresh bed on a four\u2011year rotation cycle. [1]",
               "dangling": [],
               "grounded": true,
               "missing": [
@@ -2127,24 +2080,24 @@
       "verdict": "answered"
     },
     {
-      "answer": "Water potatoes in the morning so the leaves can dry before nightfall.\u202f[1]",
+      "answer": "Water potatoes in the morning so the leaves can dry before nightfall. [1]",
       "cited": [
         1
       ],
       "context_chars": 214,
       "cost": {
         "called": true,
-        "completion_tokens": 165,
+        "completion_tokens": 136,
         "estimated": false,
-        "latency_ms": 4007.2,
+        "latency_ms": 1199.6,
         "model": "openai/gpt-oss-120b",
         "prompt_tokens": 1141,
-        "total_tokens": 1306
+        "total_tokens": 1277
       },
       "id": "P027",
       "invalid": [],
       "kind": "paraphrase",
-      "latency_ms": 4008.3,
+      "latency_ms": 1200.7,
       "metrics": {
         "citations": {
           "citations": 1,
@@ -2159,7 +2112,7 @@
               "citations": [
                 1
               ],
-              "claim": "Water potatoes in the morning so the leaves can dry before nightfall.\u202f[1]",
+              "claim": "Water potatoes in the morning so the leaves can dry before nightfall. [1]",
               "dangling": [],
               "grounded": true,
               "missing": [
@@ -2204,24 +2157,24 @@
       "verdict": "answered"
     },
     {
-      "answer": "Two separate fan stations are required once a mine goes below\u202f1500\u202fmetres. [1]",
+      "answer": "Two independent fan stations are required for depths beyond 1500\u202fmetres. [1]",
       "cited": [
         1
       ],
       "context_chars": 521,
       "cost": {
         "called": true,
-        "completion_tokens": 180,
+        "completion_tokens": 179,
         "estimated": false,
-        "latency_ms": 2102.5,
+        "latency_ms": 1619.2,
         "model": "openai/gpt-oss-120b",
         "prompt_tokens": 1204,
-        "total_tokens": 1384
+        "total_tokens": 1383
       },
       "id": "P028",
       "invalid": [],
       "kind": "paraphrase",
-      "latency_ms": 2103.5,
+      "latency_ms": 1620.3,
       "metrics": {
         "citations": {
           "citations": 1,
@@ -2236,18 +2189,13 @@
               "citations": [
                 1
               ],
-              "claim": "Two separate fan stations are required once a mine goes below\u202f1500\u202fmetres. [1]",
+              "claim": "Two independent fan stations are required for depths beyond 1500\u202fmetres. [1]",
               "dangling": [],
               "grounded": true,
               "missing": [
-                "1",
-                "below",
-                "goes",
-                "mine",
-                "once",
-                "separate"
+                "1"
               ],
-              "support": 0.5
+              "support": 0.9
             }
           ],
           "grounded": 1,
@@ -2256,25 +2204,25 @@
           "unsupported": []
         },
         "reference": {
-          "covered": false,
-          "exact": false,
+          "covered": true,
+          "exact": true,
           "expected": [
             "Two independent fan stations are required for depths beyond 1500 metres"
           ],
-          "matched": null,
+          "matched": "Two independent fan stations are required for depths beyond 1500 metres",
           "partial": false
         },
         "refused": false,
         "relevancy": {
-          "found": [],
-          "kind": "missed",
-          "missing": [
+          "found": [
             "Two independent fan stations are required for depths beyond 1500 metres"
           ],
-          "score": 0.0,
-          "substance": 0.6666666666666666,
+          "kind": "complete",
+          "missing": [],
+          "score": 1.0,
+          "substance": 1.0,
           "total": 1,
-          "verbatim": 0.0
+          "verbatim": 1.0
         },
         "uncited_claims": 0,
         "verdict": "answered"
@@ -2286,24 +2234,24 @@
       "verdict": "answered"
     },
     {
-      "answer": "Power must be cut and all personnel withdraw when methane reaches the statutory action level of **1.0\u202f%** concentration[1].",
+      "answer": "Power must be cut and all personnel withdrawn when methane reaches the statutory action level of **1.0\u202f%**[1].",
       "cited": [
         1
       ],
       "context_chars": 245,
       "cost": {
         "called": true,
-        "completion_tokens": 273,
+        "completion_tokens": 266,
         "estimated": false,
-        "latency_ms": 2343.8,
+        "latency_ms": 1109.1,
         "model": "openai/gpt-oss-120b",
         "prompt_tokens": 1131,
-        "total_tokens": 1404
+        "total_tokens": 1397
       },
       "id": "P029",
       "invalid": [],
       "kind": "paraphrase",
-      "latency_ms": 2344.9,
+      "latency_ms": 1110.2,
       "metrics": {
         "citations": {
           "citations": 1,
@@ -2318,17 +2266,17 @@
               "citations": [
                 1
               ],
-              "claim": "Power must be cut and all personnel withdraw when methane reaches the statutory action level of **1.0\u202f%** concentration[1].",
+              "claim": "Power must be cut and all personnel withdrawn when methane reaches the statutory action level of **1.0\u202f%**[1].",
               "dangling": [],
               "grounded": true,
               "missing": [
                 "1",
-                "concentration",
                 "cut",
                 "must",
-                "reaches"
+                "reaches",
+                "withdrawn"
               ],
-              "support": 0.615
+              "support": 0.583
             }
           ],
           "grounded": 1,
@@ -2367,24 +2315,24 @@
       "verdict": "answered"
     },
     {
-      "answer": "The flexible duct needs to be **450\u202fmm in diameter** for headings that are far from the main airway[1].",
+      "answer": "The flexible duct must be at least **450\u202fmm in diameter** for headings that are far from the main airway (beyond 300\u202fm)[1].",
       "cited": [
         1
       ],
       "context_chars": 231,
       "cost": {
         "called": true,
-        "completion_tokens": 266,
+        "completion_tokens": 335,
         "estimated": false,
-        "latency_ms": 1028.6,
+        "latency_ms": 2395.0,
         "model": "openai/gpt-oss-120b",
         "prompt_tokens": 1141,
-        "total_tokens": 1407
+        "total_tokens": 1476
       },
       "id": "P030",
       "invalid": [],
       "kind": "paraphrase",
-      "latency_ms": 1029.6,
+      "latency_ms": 2396.1,
       "metrics": {
         "citations": {
           "citations": 1,
@@ -2399,7 +2347,7 @@
               "citations": [
                 1
               ],
-              "claim": "The flexible duct needs to be **450\u202fmm in diameter** for headings that are far from the main airway[1].",
+              "claim": "The flexible duct must be at least **450\u202fmm in diameter** for headings that are far from the main airway (beyond 300\u202fm)[1].",
               "dangling": [],
               "grounded": true,
               "missing": [
@@ -2408,10 +2356,12 @@
                 "far",
                 "flexible",
                 "headings",
+                "least",
+                "m",
                 "mm",
-                "needs"
+                "must"
               ],
-              "support": 0.364
+              "support": 0.4
             }
           ],
           "grounded": 1,
@@ -2436,7 +2386,7 @@
             "450 millimetres diameter is required beyond 300 metres from the main circuit"
           ],
           "score": 0.0,
-          "substance": 0.4444444444444444,
+          "substance": 0.7777777777777778,
           "total": 1,
           "verbatim": 0.0
         },
@@ -2450,24 +2400,24 @@
       "verdict": "answered"
     },
     {
-      "answer": "It acts as a dominant embellishment that delays the cadence that follows it, rather than serving as a stable chord.\u202f[1]",
+      "answer": "A cadential six\u2011four serves as a dominant embellishment that delays the arriving cadence rather than acting as a stable chord.\u202f[1]",
       "cited": [
         1
       ],
       "context_chars": 188,
       "cost": {
         "called": true,
-        "completion_tokens": 220,
+        "completion_tokens": 166,
         "estimated": false,
-        "latency_ms": 3154.1,
+        "latency_ms": 780.6,
         "model": "openai/gpt-oss-120b",
         "prompt_tokens": 1121,
-        "total_tokens": 1341
+        "total_tokens": 1287
       },
       "id": "P031",
       "invalid": [],
       "kind": "paraphrase",
-      "latency_ms": 3155.1,
+      "latency_ms": 781.7,
       "metrics": {
         "citations": {
           "citations": 1,
@@ -2482,16 +2432,17 @@
               "citations": [
                 1
               ],
-              "claim": "It acts as a dominant embellishment that delays the cadence that follows it, rather than serving as a stable chord.\u202f[1]",
+              "claim": "A cadential six\u2011four serves as a dominant embellishment that delays the arriving cadence rather than acting as a stable chord.\u202f[1]",
               "dangling": [],
               "grounded": true,
               "missing": [
                 "1",
-                "acts",
+                "acting",
+                "arriving",
                 "delays",
-                "serving"
+                "serves"
               ],
-              "support": 0.636
+              "support": 0.643
             }
           ],
           "grounded": 1,
@@ -2530,24 +2481,24 @@
       "verdict": "answered"
     },
     {
-      "answer": "The rule of the octave is a practical guide for harmonising a scale\u2014whether descending or ascending\u2014by assigning consonant intervals on strong beats and dissonant intervals on weak beats.\u202f[1]",
+      "answer": "The rule of the octave is used as a practical guide for harmonising a scale, indicating which consonant intervals to place on strong beats and which dissonant intervals to place on weak beats. [1]",
       "cited": [
         1
       ],
       "context_chars": 177,
       "cost": {
         "called": true,
-        "completion_tokens": 405,
+        "completion_tokens": 291,
         "estimated": false,
-        "latency_ms": 2582.5,
+        "latency_ms": 9342.0,
         "model": "openai/gpt-oss-120b",
         "prompt_tokens": 1114,
-        "total_tokens": 1519
+        "total_tokens": 1405
       },
       "id": "P032",
       "invalid": [],
       "kind": "paraphrase",
-      "latency_ms": 2583.6,
+      "latency_ms": 9343.0,
       "metrics": {
         "citations": {
           "citations": 1,
@@ -2562,14 +2513,16 @@
               "citations": [
                 1
               ],
-              "claim": "The rule of the octave is a practical guide for harmonising a scale\u2014whether descending or ascending\u2014by assigning consonant intervals on strong beats and dissonant intervals on weak beats.\u202f[1]",
+              "claim": "The rule of the octave is used as a practical guide for harmonising a scale, indicating which consonant intervals to place on strong beats and which dissonant intervals to place on weak beats. [1]",
               "dangling": [],
               "grounded": true,
               "missing": [
                 "1",
-                "whether"
+                "indicating",
+                "place",
+                "used"
               ],
-              "support": 0.895
+              "support": 0.789
             }
           ],
           "grounded": 1,
@@ -2608,33 +2561,24 @@
       "verdict": "answered"
     },
     {
-      "error": "Could not reach Groq (openai/gpt-oss-120b): Error code: 429 - {'error': {'message': 'Rate limit reached for model `openai/gpt-oss-120b` in organization `org_01jfgcenp0eey9q4e591e91vhd` service tier `on_demand` on tokens per minute (TPM): Limit 8000, Used 6040, Requested 1992. Please try again in 240ms. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing', 'type': 'tokens', 'code': 'rate_limit_exceeded'}}",
-      "id": "P033",
-      "kind": "paraphrase",
-      "metrics": null,
-      "question": "How long should vancomycin take to go in?",
-      "source": "pharm-notes.txt",
-      "verdict": "unavailable"
-    },
-    {
-      "answer": "Aminoglycosides need an oxygen\u2011dependent transport system to get inside bacterial cells.\u202fBecause anaerobic bugs lack oxygen, this transport doesn\u2019t occur, so the drugs can\u2019t be taken up and are ineffective against them. [1]",
+      "answer": "Vancomycin should be infused slowly over at least one hour.\u202f[1]",
       "cited": [
         1
       ],
-      "context_chars": 294,
+      "context_chars": 148,
       "cost": {
         "called": true,
-        "completion_tokens": 236,
+        "completion_tokens": 180,
         "estimated": false,
-        "latency_ms": 1165.3,
+        "latency_ms": 9847.3,
         "model": "openai/gpt-oss-120b",
-        "prompt_tokens": 1143,
-        "total_tokens": 1379
+        "prompt_tokens": 1115,
+        "total_tokens": 1295
       },
-      "id": "P034",
+      "id": "P033",
       "invalid": [],
       "kind": "paraphrase",
-      "latency_ms": 1166.4,
+      "latency_ms": 9848.4,
       "metrics": {
         "citations": {
           "citations": 1,
@@ -2649,23 +2593,104 @@
               "citations": [
                 1
               ],
-              "claim": "Because anaerobic bugs lack oxygen, this transport doesn\u2019t occur, so the drugs can\u2019t be taken up and are ineffective against them. [1]",
+              "claim": "Vancomycin should be infused slowly over at least one hour.\u202f[1]",
               "dangling": [],
               "grounded": true,
               "missing": [
                 "1",
-                "anaerobic",
-                "bugs",
-                "doesn",
-                "drugs",
-                "lack",
-                "occur",
-                "t",
-                "taken",
-                "them",
-                "up"
+                "should"
               ],
-              "support": 0.353
+              "support": 0.75
+            }
+          ],
+          "grounded": 1,
+          "score": 1.0,
+          "threshold": 0.34,
+          "unsupported": []
+        },
+        "reference": {
+          "covered": true,
+          "exact": true,
+          "expected": [
+            "infused slowly over at least one hour"
+          ],
+          "matched": "infused slowly over at least one hour",
+          "partial": false
+        },
+        "refused": false,
+        "relevancy": {
+          "found": [
+            "infused slowly over at least one hour"
+          ],
+          "kind": "complete",
+          "missing": [],
+          "score": 1.0,
+          "substance": 1.0,
+          "total": 1,
+          "verbatim": 1.0
+        },
+        "uncited_claims": 0,
+        "verdict": "answered"
+      },
+      "question": "How long should vancomycin take to go in?",
+      "retrieval_best_score": 0.7332,
+      "source": "pharm-notes.txt",
+      "ungrounded": false,
+      "verdict": "answered"
+    },
+    {
+      "answer": "Aminoglycosides need oxygen\u2011dependent transport to enter bacterial cells, so organisms that live without oxygen (anaerobes) cannot take up the drug and therefore the antibiotics are ineffective against them. [1]",
+      "cited": [
+        1
+      ],
+      "context_chars": 294,
+      "cost": {
+        "called": true,
+        "completion_tokens": 223,
+        "estimated": false,
+        "latency_ms": 23724.4,
+        "model": "openai/gpt-oss-120b",
+        "prompt_tokens": 1143,
+        "total_tokens": 1366
+      },
+      "id": "P034",
+      "invalid": [],
+      "kind": "paraphrase",
+      "latency_ms": 23725.5,
+      "metrics": {
+        "citations": {
+          "citations": 1,
+          "load_bearing": 1,
+          "score": 1.0,
+          "unused": []
+        },
+        "faithfulness": {
+          "cited_claims": 1,
+          "claims": [
+            {
+              "citations": [
+                1
+              ],
+              "claim": "Aminoglycosides need oxygen\u2011dependent transport to enter bacterial cells, so organisms that live without oxygen (anaerobes) cannot take up the drug and therefore the antibiotics are ineffective against them. [1]",
+              "dangling": [],
+              "grounded": true,
+              "missing": [
+                "1",
+                "antibiotics",
+                "bacterial",
+                "cannot",
+                "cells",
+                "enter",
+                "live",
+                "need",
+                "organisms",
+                "take",
+                "them",
+                "therefore",
+                "up",
+                "without"
+              ],
+              "support": 0.391
             }
           ],
           "grounded": 1,
@@ -2694,7 +2719,7 @@
           "total": 1,
           "verbatim": 0.0
         },
-        "uncited_claims": 1,
+        "uncited_claims": 0,
         "verdict": "answered"
       },
       "question": "Why don't aminoglycosides work on bugs that live without oxygen?",
@@ -2704,24 +2729,24 @@
       "verdict": "answered"
     },
     {
-      "answer": "Quinolone (fluoroquinolone) antibiotics are kept as a last\u2011resort option because they are linked to serious side effects\u2014tendinitis, peripheral neuropathy and aortic aneurysm\u2014and therefore are reserved for infections where no safer alternative exists.\u202f[2]",
+      "answer": "Quinolone (fluoroquinolone) antibiotics are used only when safer options are unavailable because they can cause serious side\u2011effects such as tendinitis, peripheral neuropathy and aortic aneurysm, leading clinicians to reserve them for infections with no safer alternative. [2]",
       "cited": [
         2
       ],
       "context_chars": 572,
       "cost": {
         "called": true,
-        "completion_tokens": 596,
+        "completion_tokens": 313,
         "estimated": false,
-        "latency_ms": 3790.5,
+        "latency_ms": 2410.5,
         "model": "openai/gpt-oss-120b",
         "prompt_tokens": 1247,
-        "total_tokens": 1843
+        "total_tokens": 1560
       },
       "id": "P035",
       "invalid": [],
       "kind": "paraphrase",
-      "latency_ms": 3791.6,
+      "latency_ms": 2411.6,
       "metrics": {
         "citations": {
           "citations": 1,
@@ -2736,27 +2761,29 @@
               "citations": [
                 2
               ],
-              "claim": "Quinolone (fluoroquinolone) antibiotics are kept as a last\u2011resort option because they are linked to serious side effects\u2014tendinitis, peripheral neuropathy and aortic aneurysm\u2014and therefore are reserved for infections where no safer alternative exists.\u202f[2]",
+              "claim": "Quinolone (fluoroquinolone) antibiotics are used only when safer options are unavailable because they can cause serious side\u2011effects such as tendinitis, peripheral neuropathy and aortic aneurysm, leading clinicians to reserve them for infections with no safer alternative. [2]",
               "dangling": [],
               "grounded": true,
               "missing": [
                 "2",
                 "antibiotics",
                 "because",
+                "cause",
+                "clinicians",
                 "effects",
-                "exists",
                 "fluoroquinolone",
-                "kept",
-                "last",
-                "linked",
-                "option",
+                "leading",
+                "only",
+                "options",
                 "quinolone",
-                "resort",
+                "reserve",
                 "serious",
                 "side",
-                "therefore"
+                "them",
+                "unavailable",
+                "used"
               ],
-              "support": 0.375
+              "support": 0.346
             }
           ],
           "grounded": 1,
@@ -2795,13 +2822,85 @@
       "verdict": "answered"
     },
     {
-      "error": "Could not reach Groq (openai/gpt-oss-120b): Error code: 429 - {'error': {'message': 'Rate limit reached for model `openai/gpt-oss-120b` in organization `org_01jfgcenp0eey9q4e591e91vhd` service tier `on_demand` on tokens per minute (TPM): Limit 8000, Used 6391, Requested 1911. Please try again in 2.265s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing', 'type': 'tokens', 'code': 'rate_limit_exceeded'}}",
+      "answer": "No. A penicillin allergy does **not** imply that cephalosporins are unsafe, because there is no cross\u2011reactivity between the two classes.\u202f[1]",
+      "cited": [
+        1
+      ],
+      "context_chars": 328,
+      "cost": {
+        "called": true,
+        "completion_tokens": 251,
+        "estimated": false,
+        "latency_ms": 3071.7,
+        "model": "openai/gpt-oss-120b",
+        "prompt_tokens": 1172,
+        "total_tokens": 1423
+      },
       "id": "P036",
+      "invalid": [],
       "kind": "paraphrase",
-      "metrics": null,
+      "latency_ms": 3072.8,
+      "metrics": {
+        "citations": {
+          "citations": 1,
+          "load_bearing": 1,
+          "score": 1.0,
+          "unused": []
+        },
+        "faithfulness": {
+          "cited_claims": 1,
+          "claims": [
+            {
+              "citations": [
+                1
+              ],
+              "claim": "A penicillin allergy does **not** imply that cephalosporins are unsafe, because there is no cross\u2011reactivity between the two classes.\u202f[1]",
+              "dangling": [],
+              "grounded": true,
+              "missing": [
+                "1",
+                "because",
+                "classes",
+                "two",
+                "unsafe"
+              ],
+              "support": 0.583
+            }
+          ],
+          "grounded": 1,
+          "score": 1.0,
+          "threshold": 0.34,
+          "unsupported": []
+        },
+        "reference": {
+          "covered": false,
+          "exact": false,
+          "expected": [
+            "There is no cross reactivity between the penicillins and the cephalosporins"
+          ],
+          "matched": null,
+          "partial": false
+        },
+        "refused": false,
+        "relevancy": {
+          "found": [],
+          "kind": "missed",
+          "missing": [
+            "There is no cross reactivity between the penicillins and the cephalosporins"
+          ],
+          "score": 0.0,
+          "substance": 0.8,
+          "total": 1,
+          "verbatim": 0.0
+        },
+        "uncited_claims": 1,
+        "verdict": "answered"
+      },
       "question": "Does being allergic to penicillin mean cephalosporins are unsafe too?",
+      "retrieval_best_score": 0.5782,
       "source": "pharm-notes.txt",
-      "verdict": "unavailable"
+      "ungrounded": false,
+      "verdict": "answered"
     },
     {
       "answer": "The deployment lockout window lasts **90\u202fminutes**[1].",
@@ -2811,17 +2910,17 @@
       "context_chars": 397,
       "cost": {
         "called": true,
-        "completion_tokens": 142,
+        "completion_tokens": 169,
         "estimated": false,
-        "latency_ms": 5101.8,
+        "latency_ms": 855.0,
         "model": "openai/gpt-oss-120b",
         "prompt_tokens": 1191,
-        "total_tokens": 1333
+        "total_tokens": 1360
       },
       "id": "P037",
       "invalid": [],
       "kind": "paraphrase",
-      "latency_ms": 5103.0,
+      "latency_ms": 856.1,
       "metrics": {
         "citations": {
           "citations": 1,
@@ -2889,17 +2988,17 @@
       "context_chars": 604,
       "cost": {
         "called": true,
-        "completion_tokens": 271,
+        "completion_tokens": 225,
         "estimated": false,
-        "latency_ms": 1969.4,
+        "latency_ms": 1263.8,
         "model": "openai/gpt-oss-120b",
         "prompt_tokens": 1296,
-        "total_tokens": 1567
+        "total_tokens": 1521
       },
       "id": "P038",
       "invalid": [],
       "kind": "paraphrase",
-      "latency_ms": 1970.5,
+      "latency_ms": 1264.9,
       "metrics": {
         "citations": {
           "citations": 1,
@@ -2964,13 +3063,66 @@
       "verdict": "answered"
     },
     {
-      "error": "Could not reach Groq (openai/gpt-oss-120b): Error code: 429 - {'error': {'message': 'Rate limit reached for model `openai/gpt-oss-120b` in organization `org_01jfgcenp0eey9q4e591e91vhd` service tier `on_demand` on tokens per minute (TPM): Limit 8000, Used 5999, Requested 2042. Please try again in 307.5ms. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing', 'type': 'tokens', 'code': 'rate_limit_exceeded'}}",
+      "answer": "I couldn't find enough information about that in the uploaded sources.",
+      "cited": [],
+      "context_chars": 207,
+      "cost": {
+        "called": true,
+        "completion_tokens": 301,
+        "estimated": false,
+        "latency_ms": 1788.8,
+        "model": "openai/gpt-oss-120b",
+        "prompt_tokens": 1179,
+        "total_tokens": 1480
+      },
       "id": "P039",
+      "invalid": [],
       "kind": "paraphrase",
-      "metrics": null,
+      "latency_ms": 1789.9,
+      "metrics": {
+        "citations": {
+          "citations": 0,
+          "load_bearing": 0,
+          "score": 0.0,
+          "unused": []
+        },
+        "faithfulness": {
+          "cited_claims": 0,
+          "claims": [],
+          "grounded": 0,
+          "score": 0.0,
+          "threshold": 0.34,
+          "unsupported": []
+        },
+        "reference": {
+          "covered": false,
+          "exact": false,
+          "expected": [
+            "pages the platform lead if rollback is not complete"
+          ],
+          "matched": null,
+          "partial": false
+        },
+        "refused": false,
+        "relevancy": {
+          "found": [],
+          "kind": "missed",
+          "missing": [
+            "pages the platform lead if rollback is not complete"
+          ],
+          "score": 0.0,
+          "substance": 0.0,
+          "total": 1,
+          "verbatim": 0.0
+        },
+        "uncited_claims": 1,
+        "verdict": "answered"
+      },
       "question": "Who gets paged if the revert is not finished in time?",
+      "retrieval_best_score": 0.4029,
       "source": "report.docx",
-      "verdict": "unavailable"
+      "ungrounded": true,
+      "verdict": "answered"
     },
     {
       "answer": "The lockout (change freeze) starts at **18:00\u202fUTC**[1].",
@@ -2980,17 +3132,17 @@
       "context_chars": 941,
       "cost": {
         "called": true,
-        "completion_tokens": 182,
+        "completion_tokens": 192,
         "estimated": false,
-        "latency_ms": 3396.0,
+        "latency_ms": 854.5,
         "model": "openai/gpt-oss-120b",
         "prompt_tokens": 1348,
-        "total_tokens": 1530
+        "total_tokens": 1540
       },
       "id": "P040",
       "invalid": [],
       "kind": "paraphrase",
-      "latency_ms": 3397.1,
+      "latency_ms": 856.1,
       "metrics": {
         "citations": {
           "citations": 1,
@@ -3052,24 +3204,24 @@
       "verdict": "answered"
     },
     {
-      "answer": "Recent telemetry is kept in fast (hot) storage for **7 days** [1].",
+      "answer": "Recent telemetry is kept in fast (hot) storage for **7 days**.\u202f[1]",
       "cited": [
         1
       ],
       "context_chars": 808,
       "cost": {
         "called": true,
-        "completion_tokens": 207,
+        "completion_tokens": 156,
         "estimated": false,
-        "latency_ms": 4289.9,
+        "latency_ms": 2238.9,
         "model": "openai/gpt-oss-120b",
         "prompt_tokens": 1475,
-        "total_tokens": 1682
+        "total_tokens": 1631
       },
       "id": "P041",
       "invalid": [],
       "kind": "paraphrase",
-      "latency_ms": 4290.9,
+      "latency_ms": 2240.0,
       "metrics": {
         "citations": {
           "citations": 1,
@@ -3084,7 +3236,7 @@
               "citations": [
                 1
               ],
-              "claim": "Recent telemetry is kept in fast (hot) storage for **7 days** [1].",
+              "claim": "Recent telemetry is kept in fast (hot) storage for **7 days**.\u202f[1]",
               "dangling": [],
               "grounded": false,
               "missing": [
@@ -3103,7 +3255,7 @@
           "score": 0.0,
           "threshold": 0.34,
           "unsupported": [
-            "Recent telemetry is kept in fast (hot) storage for **7 days** [1]."
+            "Recent telemetry is kept in fast (hot) storage for **7 days**.\u202f[1]"
           ]
         },
         "reference": {
@@ -3137,24 +3289,24 @@
       "verdict": "answered"
     },
     {
-      "answer": "Cached entries are kept for\u202f600\u202fseconds (10\u202fminutes) before they expire.\u202f[1]",
+      "answer": "Cached entries are kept for 600\u202fseconds before they expire.\u202f[1]",
       "cited": [
         1
       ],
       "context_chars": 1382,
       "cost": {
         "called": true,
-        "completion_tokens": 175,
+        "completion_tokens": 201,
         "estimated": false,
-        "latency_ms": 3954.9,
+        "latency_ms": 1152.2,
         "model": "openai/gpt-oss-120b",
         "prompt_tokens": 1451,
-        "total_tokens": 1626
+        "total_tokens": 1652
       },
       "id": "P042",
       "invalid": [],
       "kind": "paraphrase",
-      "latency_ms": 3956.0,
+      "latency_ms": 1153.3,
       "metrics": {
         "citations": {
           "citations": 1,
@@ -3169,26 +3321,24 @@
               "citations": [
                 1
               ],
-              "claim": "Cached entries are kept for\u202f600\u202fseconds (10\u202fminutes) before they expire.\u202f[1]",
+              "claim": "Cached entries are kept for 600\u202fseconds before they expire.\u202f[1]",
               "dangling": [],
               "grounded": false,
               "missing": [
-                "10",
                 "cached",
                 "entries",
                 "expire",
                 "kept",
-                "minutes",
                 "seconds"
               ],
-              "support": 0.222
+              "support": 0.286
             }
           ],
           "grounded": 0,
           "score": 0.0,
           "threshold": 0.34,
           "unsupported": [
-            "Cached entries are kept for\u202f600\u202fseconds (10\u202fminutes) before they expire.\u202f[1]"
+            "Cached entries are kept for 600\u202fseconds before they expire.\u202f[1]"
           ]
         },
         "reference": {
@@ -3227,17 +3377,17 @@
       "context_chars": 855,
       "cost": {
         "called": true,
-        "completion_tokens": 292,
+        "completion_tokens": 329,
         "estimated": false,
-        "latency_ms": 4432.3,
+        "latency_ms": 4230.5,
         "model": "openai/gpt-oss-120b",
         "prompt_tokens": 1419,
-        "total_tokens": 1711
+        "total_tokens": 1748
       },
       "id": "P043",
       "invalid": [],
       "kind": "paraphrase",
-      "latency_ms": 4433.4,
+      "latency_ms": 4231.6,
       "metrics": {
         "citations": {
           "citations": 0,
@@ -3287,12 +3437,12 @@
       "context_chars": 0,
       "cost": {
         "called": true,
-        "completion_tokens": 292,
+        "completion_tokens": 329,
         "estimated": false,
-        "latency_ms": 4432.3,
+        "latency_ms": 4230.5,
         "model": "openai/gpt-oss-120b",
         "prompt_tokens": 1419,
-        "total_tokens": 1711
+        "total_tokens": 1748
       },
       "id": "P044",
       "kind": "paraphrase",
@@ -3349,17 +3499,17 @@
       "context_chars": 518,
       "cost": {
         "called": true,
-        "completion_tokens": 154,
+        "completion_tokens": 221,
         "estimated": false,
-        "latency_ms": 4187.5,
+        "latency_ms": 12511.6,
         "model": "openai/gpt-oss-120b",
         "prompt_tokens": 1353,
-        "total_tokens": 1507
+        "total_tokens": 1574
       },
       "id": "P045",
       "invalid": [],
       "kind": "paraphrase",
-      "latency_ms": 4188.6,
+      "latency_ms": 12512.7,
       "metrics": {
         "citations": {
           "citations": 1,
@@ -3421,7 +3571,7 @@
       "verdict": "answered"
     },
     {
-      "answer": "Client\u202fedge\u201111 was turned away because it presented an expired certificate, which caused an authentication error and led to its rejection for 300\u202fseconds[1][2].",
+      "answer": "Client\u202fedge\u201111 was turned away because it presented an expired certificate, which caused an authentication error and led to the client being rejected for 300\u202fseconds[1][2].",
       "cited": [
         1,
         2
@@ -3429,17 +3579,17 @@
       "context_chars": 276,
       "cost": {
         "called": true,
-        "completion_tokens": 263,
+        "completion_tokens": 270,
         "estimated": false,
-        "latency_ms": 2158.0,
+        "latency_ms": 3236.3,
         "model": "openai/gpt-oss-120b",
         "prompt_tokens": 1271,
-        "total_tokens": 1534
+        "total_tokens": 1541
       },
       "id": "P046",
       "invalid": [],
       "kind": "paraphrase",
-      "latency_ms": 2159.1,
+      "latency_ms": 3237.4,
       "metrics": {
         "citations": {
           "citations": 2,
@@ -3455,9 +3605,9 @@
                 1,
                 2
               ],
-              "claim": "Client\u202fedge\u201111 was turned away because it presented an expired certificate, which caused an authentication error and led to its rejection for 300\u202fseconds[1][2].",
+              "claim": "Client\u202fedge\u201111 was turned away because it presented an expired certificate, which caused an authentication error and led to the client being rejected for 300\u202fseconds[1][2].",
               "dangling": [],
-              "grounded": false,
+              "grounded": true,
               "missing": [
                 "1",
                 "11",
@@ -3469,19 +3619,16 @@
                 "caused",
                 "edge",
                 "led",
-                "rejection",
                 "seconds",
                 "turned"
               ],
-              "support": 0.278
+              "support": 0.368
             }
           ],
-          "grounded": 0,
-          "score": 0.0,
+          "grounded": 1,
+          "score": 1.0,
           "threshold": 0.34,
-          "unsupported": [
-            "Client\u202fedge\u201111 was turned away because it presented an expired certificate, which caused an authentication error and led to its rejection for 300\u202fseconds[1][2]."
-          ]
+          "unsupported": []
         },
         "reference": {
           "covered": true,
@@ -3519,17 +3666,17 @@
       "context_chars": 949,
       "cost": {
         "called": true,
-        "completion_tokens": 404,
+        "completion_tokens": 275,
         "estimated": false,
-        "latency_ms": 4491.8,
+        "latency_ms": 4664.5,
         "model": "openai/gpt-oss-120b",
         "prompt_tokens": 1423,
-        "total_tokens": 1827
+        "total_tokens": 1698
       },
       "id": "P047",
       "invalid": [],
       "kind": "paraphrase",
-      "latency_ms": 4492.9,
+      "latency_ms": 4665.5,
       "metrics": {
         "citations": {
           "citations": 0,
@@ -3583,17 +3730,17 @@
       "context_chars": 768,
       "cost": {
         "called": true,
-        "completion_tokens": 235,
+        "completion_tokens": 339,
         "estimated": false,
-        "latency_ms": 6057.9,
+        "latency_ms": 4409.6,
         "model": "openai/gpt-oss-120b",
         "prompt_tokens": 1396,
-        "total_tokens": 1631
+        "total_tokens": 1735
       },
       "id": "P048",
       "invalid": [],
       "kind": "paraphrase",
-      "latency_ms": 6058.9,
+      "latency_ms": 4410.7,
       "metrics": {
         "citations": {
           "citations": 1,
@@ -3658,24 +3805,24 @@
       "verdict": "answered"
     },
     {
-      "answer": "EMEA\u2019s core product generated **$412,300** in revenue in the first quarter\u202f[1].",
+      "answer": "EMEA\u2019s core product generated **$412,300** in revenue in the first quarter[1].",
       "cited": [
         1
       ],
       "context_chars": 2114,
       "cost": {
         "called": true,
-        "completion_tokens": 357,
+        "completion_tokens": 251,
         "estimated": false,
-        "latency_ms": 10491.3,
+        "latency_ms": 10551.8,
         "model": "openai/gpt-oss-120b",
         "prompt_tokens": 2136,
-        "total_tokens": 2493
+        "total_tokens": 2387
       },
       "id": "P049",
       "invalid": [],
       "kind": "paraphrase",
-      "latency_ms": 10492.4,
+      "latency_ms": 10552.9,
       "metrics": {
         "citations": {
           "citations": 1,
@@ -3690,7 +3837,7 @@
               "citations": [
                 1
               ],
-              "claim": "EMEA\u2019s core product generated **$412,300** in revenue in the first quarter\u202f[1].",
+              "claim": "EMEA\u2019s core product generated **$412,300** in revenue in the first quarter[1].",
               "dangling": [],
               "grounded": true,
               "missing": [
@@ -3746,17 +3893,17 @@
       "context_chars": 860,
       "cost": {
         "called": true,
-        "completion_tokens": 261,
+        "completion_tokens": 262,
         "estimated": false,
-        "latency_ms": 4860.1,
+        "latency_ms": 5019.5,
         "model": "openai/gpt-oss-120b",
         "prompt_tokens": 1467,
-        "total_tokens": 1728
+        "total_tokens": 1729
       },
       "id": "P050",
       "invalid": [],
       "kind": "paraphrase",
-      "latency_ms": 4861.1,
+      "latency_ms": 5020.8,
       "metrics": {
         "citations": {
           "citations": 0,
@@ -3803,7 +3950,7 @@
       "verdict": "answered"
     },
     {
-      "answer": "The wait time is calculated with an exponential\u2011backoff formula: for a given retry attempt\u202f`n`, the function returns \n\n`BASE * 2^(n\u20111)` seconds, where `BASE` is the default back\u2011off base value (`BACKOFF_BASE`). The retry logic calls this function for each attempt and sleeps for the returned number of seconds before trying again[1][2].",
+      "answer": "The wait time is calculated by the `exponential_backoff` function, which returns\u202f`base * (2 ** (attempt - 1))` seconds for the given attempt number\u202f[1]. The retry loop then calls `time.sleep(exponential_backoff(attempt))` before each retry, so each successive attempt waits longer according to that exponential formula\u202f[2].",
       "cited": [
         1,
         2
@@ -3811,50 +3958,65 @@
       "context_chars": 880,
       "cost": {
         "called": true,
-        "completion_tokens": 296,
+        "completion_tokens": 620,
         "estimated": false,
-        "latency_ms": 986.9,
+        "latency_ms": 6055.5,
         "model": "openai/gpt-oss-120b",
         "prompt_tokens": 1347,
-        "total_tokens": 1643
+        "total_tokens": 1967
       },
       "id": "P051",
       "invalid": [],
       "kind": "paraphrase",
-      "latency_ms": 988.0,
+      "latency_ms": 6056.6,
       "metrics": {
         "citations": {
           "citations": 2,
-          "load_bearing": 1,
-          "score": 0.5,
-          "unused": [
-            2
-          ]
+          "load_bearing": 2,
+          "score": 1.0,
+          "unused": []
         },
         "faithfulness": {
-          "cited_claims": 1,
+          "cited_claims": 2,
           "claims": [
             {
               "citations": [
-                1,
-                2
+                1
               ],
-              "claim": "The retry logic calls this function for each attempt and sleeps for the returned number of seconds before trying again[1][2].",
+              "claim": "The wait time is calculated by the `exponential_backoff` function, which returns\u202f`base * (2 ** (attempt - 1))` seconds for the given attempt number\u202f[1].",
               "dangling": [],
               "grounded": true,
               "missing": [
-                "again",
-                "calls",
+                "calculated",
                 "function",
-                "logic",
-                "returned",
-                "sleeps",
-                "trying"
+                "given",
+                "returns",
+                "time"
               ],
-              "support": 0.462
+              "support": 0.667
+            },
+            {
+              "citations": [
+                2
+              ],
+              "claim": "The retry loop then calls `time.sleep(exponential_backoff(attempt))` before each retry, so each successive attempt waits longer according to that exponential formula\u202f[2].",
+              "dangling": [],
+              "grounded": true,
+              "missing": [
+                "2",
+                "according",
+                "calls",
+                "formula",
+                "longer",
+                "loop",
+                "retry",
+                "successive",
+                "waits"
+              ],
+              "support": 0.4
             }
           ],
-          "grounded": 1,
+          "grounded": 2,
           "score": 1.0,
           "threshold": 0.34,
           "unsupported": []
@@ -3880,7 +4042,7 @@
           "total": 1,
           "verbatim": 0.0
         },
-        "uncited_claims": 2,
+        "uncited_claims": 0,
         "verdict": "answered"
       },
       "question": "How is the wait before each retry worked out?",
@@ -3890,42 +4052,24 @@
       "verdict": "answered"
     },
     {
-      "error": "Could not reach Groq (openai/gpt-oss-120b): Error code: 429 - {'error': {'message': 'Rate limit reached for model `openai/gpt-oss-120b` in organization `org_01jfgcenp0eey9q4e591e91vhd` service tier `on_demand` on tokens per minute (TPM): Limit 8000, Used 6401, Requested 2010. Please try again in 3.0825s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing', 'type': 'tokens', 'code': 'rate_limit_exceeded'}}",
-      "id": "P052",
-      "kind": "paraphrase",
-      "metrics": null,
-      "question": "How is the data split so neighbouring plots do not leak between sets?",
-      "source": "train.py",
-      "verdict": "unavailable"
-    },
-    {
-      "error": "Could not reach Groq (openai/gpt-oss-120b): Error code: 429 - {'error': {'message': 'Rate limit reached for model `openai/gpt-oss-120b` in organization `org_01jfgcenp0eey9q4e591e91vhd` service tier `on_demand` on tokens per minute (TPM): Limit 8000, Used 6221, Requested 2233. Please try again in 3.405s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing', 'type': 'tokens', 'code': 'rate_limit_exceeded'}}",
-      "id": "P053",
-      "kind": "paraphrase",
-      "metrics": null,
-      "question": "What triggers a sudden speed-up of a glacier?",
-      "source": "glaciology.pdf",
-      "verdict": "unavailable"
-    },
-    {
-      "answer": "Drumlins are streamlined hills of till whose long axis records the direction of ice flow, making them useful for reconstructing past (palaeo\u2011) ice flow even after the glacier has disappeared. [1]",
+      "answer": "The data are split by first ordering all geometries according to the\u202fx\u2011coordinate of their centroids and then dividing that ordered list into contiguous blocks (using the ceiling of the total length divided by the number of folds). Because each block contains a consecutive segment of the sorted list, neighboring plots stay together and cannot end up in different splits.\u202f[1]",
       "cited": [
         1
       ],
-      "context_chars": 759,
+      "context_chars": 350,
       "cost": {
         "called": true,
-        "completion_tokens": 351,
+        "completion_tokens": 449,
         "estimated": false,
-        "latency_ms": 3375.8,
+        "latency_ms": 5622.7,
         "model": "openai/gpt-oss-120b",
-        "prompt_tokens": 1249,
-        "total_tokens": 1600
+        "prompt_tokens": 1188,
+        "total_tokens": 1637
       },
-      "id": "P054",
+      "id": "P052",
       "invalid": [],
       "kind": "paraphrase",
-      "latency_ms": 3376.9,
+      "latency_ms": 5623.8,
       "metrics": {
         "citations": {
           "citations": 1,
@@ -3940,18 +4084,193 @@
               "citations": [
                 1
               ],
-              "claim": "Drumlins are streamlined hills of till whose long axis records the direction of ice flow, making them useful for reconstructing past (palaeo\u2011) ice flow even after the glacier has disappeared. [1]",
+              "claim": "Because each block contains a consecutive segment of the sorted list, neighboring plots stay together and cannot end up in different splits.\u202f[1]",
+              "dangling": [],
+              "grounded": false,
+              "missing": [
+                "because",
+                "consecutive",
+                "contains",
+                "different",
+                "end",
+                "list",
+                "neighboring",
+                "segment",
+                "splits",
+                "stay",
+                "together",
+                "up"
+              ],
+              "support": 0.294
+            }
+          ],
+          "grounded": 0,
+          "score": 0.0,
+          "threshold": 0.34,
+          "unsupported": [
+            "Because each block contains a consecutive segment of the sorted list, neighboring plots stay together and cannot end up in different splits.\u202f[1]"
+          ]
+        },
+        "reference": {
+          "covered": false,
+          "exact": false,
+          "expected": [
+            "Split by spatial block so neighbouring plots cannot straddle a split"
+          ],
+          "matched": null,
+          "partial": false
+        },
+        "refused": false,
+        "relevancy": {
+          "found": [],
+          "kind": "missed",
+          "missing": [
+            "Split by spatial block so neighbouring plots cannot straddle a split"
+          ],
+          "score": 0.0,
+          "substance": 0.5714285714285714,
+          "total": 1,
+          "verbatim": 0.0
+        },
+        "uncited_claims": 1,
+        "verdict": "answered"
+      },
+      "question": "How is the data split so neighbouring plots do not leak between sets?",
+      "retrieval_best_score": 0.4079,
+      "source": "train.py",
+      "ungrounded": false,
+      "verdict": "answered"
+    },
+    {
+      "answer": "A sudden speed\u2011up (a surge) occurs when water reaches the glacier\u2019s bed, which decouples the ice from its substrate and triggers rapid acceleration[1].",
+      "cited": [
+        1
+      ],
+      "context_chars": 1493,
+      "cost": {
+        "called": true,
+        "completion_tokens": 316,
+        "estimated": false,
+        "latency_ms": 3258.6,
+        "model": "openai/gpt-oss-120b",
+        "prompt_tokens": 1411,
+        "total_tokens": 1727
+      },
+      "id": "P053",
+      "invalid": [],
+      "kind": "paraphrase",
+      "latency_ms": 3259.7,
+      "metrics": {
+        "citations": {
+          "citations": 1,
+          "load_bearing": 1,
+          "score": 1.0,
+          "unused": []
+        },
+        "faithfulness": {
+          "cited_claims": 1,
+          "claims": [
+            {
+              "citations": [
+                1
+              ],
+              "claim": "A sudden speed\u2011up (a surge) occurs when water reaches the glacier\u2019s bed, which decouples the ice from its substrate and triggers rapid acceleration[1].",
               "dangling": [],
               "grounded": true,
               "missing": [
                 "1",
-                "disappeared",
-                "making",
+                "occurs",
+                "rapid",
+                "reaches",
+                "s",
+                "speed",
+                "sudden",
+                "triggers",
+                "up"
+              ],
+              "support": 0.471
+            }
+          ],
+          "grounded": 1,
+          "score": 1.0,
+          "threshold": 0.34,
+          "unsupported": []
+        },
+        "reference": {
+          "covered": false,
+          "exact": false,
+          "expected": [
+            "caused by water reaching the bed, which decouples the ice from its substrate"
+          ],
+          "matched": null,
+          "partial": false
+        },
+        "refused": false,
+        "relevancy": {
+          "found": [],
+          "kind": "missed",
+          "missing": [
+            "caused by water reaching the bed, which decouples the ice from its substrate"
+          ],
+          "score": 0.0,
+          "substance": 0.7142857142857143,
+          "total": 1,
+          "verbatim": 0.0
+        },
+        "uncited_claims": 0,
+        "verdict": "answered"
+      },
+      "question": "What triggers a sudden speed-up of a glacier?",
+      "retrieval_best_score": 0.6921,
+      "source": "glaciology.pdf",
+      "ungrounded": false,
+      "verdict": "answered"
+    },
+    {
+      "answer": "Drumlins are streamlined hills of till whose long axis records the direction of ice flow, so they can be used to reconstruct past (palaeo\u2011) ice flow even where the glacier has vanished.\u202f[1]",
+      "cited": [
+        1
+      ],
+      "context_chars": 759,
+      "cost": {
+        "called": true,
+        "completion_tokens": 468,
+        "estimated": false,
+        "latency_ms": 2153.6,
+        "model": "openai/gpt-oss-120b",
+        "prompt_tokens": 1249,
+        "total_tokens": 1717
+      },
+      "id": "P054",
+      "invalid": [],
+      "kind": "paraphrase",
+      "latency_ms": 25358.2,
+      "metrics": {
+        "citations": {
+          "citations": 1,
+          "load_bearing": 1,
+          "score": 1.0,
+          "unused": []
+        },
+        "faithfulness": {
+          "cited_claims": 1,
+          "claims": [
+            {
+              "citations": [
+                1
+              ],
+              "claim": "Drumlins are streamlined hills of till whose long axis records the direction of ice flow, so they can be used to reconstruct past (palaeo\u2011) ice flow even where the glacier has vanished.\u202f[1]",
+              "dangling": [],
+              "grounded": true,
+              "missing": [
+                "1",
                 "palaeo",
                 "past",
-                "them"
+                "reconstruct",
+                "used",
+                "vanished"
               ],
-              "support": 0.739
+              "support": 0.714
             }
           ],
           "grounded": 1,
@@ -3991,33 +4310,33 @@
     }
   ],
   "summary": {
-    "answered": 47,
-    "citation_precision": 0.8829787234042553,
-    "faithfulness": 0.8085106382978723,
-    "latency_ms_mean": 2738.2255319148935,
+    "answered": 52,
+    "citation_precision": 0.8461538461538461,
+    "faithfulness": 0.7692307692307693,
+    "latency_ms_mean": 6414.15,
     "reference": {
-      "covered": 0.14893617021276595,
-      "exact": 0.0851063829787234,
-      "partial_only": 0.06382978723404255,
-      "scored": 47
+      "covered": 0.15384615384615385,
+      "exact": 0.11538461538461539,
+      "partial_only": 0.038461538461538464,
+      "scored": 52
     },
     "refused_by_floor": 3,
-    "relevancy": 0.2127659574468085,
+    "relevancy": 0.21153846153846154,
     "relevancy_by_kind": {
-      "paraphrase": 0.6514015535292133
+      "paraphrase": 0.6524954212454214
     },
     "relevancy_kind_counts": {
-      "complete": 10,
-      "missed": 37
+      "complete": 11,
+      "missed": 41
     },
-    "substance": 0.6514015535292133,
-    "tokens_mean": 1522.2340425531916,
-    "trap_refusal_rate": null,
+    "substance": 0.6524954212454214,
+    "tokens_mean": 1520.5,
+    "trap_refusal_rate": 0.875,
     "traps": 24,
-    "unavailable": 5,
-    "uncited_claims": 8,
+    "unavailable": 0,
+    "uncited_claims": 10,
     "unsupported_claims": 4,
-    "verbatim": 0.0851063829787234
+    "verbatim": 0.11538461538461539
   },
   "support_threshold": 0.34,
   "traps": [
@@ -4025,12 +4344,12 @@
       "answer": "I couldn't find enough information about that in the uploaded sources.",
       "cost": {
         "called": true,
-        "completion_tokens": 328,
+        "completion_tokens": 339,
         "estimated": false,
-        "latency_ms": 2932.3,
+        "latency_ms": 2117.9,
         "model": "openai/gpt-oss-120b",
         "prompt_tokens": 1441,
-        "total_tokens": 1769
+        "total_tokens": 1780
       },
       "id": "T000",
       "question": "What is the maximum mash temperature before the enzymes denature?",
@@ -4039,21 +4358,32 @@
       "retrieved": 2
     },
     {
-      "error": "Could not reach Groq (openai/gpt-oss-120b): Error code: 429 - {'error': {'message': 'Rate limit reached for model `openai/gpt-oss-120b` in organization `org_01jfgcenp0eey9q4e591e91vhd` service tier `on_demand` on tokens per minute (TPM): Limit 8000, Used 6292, Requested 1953. Please try again in 1.8375s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing', 'type': 'tokens', 'code': 'rate_limit_exceeded'}}",
+      "answer": "I couldn't find enough information about that in the uploaded sources.",
+      "cost": {
+        "called": true,
+        "completion_tokens": 286,
+        "estimated": false,
+        "latency_ms": 2662.5,
+        "model": "openai/gpt-oss-120b",
+        "prompt_tokens": 1131,
+        "total_tokens": 1417
+      },
       "id": "T001",
       "question": "What is the plot size in square metres for the field trials?",
-      "refused": null
+      "reason": "declined to answer",
+      "refused": true,
+      "retrieved": 1
     },
     {
       "answer": "I couldn't find enough information about that in the uploaded sources.",
       "cost": {
         "called": true,
-        "completion_tokens": 223,
+        "completion_tokens": 203,
         "estimated": false,
-        "latency_ms": 3154.0,
+        "latency_ms": 1379.2,
         "model": "openai/gpt-oss-120b",
         "prompt_tokens": 1110,
-        "total_tokens": 1333
+        "total_tokens": 1313
       },
       "id": "T002",
       "question": "Who is the named account manager at the Supplier under the agreement?",
@@ -4062,15 +4392,15 @@
       "retrieved": 1
     },
     {
-      "answer": "The agreement does not place a monetary cap on liability for data\u2011protection breaches; such liability is treated as a breach of confidentiality and is uncapped[1].",
+      "answer": "The agreement does not place a monetary cap on liability for data\u2011protection breaches; such breaches are treated as a breach of confidentiality, which is expressly uncapped[1].",
       "cost": {
         "called": true,
-        "completion_tokens": 304,
+        "completion_tokens": 281,
         "estimated": false,
-        "latency_ms": 2098.4,
+        "latency_ms": 1529.4,
         "model": "openai/gpt-oss-120b",
         "prompt_tokens": 1211,
-        "total_tokens": 1515
+        "total_tokens": 1492
       },
       "id": "T003",
       "question": "What cap applies to liability for data protection breaches under the agreement?",
@@ -4082,12 +4412,12 @@
       "answer": "I couldn't find enough information about that in the uploaded sources.",
       "cost": {
         "called": true,
-        "completion_tokens": 197,
+        "completion_tokens": 209,
         "estimated": false,
-        "latency_ms": 3818.4,
+        "latency_ms": 4193.2,
         "model": "openai/gpt-oss-120b",
         "prompt_tokens": 1118,
-        "total_tokens": 1315
+        "total_tokens": 1327
       },
       "id": "T004",
       "question": "What interest is charged on late invoice payments?",
@@ -4099,12 +4429,12 @@
       "answer": "I couldn't find enough information about that in the uploaded sources.",
       "cost": {
         "called": true,
-        "completion_tokens": 196,
+        "completion_tokens": 192,
         "estimated": false,
-        "latency_ms": 1064.5,
+        "latency_ms": 1554.9,
         "model": "openai/gpt-oss-120b",
         "prompt_tokens": 1222,
-        "total_tokens": 1418
+        "total_tokens": 1414
       },
       "id": "T005",
       "question": "What penalty applies for late delivery under the agreement?",
@@ -4116,12 +4446,12 @@
       "answer": "I couldn't find enough information about that in the uploaded sources.",
       "cost": {
         "called": true,
-        "completion_tokens": 203,
+        "completion_tokens": 197,
         "estimated": false,
-        "latency_ms": 2099.2,
+        "latency_ms": 1596.7,
         "model": "openai/gpt-oss-120b",
         "prompt_tokens": 1115,
-        "total_tokens": 1318
+        "total_tokens": 1312
       },
       "id": "T006",
       "question": "What dose of vancomycin is given to children?",
@@ -4133,12 +4463,12 @@
       "answer": "I couldn't find enough information about that in the uploaded sources.",
       "cost": {
         "called": true,
-        "completion_tokens": 230,
+        "completion_tokens": 268,
         "estimated": false,
-        "latency_ms": 2984.5,
+        "latency_ms": 941.1,
         "model": "openai/gpt-oss-120b",
         "prompt_tokens": 1187,
-        "total_tokens": 1417
+        "total_tokens": 1455
       },
       "id": "T007",
       "question": "Which antibiotic is used to treat tuberculosis?",
@@ -4150,12 +4480,12 @@
       "answer": "I couldn't find enough information about that in the uploaded sources.",
       "cost": {
         "called": true,
-        "completion_tokens": 269,
+        "completion_tokens": 323,
         "estimated": false,
-        "latency_ms": 2175.9,
+        "latency_ms": 1117.6,
         "model": "openai/gpt-oss-120b",
         "prompt_tokens": 1195,
-        "total_tokens": 1464
+        "total_tokens": 1518
       },
       "id": "T008",
       "question": "What is the cross reactivity between penicillins and carbapenems?",
@@ -4167,12 +4497,12 @@
       "answer": "I couldn't find enough information about that in the uploaded sources.",
       "cost": {
         "called": true,
-        "completion_tokens": 217,
+        "completion_tokens": 255,
         "estimated": false,
-        "latency_ms": 1427.6,
+        "latency_ms": 1587.0,
         "model": "openai/gpt-oss-120b",
         "prompt_tokens": 1138,
-        "total_tokens": 1355
+        "total_tokens": 1393
       },
       "id": "T009",
       "question": "At what dew point do potato blight spores germinate?",
@@ -4184,12 +4514,12 @@
       "answer": "I couldn't find enough information about that in the uploaded sources.",
       "cost": {
         "called": true,
-        "completion_tokens": 277,
+        "completion_tokens": 278,
         "estimated": false,
-        "latency_ms": 4486.6,
+        "latency_ms": 1085.3,
         "model": "openai/gpt-oss-120b",
         "prompt_tokens": 1197,
-        "total_tokens": 1474
+        "total_tokens": 1475
       },
       "id": "T010",
       "question": "How deep should brassica seeds be sown?",
@@ -4201,12 +4531,12 @@
       "answer": "I couldn't find enough information about that in the uploaded sources.",
       "cost": {
         "called": true,
-        "completion_tokens": 287,
+        "completion_tokens": 250,
         "estimated": false,
-        "latency_ms": 3549.3,
+        "latency_ms": 4091.7,
         "model": "openai/gpt-oss-120b",
         "prompt_tokens": 1236,
-        "total_tokens": 1523
+        "total_tokens": 1486
       },
       "id": "T011",
       "question": "What is the surge velocity of the glacier in metres per day?",
@@ -4218,12 +4548,12 @@
       "answer": "I couldn't find enough information about that in the uploaded sources.",
       "cost": {
         "called": true,
-        "completion_tokens": 268,
+        "completion_tokens": 247,
         "estimated": false,
-        "latency_ms": 917.0,
+        "latency_ms": 3542.8,
         "model": "openai/gpt-oss-120b",
         "prompt_tokens": 1243,
-        "total_tokens": 1511
+        "total_tokens": 1490
       },
       "id": "T012",
       "question": "What fermentation temperature in Fahrenheit is recommended for lager yeast?",
@@ -4235,12 +4565,12 @@
       "answer": "I couldn't find enough information about that in the uploaded sources.",
       "cost": {
         "called": true,
-        "completion_tokens": 251,
+        "completion_tokens": 147,
         "estimated": false,
-        "latency_ms": 11462.8,
+        "latency_ms": 9995.4,
         "model": "openai/gpt-oss-120b",
         "prompt_tokens": 2015,
-        "total_tokens": 2266
+        "total_tokens": 2162
       },
       "id": "T013",
       "question": "What was the Burr Grinder revenue in LATAM?",
@@ -4252,12 +4582,12 @@
       "answer": "I couldn't find enough information about that in the uploaded sources.",
       "cost": {
         "called": true,
-        "completion_tokens": 357,
+        "completion_tokens": 340,
         "estimated": false,
-        "latency_ms": 1198.0,
+        "latency_ms": 3997.9,
         "model": "openai/gpt-oss-120b",
         "prompt_tokens": 1323,
-        "total_tokens": 1680
+        "total_tokens": 1663
       },
       "id": "T014",
       "question": "What time did the telemetry-ingest service start on 2024-11-03?",
@@ -4269,12 +4599,12 @@
       "answer": "I couldn't find enough information about that in the uploaded sources.",
       "cost": {
         "called": true,
-        "completion_tokens": 171,
+        "completion_tokens": 157,
         "estimated": false,
-        "latency_ms": 9992.4,
+        "latency_ms": 1111.2,
         "model": "openai/gpt-oss-120b",
         "prompt_tokens": 1131,
-        "total_tokens": 1302
+        "total_tokens": 1288
       },
       "id": "T015",
       "question": "Which geometries were reprojected to EPSG:3857?",
@@ -4286,12 +4616,12 @@
       "answer": "The RMSE reported for the model was **412.7\u202fkg/ha**[1].",
       "cost": {
         "called": true,
-        "completion_tokens": 181,
+        "completion_tokens": 254,
         "estimated": false,
-        "latency_ms": 6191.8,
+        "latency_ms": 2018.1,
         "model": "openai/gpt-oss-120b",
         "prompt_tokens": 1277,
-        "total_tokens": 1458
+        "total_tokens": 1531
       },
       "id": "T016",
       "question": "What was the RMSE of the baseline linear model?",
@@ -4300,15 +4630,15 @@
       "retrieved": 2
     },
     {
-      "answer": "I couldn't find enough information about that in the uploaded sources.",
+      "answer": "I couldn't find enough information about the learning rate decay schedule of the wide\u2011residual\u2011cascade model in the uploaded sources.",
       "cost": {
         "called": true,
-        "completion_tokens": 239,
+        "completion_tokens": 237,
         "estimated": false,
-        "latency_ms": 3113.5,
+        "latency_ms": 11165.8,
         "model": "openai/gpt-oss-120b",
         "prompt_tokens": 1329,
-        "total_tokens": 1568
+        "total_tokens": 1566
       },
       "id": "T017",
       "question": "What is the learning rate decay schedule of the wide-residual-cascade model?",
@@ -4320,12 +4650,12 @@
       "answer": "I couldn't find enough information about that in the uploaded sources.",
       "cost": {
         "called": true,
-        "completion_tokens": 219,
+        "completion_tokens": 202,
         "estimated": false,
-        "latency_ms": 915.9,
+        "latency_ms": 5462.2,
         "model": "openai/gpt-oss-120b",
         "prompt_tokens": 1423,
-        "total_tokens": 1642
+        "total_tokens": 1625
       },
       "id": "T018",
       "question": "How many replicas does the telemetry-ingest service run?",
@@ -4334,21 +4664,32 @@
       "retrieved": 4
     },
     {
-      "error": "Could not reach Groq (openai/gpt-oss-120b): Error code: 429 - {'error': {'message': 'Rate limit reached for model `openai/gpt-oss-120b` in organization `org_01jfgcenp0eey9q4e591e91vhd` service tier `on_demand` on tokens per minute (TPM): Limit 8000, Used 6282, Requested 1756. Please try again in 285ms. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing', 'type': 'tokens', 'code': 'rate_limit_exceeded'}}",
+      "answer": "The harvest\u2011planner package is configured to connect to the database on port **5432**[4].",
+      "cost": {
+        "called": true,
+        "completion_tokens": 258,
+        "estimated": false,
+        "latency_ms": 11345.2,
+        "model": "openai/gpt-oss-120b",
+        "prompt_tokens": 1347,
+        "total_tokens": 1605
+      },
       "id": "T019",
       "question": "What database port does the harvest-planner package use?",
-      "refused": null
+      "reason": "answered",
+      "refused": false,
+      "retrieved": 4
     },
     {
       "answer": "I couldn't find enough information about that in the uploaded sources.",
       "cost": {
         "called": true,
-        "completion_tokens": 177,
+        "completion_tokens": 223,
         "estimated": false,
-        "latency_ms": 1013.4,
+        "latency_ms": 10631.6,
         "model": "openai/gpt-oss-120b",
         "prompt_tokens": 1205,
-        "total_tokens": 1382
+        "total_tokens": 1428
       },
       "id": "T020",
       "question": "What VAT rate applies to books in the cart?",
@@ -4360,12 +4701,12 @@
       "answer": "I couldn't find enough information about that in the uploaded sources.",
       "cost": {
         "called": true,
-        "completion_tokens": 211,
+        "completion_tokens": 214,
         "estimated": false,
-        "latency_ms": 2394.0,
+        "latency_ms": 2353.7,
         "model": "openai/gpt-oss-120b",
         "prompt_tokens": 1227,
-        "total_tokens": 1438
+        "total_tokens": 1441
       },
       "id": "T021",
       "question": "How many pages is the Orbital Debris Mitigation Handbook?",
@@ -4377,12 +4718,12 @@
       "answer": "I couldn't find enough information about that in the uploaded sources.",
       "cost": {
         "called": true,
-        "completion_tokens": 284,
+        "completion_tokens": 240,
         "estimated": false,
-        "latency_ms": 2211.8,
+        "latency_ms": 3605.9,
         "model": "openai/gpt-oss-120b",
         "prompt_tokens": 1245,
-        "total_tokens": 1529
+        "total_tokens": 1485
       },
       "id": "T022",
       "question": "Which company manufactures the reaction wheel assemblies?",
@@ -4391,10 +4732,21 @@
       "retrieved": 1
     },
     {
-      "error": "Could not reach Groq (openai/gpt-oss-120b): Error code: 429 - {'error': {'message': 'Rate limit reached for model `openai/gpt-oss-120b` in organization `org_01jfgcenp0eey9q4e591e91vhd` service tier `on_demand` on tokens per minute (TPM): Limit 8000, Used 6229, Requested 2025. Please try again in 1.905s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing', 'type': 'tokens', 'code': 'rate_limit_exceeded'}}",
+      "answer": "I couldn't find enough information about that in the uploaded sources.",
+      "cost": {
+        "called": true,
+        "completion_tokens": 170,
+        "estimated": false,
+        "latency_ms": 1246.1,
+        "model": "openai/gpt-oss-120b",
+        "prompt_tokens": 1244,
+        "total_tokens": 1414
+      },
       "id": "T023",
       "question": "What is the staging rehearsal date for the rollback plan?",
-      "refused": null
+      "reason": "declined to answer",
+      "refused": true,
+      "retrieved": 3
     }
   ],
   "traps_file": "trap_set.json"

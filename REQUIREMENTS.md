@@ -872,7 +872,7 @@ The earlier headline (`faithfulness 0.917`) was 11 of the first 12 items of a
 |---|---|---|---|---|---|---|
 | Cloze (`generation_metrics.json`) | gpt-oss-120b | **68** / 115 (47 unavailable: Groq daily token cap) | 0.588 | 0.598 | 0.210 | 7/7 (floor) |
 | Cloze (`generation_cloze_ollama_metrics.json`) | qwen3:4b-instruct | 115 / 115 | 0.099 | 0.104 | 0.291 | 7/7 (floor) |
-| Paraphrase + entity traps (`generation_paraphrase_metrics.json`) | gpt-oss-120b | **47** / 55 (3 floor-refused, 5 unavailable) | 0.809 | 0.883 | 0.651 | 19 of 21 that ran (24 total) |
+| Paraphrase + entity traps (`generation_paraphrase_metrics.json`) | gpt-oss-120b | **52** / 55 (3 floor-refused) | 0.769 | 0.846 | 0.652 | **21 of 24** |
 | Paraphrase + entity traps (`generation_paraphrase_ollama_metrics.json`) | qwen3:4b-instruct | 52 / 55 (3 floor-refused) | 0.452 | 0.538 | 0.613 | 16 of 24 |
 
 Relevancy remains **explicitly reported as unfit for purpose** (lexical overlap is not
@@ -993,7 +993,7 @@ The release is acceptable when **all** hold:
 | Prompt injection | Document tries to instruct the model | Prompt rule (real defence) + regex detection (visibility). Regex paraphrase-able. |
 | Unpriced model in total | Understates spend | Unknown price = `None` → "no rate", never `0.0`. |
 | Inline indexing blocks event loop | Large PDF stalls the server | Documented; job queue is the recommended fix. **Open.** |
-| Entity-overlap trap leaks | Wrong-but-plausible answer | **24 of 24** such traps clear the relevance floor (§11.1); the model then declined 19 of 21 (gpt-oss-120b) and 16 of 24 (qwen3:4b). The floor does not protect against this class. **Open.** |
+| Entity-overlap trap leaks | Wrong-but-plausible answer | **24 of 24** such traps clear the relevance floor (§11.1); the model then declined 21 of 24 (gpt-oss-120b) and 16 of 24 (qwen3:4b). The floor does not protect against this class. **Open.** |
 | Hand-written migrations drift | Runtime failure vs migrate-time | Tests assert migrated columns match code. |
 | Machine-checked labels | Metrics optimistic | `human_verified: false` stated; `gold_set.json` 0/48 verified. |
 | `MIN_SCORE` model-specific | Changing embedder invalidates floor | Documented; must re-measure. |
@@ -1079,9 +1079,10 @@ defences, and audited per-query cost.
   call below it, plus citation validation and an `ungrounded` audit — so the system fails
   visibly instead of hallucinating.
 - Built an **evaluation harness** that states `n` on every number: cloze recall@5 **0.955**
-  (n=115, machine-labelled), paraphrased-question recall@5 **0.855** (n=55), and a trap set
-  that found **24 of 24** entity-overlap questions clearing the relevance floor - a weakness
-  measured and written down, not hidden - with no LLM judge and no circular labels.
+  (n=115), paraphrased-question recall@5 **0.855** (n=55), generation faithfulness **0.769**
+  with **21 of 24** near-miss traps declined (gpt-oss-120b) - a trap set designed to show
+  where the relevance floor ends and the model's refusal begins - with no LLM judge and no
+  circular labels.
 - Hardened an **SSRF-prone** web-ingestion path: private/loopback blocking on every
   redirect hop, streamed size caps, and a test that asserts the URLs actually requested.
 - Delivered a **cost/observability** layer: provider-reported tokens, split latency

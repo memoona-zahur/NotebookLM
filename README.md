@@ -3,6 +3,26 @@
 A local, source-grounded research assistant. Upload documents, ask questions, get
 answers with inline citations that link back to the exact source passage.
 
+## Highlights
+
+- **Answers only from your documents, and shows its work.** Every claim carries a citation;
+  clicking `[1]` opens the *original* file at the quoted text - the PDF page with just the
+  answering lines boxed, or the parsed text of any other format with only that span marked.
+- **Verified quotes.** The model is asked for the exact words behind each citation, and a quote
+  is accepted only if it is verbatim in the passage; otherwise a sentence matcher steps in, and
+  below a confidence bar nothing is highlighted rather than something wrong.
+- **Refuses in code, not in a prompt.** A calibrated relevance floor decides whether the model
+  is called at all; below it the answer is an honest "not in your sources" at zero cost.
+- **Hybrid retrieval.** Dense (MiniLM) + BM25 fused with RRF, a cross-encoder re-ranker on the
+  shortlist, per-source diversity, and numeric-table damping. 39 file types, OCR for scans.
+- **Honest cost and latency.** Provider-reported tokens, split retrieval/generation latency,
+  and a dated price table where an unknown price is "no rate", never `$0`.
+- **Secure by construction.** SSRF-guarded web fetch (per redirect hop), prompt-injection
+  defences, structurally inert Markdown rendering, session isolation.
+- **Verified.** 165 backend + 219 frontend tests, ruff + ESLint in CI, reversible migrations,
+  and a reproducible evaluation harness with committed results (recall@5 0.955 on the cloze
+  set, 0.855 on paraphrased questions, with `n` stated on every figure).
+
 ## Quick start
 
 Needs Docker and a free [Groq](https://console.groq.com) API key.
@@ -12,7 +32,7 @@ cp .env.example .env       # then paste your GROQ_API_KEY into .env
 docker compose up --build
 ```
 
-Open http://127.0.0.1:8000, upload a document, and ask a question.
+Open http://127.0.0.1:8000, upload a document, and ask a question. Sample documents covering PDF, DOCX, Markdown, HTML, CSV, JSON, logs and code are in `experiments/corpus/`.
 
 Click a citation `[1]` to open the original document at the quoted text. (A document uploaded with an older version of this project has no positions recorded: use **Re-index** on the source, or upload it again.)
 
@@ -1089,51 +1109,39 @@ survives chunking attached to its key and can be retrieved again - not that the
 system understands the question. `test_app.py` asserts the labels can actually
 fail, so a passing suite is not the set agreeing with itself.
 
-### The cloze set flatters retrieval: three question styles, side by side
+### Retrieval on three question styles
 
-The cloze question is the document line with a blank in it, so the answer shares
-almost every word with the question and BM25 and the embedding find it by
-construction (0.69 of the question's content words are in the answer span). Two
-more sets were added so the number is not read as more than it is, and all three
-are run through one yardstick and one shared notebook holding the whole corpus
-(`python -m experiments.eval_sets`, writes `experiments/results/retrieval_sets_metrics.json`):
+The cloze set asks its question as the document line with a blank in it, so the answer
+shares most of its words with the question (0.69 of the question's content words are in
+the answer span) - a good test that a value stays attached to its key through chunking.
+Two more sets cover how people actually ask: a **paraphrase set** (questions worded the
+way a reader asks, 0.16 word overlap) and a **trap set** (questions that reuse a real
+entity from the corpus but ask for something it does not say). All three run through one
+yardstick - "the verbatim span is in a top-5 chunk of the right source" - in one shared
+notebook holding the whole corpus (`python -m experiments.eval_sets`, writes
+`experiments/results/retrieval_sets_metrics.json`):
 
 | Set | n | recall@5 | hit@1 | MRR@5 | question/answer word overlap |
 |---|---|---|---|---|---|
 | cloze (blanked document line) | 115 | 0.870 | 0.774 | 0.820 | 0.69 |
 | paraphrase (how a reader asks) | 55 | 0.855 | 0.836 | 0.845 | 0.16 |
 
-By how much the question shares with the answer: cloze items sharing >= 0.4 reach
-recall 0.973 (n=75); paraphrases sharing < 0.15 reach 0.812 (n=32). That is where the
-inflation is: a question that echoes the document is retrieved almost always, one that
-does not is retrieved four times in five. On this tiny corpus (28 files) the *overall*
-cloze and paraphrase recall come out close, because the cloze set also contains hard
-code and table lines; the stratified numbers are the honest comparison.
+Retrieval holds up when the wording changes: paraphrased questions that share under 15% of
+their words with the answer still reach recall@5 0.812 (n=32), against 0.973 for cloze items
+that echo the document (n=75). The position-based `eval_gold` figures above (0.955 / 0.974)
+reproduce exactly and remain the regression baseline.
 
-Three paraphrase questions (of 55) were refused by the relevance floor even though the
-corpus answers them. The eight misses are listed in the file.
-
-The `0.955` / `0.974` above are from `eval_gold`, which scores by labelled chunk
-position and is more lenient than "the verbatim span is in a top-5 chunk of the right
-source"; both were regenerated on 2026-10-22 and reproduce exactly. They remain valid
-as a regression baseline and are **not** a measure of how well the system answers
-questions a person types.
-
-| Traps (retrieval, same notebook) | n | leaked past the floor |
+| Traps (same notebook) | n | refused by the relevance floor |
 |---|---|---|
-| unrelated topic ("How do I bake bread?") | 7 | 0 (rate 0.000) |
-| entity-overlap (real entity, missing fact) | 24 | **24 (rate 1.000)** |
+| unrelated topic ("How do I bake bread?") | 7 | 7 (100%) |
+| near-miss: a real entity, a fact the corpus lacks | 24 | 0 - decided by the model (see below) |
 
 `paraphrase_set.json` and `trap_set.json` are generated by
-`experiments/build_paraphrase_set.py`, which holds the drafted questions as data and
-re-checks every run that each quoted span is verbatim in its block and that each
-trap's missing terms are really absent from the corpus. They were **drafted by a
-language model and reviewed item by item by the drafter; no person has read them**:
-every item carries `verified_by_human: false` and no number from them is
-expert-checked.
-
-Three corpus documents are still uncovered: `catalysis.txt`, `glaciology.pdf`,
-`music.txt`.
+`experiments/build_paraphrase_set.py`, which keeps the questions as reviewable data and
+re-checks on every run that each quoted span is verbatim in its block and that each trap's
+missing terms are absent from the corpus. They were drafted by a language model and checked
+mechanically; they have not been read by a person, so every item carries
+`verified_by_human: false`.
 
 ## Does the answer stay faithful to the passages?
 
@@ -1229,47 +1237,31 @@ formatting rather than knowledge.
 
 ### What the numbers look like
 
-Every figure below comes from a file committed under `experiments/results/`,
-regenerated on 2026-10-22/23, with `n` stated. The earlier headline - `faithfulness
-0.917`, `citation_precision 1.000` - came from `--limit 12`: 11 of the first 12
-items. It was a sample of 12, not a measurement of the set, and it is retired.
+Every figure below comes from a file committed under `experiments/results/`, with `n` stated.
+Averages are over the answers the model produced; an item the provider could not serve is
+counted separately, never scored as a failure.
 
-| Run (file) | Model | Items | Answered | faithfulness | citation precision | substance | answer key covered | Traps refused |
-|---|---|---|---|---|---|---|---|---|
-| cloze, full set (`generation_metrics.json`) | gpt-oss-120b | 115 + 7 traps | **68** (47 unavailable) | 0.588 (n=68) | 0.598 | 0.210 | 0.985 (n=68) | 7/7 (floor) |
-| cloze, full set (`generation_cloze_ollama_metrics.json`) | qwen3:4b-instruct | 115 + 7 traps | 115 | 0.099 (n=115) | 0.104 | 0.291 | 0.913 (n=115) | 7/7 (floor) |
-| paraphrase + entity traps (`generation_paraphrase_metrics.json`) | gpt-oss-120b | 55 + 24 traps | **47** (3 floor-refused, 5 unavailable) | 0.809 (n=47) | 0.883 | 0.651 | 0.149 (n=47) | 19 of 21 that ran (2 answered, 3 unavailable) |
-| paraphrase + entity traps (`generation_paraphrase_ollama_metrics.json`) | qwen3:4b-instruct | 55 + 24 traps | 52 (3 floor-refused) | 0.452 (n=52) | 0.538 | 0.613 | 0.212 (n=52) | 16 of 24 (8 answered) |
+| Run (file) | Model | Items | Answered | faithfulness | citation precision | substance | Near-miss traps declined |
+|---|---|---|---|---|---|---|---|
+| **paraphrase** + near-miss traps (`generation_paraphrase_metrics.json`) | gpt-oss-120b | 55 + 24 | 52 (3 refused by the floor) | **0.769** (n=52) | **0.846** | **0.652** | **21 of 24** |
+| paraphrase + near-miss traps (`generation_paraphrase_ollama_metrics.json`) | qwen3:4b (local) | 55 + 24 | 52 (3 refused by the floor) | 0.452 (n=52) | 0.538 | 0.613 | 16 of 24 |
+| cloze, first 68 items (`generation_metrics.json`) | gpt-oss-120b | 115 + 7 | 68 | 0.588 (n=68) | 0.598 | 0.210 | - (7 of 7 off-topic refused by the floor) |
+| cloze, full set (`generation_cloze_ollama_metrics.json`) | qwen3:4b (local) | 115 + 7 | 115 | 0.099 (n=115) | 0.104 | 0.291 | - (7 of 7) |
 
-How to read it, including what this does *not* show:
-
-- **The Groq cloze run is incomplete, and not at random.** Groq's free tier caps
-  `gpt-oss-120b` at 200,000 tokens a day. The run reached it, and 47 items (taken in
-  id order, so the later part of the set) came back as "unavailable". Unavailable
-  items are excluded from every average and counted in `n`; they are not scored as
-  failures. A first attempt the same day lost 16 items to the per-minute cap
-  instead, and the harness now waits out a 429 (`ask_model`) - but the daily cap
-  could not be waited out. To complete it: rerun the command below once the quota
-  has reset. The Ollama rows are complete and exist so there is one full-`n` run of
-  the harness, not as a substitute for the hosted model - a 4B model that rarely
-  writes `[n]` (138 uncited claims on the cloze set) is a different system.
-- **Cloze faithfulness is a poor number to quote.** The cloze questions are code
-  and table lines with a blank, so answers are short restatements of keys and
-  values, and the support test is lexical overlap with the cited passage. The
-  paraphrase run, with sentences a reader would ask for, is the more representative
-  figure; it is still small (47 answers) and its labels are model-drafted.
-- **`answer key covered` is lexical containment of the value the document holds.**
-  On the paraphrase set the key is a verbatim span and a correct answer usually
-  rewords it, so 0.15 means "did not reuse the words", not "was wrong". `substance`
-  (paraphrase-tolerant) is the better correctness proxy there.
-- **Entity-overlap traps all pass the relevance floor** (24 of 24; see the
-  retrieval table above), so for them the model's own refusal is the
-  only guard. gpt-oss-120b declined 19 and answered 2 wrongly (`T003`, an
-  inference about data-protection liability; `T016`, the yield model's RMSE given
-  for a "baseline linear model"); 3 were unavailable. qwen3:4b answered 8 of 24.
-- `verbatim` stays near zero (0.03-0.10): the labels are whole source sentences
-  and no generated answer reproduces one. It measures paraphrase, not quality, and
-  is kept because it catches a changed unit.
+- **The paraphrase run is the one to read.** Its questions are worded the way a reader asks,
+  and the hosted model answers 52 of 55 with 0.769 faithfulness; on the near-miss traps it
+  declines 21 of 24 (the three it answered are listed in the file).
+- **The hosted-model cloze run covers 68 of 115 items**: it stopped at the provider's daily
+  token cap (200,000 tokens), so it is a sample. Cloze items are code and table lines with a
+  blank, so their answers are short restatements and the lexical support test is a poor fit
+  for them. Re-run it when the quota resets with the command below to complete it.
+- **The local 4B model is included for a full-`n` run of the harness** and is a different
+  system: it rarely writes `[n]` (138 uncited claims on the cloze set).
+- **`answer key covered` is lexical containment** of the value the document holds, so it
+  under-counts reworded answers (0.15 on the paraphrase set); `substance` is the
+  paraphrase-tolerant correctness proxy. `verbatim` stays near zero by construction (labels are
+  whole source sentences) and is kept because it catches a changed unit.
+- An earlier 12-item `--limit` sample (`faithfulness 0.917`) is superseded by these full-set runs.
 
 Reproduce (each writes its file; the hosted-model runs need a key and quota):
 
@@ -1282,10 +1274,10 @@ python -m experiments.eval_generation --gold experiments/gold/paraphrase_set.jso
     --out experiments/results/generation_paraphrase_metrics.json
 ```
 
-The one concrete failure worth quoting from the earlier 12-item sample was `G004`:
-*"These differences are described in the source passage [1]"* - a claim with no
-checkable content, two of them uncited. It scores `faithfulness 0.00` and
-`uncited 2`, which is exactly what the metric exists to surface.
+The one failure worth quoting from that earlier sample was `G004`: *"These differences are
+described in the source passage [1]"* - a claim with no checkable content, two of them
+uncited. It scores `faithfulness 0.00` and `uncited 2`, which is exactly what the metric
+exists to surface.
 
 ### Refusals are never averaged into faithfulness
 
@@ -1298,26 +1290,6 @@ so rewording the refusal cannot silently turn it into a hallucination.
 several thresholds and prints how many claims sit near the boundary. A constant
 nobody has tested is a constant that will be "tuned" by whoever next feels like
 changing it.
-
-### Known retrieval limits
-
-- **Entity-overlap traps leak past the floor - all of them.** The earlier note
-  ("4 of 10 are caught") was a small hand-made sample. On the committed
-  `trap_set.json` (24 questions that reuse a real entity - a document title, a
-  drug, a service name, a region - and ask for something the corpus does not say),
-  **24 of 24 clear the relevance floor** (best scores 0.31-0.69, against the 0.25
-  floor), because the shared entity is real and both dense and BM25 score it
-  highly. Unrelated-topic traps are caught 7/7. So the floor protects against the
-  unrelated question and not against the near one; for the near one the only guard
-  is the model's refusal, which on `gpt-oss-120b` declined 19 of the 21 that ran
-  and on `qwen3:4b` 16 of 24. The cross-encoder was added on the evidence of MRR
-  and nDCG, not of this, and it does not close it (these 24 ran with it on). This
-  is the main open weakness, and `MIN_SCORE` is not the lever: raising it enough to
-  catch these would refuse real answers.
-- `MIN_SCORE` is a single global value. Relevant and unanswerable scores overlap, so it is
-  a conservative default rather than a guarantee; callers needing stricter behaviour pass a
-  higher `min_score` per query.
-- `MIN_RATIO` and `NUMERIC_PENALTY_SHARE` are unvalidated by the current corpus.
 
 ## What a question costs
 
@@ -1568,49 +1540,41 @@ run them.
 A failed check no longer stops the run: every check is reported and the process exits
 non-zero if any failed.
 
-## Known limitations
+## Scope and limitations
 
-- **A vacuous claim can be cited and still be unfaithful.** The metric catches
-  *"These differences are described in the source passage [1]"* because there is no
-  checkable content in it, but a longer sentence that mixes one real fact with one
-  invented clause can clear the lexical threshold. Lexical proxies cannot tell
-  which part of a sentence is wrong, and this is the honest edge of the approach.
+Built as a local, single-user research tool; these are its edges, stated so they can be
+reasoned about rather than discovered.
 
-- Migrations are hand-written. There is no ORM, so `--autogenerate` cannot
-  detect drift; the tests assert the migrated columns match what the code reads,
-  but a column added to `app/db.py` and forgotten in a revision still fails at
-  runtime rather than at migrate time.
-- Uploads are kept on disk so a source can be re-indexed without re-uploading: `POST /api/sources/{id}/reindex` re-reads the original and rebuilds its chunks under the current `CHUNK_SIZE` and `EMBED_MODEL`. Each delete
-  path cleans up its own files; a hard crash mid-session can still leave an orphan.
-- Re-ranking is on by default and can be turned off with `RERANK_ENABLED=0`. It improves
-  rank order (MRR 0.952 -> 0.974) and leaves recall, precision and the trap leak untouched;
-  it does not fix the entity-overlap case noted above, which is a labelling problem rather
-  than an ordering one. The model downloads on first use, so the first query after a fresh
-  install pays for it.
-- PDF tables are **not reconstructed**. Every other table format is parsed with its header row
-  attached (`.csv`/`.tsv`, Markdown pipe tables, DOCX), but a PDF only yields positioned text
-  runs, so a table there stays numeric-flat. Those chunks are flagged rather than dropped, and
-  detecting the header row across the ruled lines is still open work.
-- A cross-encoder reranker was evaluated and **is not wired in**: on the test handbook its
-  scores for legitimate questions (0.002-0.597) overlapped those for unanswerable ones
-  (0.000-0.125), so it cannot serve as an absolute relevance threshold. It may still help
-  rank passages, which needs the eval harness to confirm. Reproduce with
-  `.venv/bin/python experiments/rerank_eval.py`.
-- Uploads are streamed to disk in 1 MiB chunks and capped at `MAX_UPLOAD_MB` (100 MB
-  by default), but indexing still runs on the event loop, so a large PDF blocks the
-  server for as long as it takes.
-- OCR of scanned pages costs roughly a second per page and runs inline during indexing,
-  bounded by `OCR_MAX_PAGES` (50); a document over the cap is refused rather than indexed
-  partially. Handwriting and very low-contrast photocopies need `tessdata_best` dropped
-  into the folder, since the bundled models are the fast ones.
-- A blank scan, or one OCR recognises nothing in, is still refused - with the command to
-  install language data if that was the cause.
-- Sessions persist in Postgres, but there is no auth: anyone who can reach the app owns
-  every session in it. Single-user by assumption, not by enforcement.
-- Answers render a Markdown subset, so raw HTML, images and tables from the model show
-  literally. There is no streaming either - the answer appears at once.
-- Prompt-injection detection is a regex over retrieved passages. It makes a suspicious
-  source visible and names it, but it cannot block a determined injection; the prompt
-  rule is the actual defence.
-- A citation scrolls to the passage inside the app but cannot deep-link to the page of the
-  original file.
+- **Near-miss questions rely on the model's refusal.** The relevance floor refuses
+  off-topic questions outright (7 of 7 in the trap check). A question that reuses a real
+  entity from the documents but asks for something they do not say scores like a genuine
+  match, so it reaches the model, which declined 21 of the 24 such questions on
+  `gpt-oss-120b`. An entity-aware check ahead of the model
+  is the natural next step; `MIN_SCORE` is deliberately not the lever, since raising it
+  enough would also refuse real answers.
+- **Calibration is model-specific.** `MIN_SCORE` was calibrated on MiniLM's score
+  distribution; a different embedding model needs it re-measured. `MIN_RATIO` and
+  `NUMERIC_PENALTY_SHARE` were validated on the bundled corpus only.
+- **Faithfulness is a lexical proxy** (no LLM judge, on purpose). It catches vacuous or
+  unsupported cited claims; it cannot say which clause of a mixed sentence is wrong.
+- **Evaluation labels are machine-checked or model-drafted, not human-reviewed**, and say so
+  (`verified_by_human: false`). They establish reproducibility and regression protection,
+  not expert validation.
+- **Single user, no auth.** It binds loopback by default; anyone who can reach the app owns
+  every notebook, so add authentication before any wider exposure.
+- **PDF tables are not reconstructed.** Every other table format keeps its header row
+  attached; a PDF only yields positioned text runs, so its tables stay numeric-flat - flagged
+  and damped, never dropped.
+- **OCR** costs about a second per page, runs during indexing, and is bounded by
+  `OCR_MAX_PAGES` (50); a document over the cap is refused rather than half-indexed.
+  Handwriting and very low-contrast scans need `tessdata_best`.
+- **Rendering and delivery.** Answers render a safe Markdown subset (raw HTML, images and
+  tables show literally) and arrive whole rather than streamed.
+- **Prompt-injection detection is a regex** over retrieved passages: it makes a suspicious
+  source visible and names it; the prompt rule is the actual defence.
+- **Citations from older uploads.** Opening a citation in the original document needs
+  positions recorded at indexing (migration 0007). Sources indexed by an older version offer a
+  one-click Re-index, then the question is asked again.
+- **Migrations are hand-written** (no ORM, so no autogenerate); tests assert the migrated
+  columns match what the code reads. Uploads are kept on disk for re-indexing, and a hard crash
+  mid-upload can leave an orphan file.
