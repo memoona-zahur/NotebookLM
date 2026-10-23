@@ -302,7 +302,7 @@
       },
       "question": "this.declarationNumber = _____",
       "retrieved": [
-        "3699"
+        "1"
       ],
       "source": "Customs.java"
     },
@@ -328,7 +328,7 @@
       },
       "question": "this.exportDate = _____",
       "retrieved": [
-        "3699"
+        "1"
       ],
       "source": "Customs.java"
     },
@@ -354,8 +354,8 @@
       },
       "question": "this.lineItems = _____",
       "retrieved": [
-        "3699",
-        "3700"
+        "1",
+        "2"
       ],
       "source": "Customs.java"
     },
@@ -381,8 +381,8 @@
       },
       "question": "BigDecimal invoice = _____",
       "retrieved": [
-        "3699",
-        "3700"
+        "1",
+        "2"
       ],
       "source": "Customs.java"
     },
@@ -408,7 +408,7 @@
       },
       "question": "treatment: control\nnitrogen_kg_ha: 0\nowner: trial manager\ndays_to_harvest: _____",
       "retrieved": [
-        "3704"
+        "6"
       ],
       "source": "agronomy.docx"
     },
@@ -434,8 +434,8 @@
       },
       "question": "treatment: low N\nnitrogen_kg_ha: 60\nowner: trial manager\ndays_to_harvest: _____",
       "retrieved": [
-        "3704",
-        "3703"
+        "6",
+        "5"
       ],
       "source": "agronomy.docx"
     },
@@ -461,7 +461,7 @@
       },
       "question": "treatment: high N\nnitrogen_kg_ha: 140\nowner: field lead\ndays_to_harvest: _____",
       "retrieved": [
-        "3704"
+        "6"
       ],
       "source": "agronomy.docx"
     },
@@ -487,7 +487,7 @@
       },
       "question": "treatment: foliar\nnitrogen_kg_ha: 0\nowner: field lead\ndays_to_harvest: _____",
       "retrieved": [
-        "3704"
+        "6"
       ],
       "source": "agronomy.docx"
     },
@@ -513,8 +513,8 @@
       },
       "question": "The _____ is the trial manager, who signs off the randomisation seed before drilling so the layout can be reproduced exactly.",
       "retrieved": [
-        "3702",
-        "3701"
+        "4",
+        "3"
       ],
       "source": "agronomy.docx"
     },
@@ -540,8 +540,8 @@
       },
       "question": "days_to_harvest: _____",
       "retrieved": [
-        "3704",
-        "3703"
+        "6",
+        "5"
       ],
       "source": "agronomy.docx"
     },
@@ -569,11 +569,11 @@
       },
       "question": "INFO  config: _____\ningest depth _____ of 5000, shedding low priority",
       "retrieved": [
-        "3709",
-        "3710",
-        "3724",
-        "3727",
-        "3732"
+        "11",
+        "12",
+        "26",
+        "29",
+        "34"
       ],
       "source": "app.log"
     },
@@ -601,8 +601,8 @@
       },
       "question": "INFO  config: _____\nshed _____ low-priority frames",
       "retrieved": [
-        "3710",
-        "3709"
+        "12",
+        "11"
       ],
       "source": "app.log"
     },
@@ -630,8 +630,8 @@
       },
       "question": "INFO  config: _____\nflushed _____ records to hot store",
       "retrieved": [
-        "3720",
-        "3727"
+        "22",
+        "29"
       ],
       "source": "app.log"
     },
@@ -659,9 +659,9 @@
       },
       "question": "INFO  config: _____\nretention job scheduled, hot 7 warm _____",
       "retrieved": [
-        "3721",
-        "3728",
-        "3720"
+        "23",
+        "30",
+        "22"
       ],
       "source": "app.log"
     },
@@ -690,9 +690,9 @@
       },
       "question": "INFO  config: _____\ningest depth _____ of 5000, shedding low priority\nshed _____ low-priority frames",
       "retrieved": [
-        "3709",
-        "3710",
-        "3724"
+        "11",
+        "12",
+        "26"
       ],
       "source": "app.log"
     },
@@ -721,11 +721,11 @@
       },
       "question": "INFO  config: _____\ningest depth _____ of 5000, shedding low priority\nflushed _____ records to hot store",
       "retrieved": [
-        "3709",
-        "3720",
-        "3732",
-        "3724",
-        "3710"
+        "11",
+        "22",
+        "34",
+        "26",
+        "12"
       ],
       "source": "app.log"
     },
@@ -751,7 +751,7 @@
       },
       "question": "$.service: _____",
       "retrieved": [
-        "3734"
+        "36"
       ],
       "source": "app.yaml"
     },
@@ -777,7 +777,7 @@
       },
       "question": "$.runtime.replicas: _____",
       "retrieved": [
-        "3734"
+        "36"
       ],
       "source": "app.yaml"
     },
@@ -803,7 +803,7 @@
       },
       "question": "$.runtime.memory_limit_mb: _____",
       "retrieved": [
-        "3734"
+        "36"
       ],
       "source": "app.yaml"
     },
@@ -829,7 +829,7 @@
       },
       "question": "$.runtime.cpu_limit: _____",
       "retrieved": [
-        "3734"
+        "36"
       ],
       "source": "app.yaml"
     },
@@ -855,7 +855,7 @@
       },
       "question": "$.runtime.graceful_shutdown_seconds: _____",
       "retrieved": [
-        "3734"
+        "36"
       ],
       "source": "app.yaml"
     },
@@ -881,7 +881,7 @@
       },
       "question": "$.database.engine: _____",
       "retrieved": [
-        "3734"
+        "36"
       ],
       "source": "app.yaml"
     },
@@ -909,7 +909,7 @@
       },
       "question": "Home Brewing Guide: _____\nA balanced grain bill for an all-grain pale ale pairs a _____ base malt with\na small proportion of crystal malt for body and a larger share of hops for\nbitterness.",
       "retrieved": [
-        "3737"
+        "39"
       ],
       "source": "brew-guide.pdf"
     },
@@ -936,8 +936,8 @@
       },
       "question": "Home Brewing Guide: _____\nA wort that started at _____ and\nfinished at 1.010 is about 79 percent apparent attenuation, which is normal for\nan ale, and 1.002 would suggest the mash or the attenuation curve is off.",
       "retrieved": [
-        "3735",
-        "3737"
+        "37",
+        "39"
       ],
       "source": "brew-guide.pdf"
     },
@@ -964,8 +964,8 @@
       },
       "question": "Home Brewing Guide: _____\nfinished at 1.010 is about _____ apparent attenuation, which is normal for\nan ale, and 1.002 would suggest the mash or the attenuation curve is off.",
       "retrieved": [
-        "3737",
-        "3735"
+        "39",
+        "37"
       ],
       "source": "brew-guide.pdf"
     },
@@ -992,8 +992,8 @@
       },
       "question": "Home Brewing Guide: _____\nan ale, and _____ would suggest the mash or the attenuation curve is off.",
       "retrieved": [
-        "3735",
-        "3737"
+        "37",
+        "39"
       ],
       "source": "brew-guide.pdf"
     },
@@ -1019,8 +1019,8 @@
       },
       "question": "Home Brewing Guide: _____",
       "retrieved": [
-        "3735",
-        "3737"
+        "37",
+        "39"
       ],
       "source": "brew-guide.pdf"
     },
@@ -1046,7 +1046,7 @@
       },
       "question": "A balanced grain bill for an all-grain pale ale pairs a _____ base malt with\na small proportion of crystal malt for body and a larger share of hops for\nbitterness.",
       "retrieved": [
-        "3737"
+        "39"
       ],
       "source": "brew-guide.pdf"
     },
@@ -1072,8 +1072,8 @@
       },
       "question": "const tier = _____",
       "retrieved": [
-        "3739",
-        "3740"
+        "41",
+        "42"
       ],
       "source": "cart.js"
     },
@@ -1099,8 +1099,8 @@
       },
       "question": "return tier ? tier.rate : _____",
       "retrieved": [
-        "3740",
-        "3739"
+        "42",
+        "41"
       ],
       "source": "cart.js"
     },
@@ -1126,8 +1126,8 @@
       },
       "question": "const discounted = _____",
       "retrieved": [
-        "3743",
-        "3740"
+        "45",
+        "42"
       ],
       "source": "cart.js"
     },
@@ -1153,8 +1153,8 @@
       },
       "question": "_____ states that a catalyst is best when it binds the reactant and the product neither too strongly nor too weakly.",
       "retrieved": [
-        "3746",
-        "3744"
+        "48",
+        "46"
       ],
       "source": "catalysis.txt"
     },
@@ -1180,8 +1180,8 @@
       },
       "question": "_____ is driven by the migration of small particles that merge into larger ones, reducing surface area irreversibly.",
       "retrieved": [
-        "3748",
-        "3745"
+        "50",
+        "47"
       ],
       "source": "catalysis.txt"
     },
@@ -1207,11 +1207,11 @@
       },
       "question": "item: Espresso Blend\nregion: EMEA\ncategory: Beverage\nunits_sold: 1240\nunit_price: 12.50\nrevenue: 15500.00\nreturn_rate_pct: _____",
       "retrieved": [
-        "3749",
-        "3750",
-        "3751",
-        "3752",
-        "3753"
+        "51",
+        "52",
+        "53",
+        "54",
+        "55"
       ],
       "source": "coffee_sales.csv"
     },
@@ -1237,11 +1237,11 @@
       },
       "question": "item: Espresso Blend\nregion: APAC\ncategory: Beverage\nunits_sold: 1402\nunit_price: 12.50\nrevenue: 17525.00\nreturn_rate_pct: _____",
       "retrieved": [
-        "3749",
-        "3751",
-        "3752",
-        "3750",
-        "3753"
+        "51",
+        "53",
+        "54",
+        "52",
+        "55"
       ],
       "source": "coffee_sales.csv"
     },
@@ -1267,11 +1267,11 @@
       },
       "question": "item: Espresso Blend\nregion: AMER\ncategory: Beverage\nunits_sold: 1610\nunit_price: 12.50\nrevenue: 20125.00\nreturn_rate_pct: _____",
       "retrieved": [
-        "3749",
-        "3751",
-        "3752",
-        "3750",
-        "3753"
+        "51",
+        "53",
+        "54",
+        "52",
+        "55"
       ],
       "source": "coffee_sales.csv"
     },
@@ -1297,11 +1297,11 @@
       },
       "question": "item: Filter Papers\nregion: EMEA\ncategory: Accessory\nunits_sold: 3200\nunit_price: 3.20\nrevenue: 10240.00\nreturn_rate_pct: _____",
       "retrieved": [
-        "3749",
-        "3750",
-        "3751",
-        "3752",
-        "3753"
+        "51",
+        "52",
+        "53",
+        "54",
+        "55"
       ],
       "source": "coffee_sales.csv"
     },
@@ -1327,11 +1327,11 @@
       },
       "question": "item: Filter Papers\nregion: APAC\ncategory: Accessory\nunits_sold: 2870\nunit_price: 3.20\nrevenue: 9184.00\nreturn_rate_pct: _____",
       "retrieved": [
-        "3749",
-        "3751",
-        "3750",
-        "3752",
-        "3753"
+        "51",
+        "53",
+        "52",
+        "54",
+        "55"
       ],
       "source": "coffee_sales.csv"
     },
@@ -1357,11 +1357,11 @@
       },
       "question": "item: Filter Papers\nregion: AMER\ncategory: Accessory\nunits_sold: 3480\nunit_price: 3.20\nrevenue: 11136.00\nreturn_rate_pct: _____",
       "retrieved": [
-        "3750",
-        "3749",
-        "3751",
-        "3752",
-        "3753"
+        "52",
+        "51",
+        "53",
+        "54",
+        "55"
       ],
       "source": "coffee_sales.csv"
     },
@@ -1388,8 +1388,8 @@
       },
       "question": "may terminate for convenience on _____ written notice.\nInvoices are payable within _____ of receipt.",
       "retrieved": [
-        "3756",
-        "3758"
+        "58",
+        "60"
       ],
       "source": "contract.html"
     },
@@ -1415,7 +1415,7 @@
       },
       "question": "may terminate for convenience on _____ written notice.",
       "retrieved": [
-        "3756"
+        "58"
       ],
       "source": "contract.html"
     },
@@ -1441,7 +1441,7 @@
       },
       "question": "Invoices are payable within _____ of receipt.",
       "retrieved": [
-        "3758"
+        "60"
       ],
       "source": "contract.html"
     },
@@ -1467,11 +1467,11 @@
       },
       "question": "region: EMEA\nquarter: Q1\nproduct: core\nrevenue_usd: 412300\nunits: 1180\nmargin_pct: 22.5\nchurn_pct: _____",
       "retrieved": [
-        "3759",
-        "3762",
-        "3765",
-        "3763",
-        "3764"
+        "61",
+        "64",
+        "67",
+        "65",
+        "66"
       ],
       "source": "finance.csv"
     },
@@ -1497,11 +1497,11 @@
       },
       "question": "region: EMEA\nquarter: Q2\nproduct: core\nrevenue_usd: 438900\nunits: 1245\nmargin_pct: 23.0\nchurn_pct: _____",
       "retrieved": [
-        "3759",
-        "3762",
-        "3765",
-        "3763",
-        "3764"
+        "61",
+        "64",
+        "67",
+        "65",
+        "66"
       ],
       "source": "finance.csv"
     },
@@ -1527,11 +1527,11 @@
       },
       "question": "region: EMEA\nquarter: Q3\nproduct: core\nrevenue_usd: 401200\nunits: 1155\nmargin_pct: 21.9\nchurn_pct: _____",
       "retrieved": [
-        "3759",
-        "3762",
-        "3765",
-        "3764",
-        "3760"
+        "61",
+        "64",
+        "67",
+        "66",
+        "62"
       ],
       "source": "finance.csv"
     },
@@ -1557,11 +1557,11 @@
       },
       "question": "region: EMEA\nquarter: Q4\nproduct: core\nrevenue_usd: 455600\nunits: 1301\nmargin_pct: 24.2\nchurn_pct: _____",
       "retrieved": [
-        "3759",
-        "3762",
-        "3765",
-        "3761",
-        "3764"
+        "61",
+        "64",
+        "67",
+        "63",
+        "66"
       ],
       "source": "finance.csv"
     },
@@ -1587,11 +1587,11 @@
       },
       "question": "region: APAC\nquarter: Q1\nproduct: core\nrevenue_usd: 388100\nunits: 1402\nmargin_pct: 19.8\nchurn_pct: _____",
       "retrieved": [
-        "3759",
-        "3760",
-        "3762",
-        "3763",
-        "3765"
+        "61",
+        "62",
+        "64",
+        "65",
+        "67"
       ],
       "source": "finance.csv"
     },
@@ -1617,11 +1617,11 @@
       },
       "question": "region: APAC\nquarter: Q2\nproduct: core\nrevenue_usd: 410700\nunits: 1478\nmargin_pct: 20.4\nchurn_pct: _____",
       "retrieved": [
-        "3759",
-        "3760",
-        "3762",
-        "3761",
-        "3764"
+        "61",
+        "62",
+        "64",
+        "63",
+        "66"
       ],
       "source": "finance.csv"
     },
@@ -1648,8 +1648,8 @@
       },
       "question": "Counter pressing starts within _____ of losing the ball.\nThe block narrows to _____ in behind the ball and thirty five metres in front of it.",
       "retrieved": [
-        "3768",
-        "3767"
+        "70",
+        "69"
       ],
       "source": "football.md"
     },
@@ -1676,8 +1676,8 @@
       },
       "question": "Counter pressing starts within _____ of losing the ball.\nin behind the ball and _____ in front of it.",
       "retrieved": [
-        "3767",
-        "3768"
+        "69",
+        "70"
       ],
       "source": "football.md"
     },
@@ -1703,8 +1703,8 @@
       },
       "question": "Counter pressing starts within _____ of losing the ball.",
       "retrieved": [
-        "3767",
-        "3768"
+        "69",
+        "70"
       ],
       "source": "football.md"
     },
@@ -1730,8 +1730,8 @@
       },
       "question": "The block narrows to _____ in behind the ball and thirty five metres in front of it.",
       "retrieved": [
-        "3768",
-        "3769"
+        "70",
+        "71"
       ],
       "source": "football.md"
     },
@@ -1757,8 +1757,8 @@
       },
       "question": "in behind the ball and _____ in front of it.",
       "retrieved": [
-        "3768",
-        "3769"
+        "70",
+        "71"
       ],
       "source": "football.md"
     },
@@ -1784,8 +1784,8 @@
       },
       "question": "_____ is the unsorted, unstratified sediment deposited directly from the ice.",
       "retrieved": [
-        "3771",
-        "3770"
+        "73",
+        "72"
       ],
       "source": "glaciology.pdf"
     },
@@ -1811,7 +1811,7 @@
       },
       "question": "_____ are the standard non-propulsive method.",
       "retrieved": [
-        "3773"
+        "75"
       ],
       "source": "handbook.pdf"
     },
@@ -1837,7 +1837,7 @@
       },
       "question": "Mandatory passivation is required within _____ of end of life.",
       "retrieved": [
-        "3772"
+        "74"
       ],
       "source": "handbook.pdf"
     },
@@ -1865,7 +1865,7 @@
       },
       "question": "INFO  scheduler: _____\nloaded _____ fields from parcels_v3.parquet",
       "retrieved": [
-        "3776"
+        "78"
       ],
       "source": "harvest.log"
     },
@@ -1892,11 +1892,11 @@
       },
       "question": "INFO  scheduler: _____\nfield soil_ph missing for 38 of _____",
       "retrieved": [
-        "3777",
-        "3778",
-        "3776",
-        "3786",
-        "3775"
+        "79",
+        "80",
+        "78",
+        "88",
+        "77"
       ],
       "source": "harvest.log"
     },
@@ -1924,10 +1924,10 @@
       },
       "question": "INFO  scheduler: _____\nimputed soil_ph with field median _____",
       "retrieved": [
-        "3778",
-        "3777",
-        "3776",
-        "3786"
+        "80",
+        "79",
+        "78",
+        "88"
       ],
       "source": "harvest.log"
     },
@@ -1954,10 +1954,10 @@
       },
       "question": "INFO  scheduler: _____\nreprojected _____ to EPSG:4326",
       "retrieved": [
-        "3779",
-        "3786",
-        "3776",
-        "3775"
+        "81",
+        "88",
+        "78",
+        "77"
       ],
       "source": "harvest.log"
     },
@@ -1985,11 +1985,11 @@
       },
       "question": "INFO  scheduler: _____\nloaded _____ fields from parcels_v3.parquet\nfield soil_ph missing for 38 of _____",
       "retrieved": [
-        "3776",
-        "3777",
-        "3778",
-        "3786",
-        "3775"
+        "78",
+        "79",
+        "80",
+        "88",
+        "77"
       ],
       "source": "harvest.log"
     },
@@ -2017,11 +2017,11 @@
       },
       "question": "INFO  scheduler: _____\nloaded _____ fields from parcels_v3.parquet\nimputed soil_ph with field median _____",
       "retrieved": [
-        "3776",
-        "3778",
-        "3777",
-        "3786",
-        "3775"
+        "78",
+        "80",
+        "79",
+        "88",
+        "77"
       ],
       "source": "harvest.log"
     },
@@ -2047,7 +2047,7 @@
       },
       "question": "Rotate brassicas on a _____ cycle to starve the soil borne diseases that\nbuild up under a continuous crop.",
       "retrieved": [
-        "3788"
+        "90"
       ],
       "source": "horticulture.md"
     },
@@ -2074,10 +2074,10 @@
       },
       "question": "This manual defines the minimum ventilation standard for underground workings below _____ depth.\n450 millimetres diameter is required beyond _____ from the main circuit, and duct length beyond that distance is deducted from the calculated flow.",
       "retrieved": [
-        "3792",
-        "3797",
-        "3790",
-        "3794"
+        "94",
+        "99",
+        "92",
+        "96"
       ],
       "source": "mining.rst"
     },
@@ -2103,7 +2103,7 @@
       },
       "question": "_____ is the immediate withdrawal level with no power restoration.",
       "retrieved": [
-        "3799"
+        "101"
       ],
       "source": "mining.rst"
     },
@@ -2129,7 +2129,7 @@
       },
       "question": "Operations Manual: _____",
       "retrieved": [
-        "3790"
+        "92"
       ],
       "source": "mining.rst"
     },
@@ -2155,9 +2155,9 @@
       },
       "question": "This manual defines the minimum ventilation standard for underground workings below _____ depth.",
       "retrieved": [
-        "3792",
-        "3790",
-        "3794"
+        "94",
+        "92",
+        "96"
       ],
       "source": "mining.rst"
     },
@@ -2183,8 +2183,8 @@
       },
       "question": "450 millimetres diameter is required beyond _____ from the main circuit, and duct length beyond that distance is deducted from the calculated flow.",
       "retrieved": [
-        "3797",
-        "3792"
+        "99",
+        "94"
       ],
       "source": "mining.rst"
     },
@@ -2210,7 +2210,7 @@
       },
       "question": "$.model: _____",
       "retrieved": [
-        "3800"
+        "102"
       ],
       "source": "model.json"
     },
@@ -2236,7 +2236,7 @@
       },
       "question": "$.training.epochs: _____",
       "retrieved": [
-        "3800"
+        "102"
       ],
       "source": "model.json"
     },
@@ -2262,7 +2262,7 @@
       },
       "question": "$.training.batch_size: _____",
       "retrieved": [
-        "3800"
+        "102"
       ],
       "source": "model.json"
     },
@@ -2288,7 +2288,7 @@
       },
       "question": "$.training.optimizer: _____",
       "retrieved": [
-        "3800"
+        "102"
       ],
       "source": "model.json"
     },
@@ -2314,7 +2314,7 @@
       },
       "question": "$.training.learning_rate: _____",
       "retrieved": [
-        "3800"
+        "102"
       ],
       "source": "model.json"
     },
@@ -2340,7 +2340,7 @@
       },
       "question": "$.training.weight_decay: _____",
       "retrieved": [
-        "3800"
+        "102"
       ],
       "source": "model.json"
     },
@@ -2366,7 +2366,7 @@
       },
       "question": "A _____ was written as a bass note with a six and a four above it, and functioned as a dominant embellishment rather than a stable chord, delaying the cadence that follows it.",
       "retrieved": [
-        "3803"
+        "105"
       ],
       "source": "music.txt"
     },
@@ -2392,8 +2392,8 @@
       },
       "question": "_____ implies a flexible disposition of tempo and ornamentation, so a modern performance should treat the figures as a floor for the harpsichordist rather than a ceiling on what is permitted.",
       "retrieved": [
-        "3805",
-        "3802"
+        "107",
+        "104"
       ],
       "source": "music.txt"
     },
@@ -2421,7 +2421,7 @@
       },
       "question": "Pharmacology Study Notes: _____\nVancomycin must be infused slowly over at least _____ to avoid red man syndrome, which is a histamine mediated reaction rather than true allergy.",
       "retrieved": [
-        "3809"
+        "111"
       ],
       "source": "pharm-notes.txt"
     },
@@ -2447,8 +2447,8 @@
       },
       "question": "Pharmacology Study Notes: _____",
       "retrieved": [
-        "3806",
-        "3808"
+        "108",
+        "110"
       ],
       "source": "pharm-notes.txt"
     },
@@ -2474,7 +2474,7 @@
       },
       "question": "Vancomycin must be infused slowly over at least _____ to avoid red man syndrome, which is a histamine mediated reaction rather than true allergy.",
       "retrieved": [
-        "3809"
+        "111"
       ],
       "source": "pharm-notes.txt"
     },
@@ -2500,8 +2500,8 @@
       },
       "question": "JOIN zones z ON z.zone_id = _____",
       "retrieved": [
-        "3812",
-        "3813"
+        "114",
+        "115"
       ],
       "source": "picks.sql"
     },
@@ -2527,8 +2527,8 @@
       },
       "question": "channel: _____",
       "retrieved": [
-        "3817",
-        "3814"
+        "119",
+        "116"
       ],
       "source": "pipeline.py"
     },
@@ -2554,7 +2554,7 @@
       },
       "question": "value: _____",
       "retrieved": [
-        "3814"
+        "116"
       ],
       "source": "pipeline.py"
     },
@@ -2580,7 +2580,7 @@
       },
       "question": "timestamp: _____",
       "retrieved": [
-        "3814"
+        "116"
       ],
       "source": "pipeline.py"
     },
@@ -2606,7 +2606,7 @@
       },
       "question": "def normalise_channel(name: _____",
       "retrieved": [
-        "3817"
+        "119"
       ],
       "source": "pipeline.py"
     },
@@ -2632,7 +2632,7 @@
       },
       "question": "keep = _____",
       "retrieved": [
-        "3818"
+        "120"
       ],
       "source": "pipeline.py"
     },
@@ -2658,7 +2658,7 @@
       },
       "question": "$.package.name: _____",
       "retrieved": [
-        "3819"
+        "121"
       ],
       "source": "pyproject.toml"
     },
@@ -2684,7 +2684,7 @@
       },
       "question": "$.package.version: _____",
       "retrieved": [
-        "3819"
+        "121"
       ],
       "source": "pyproject.toml"
     },
@@ -2710,7 +2710,7 @@
       },
       "question": "$.package.edition: _____",
       "retrieved": [
-        "3819"
+        "121"
       ],
       "source": "pyproject.toml"
     },
@@ -2736,7 +2736,7 @@
       },
       "question": "$.dependencies.serde: _____",
       "retrieved": [
-        "3819"
+        "121"
       ],
       "source": "pyproject.toml"
     },
@@ -2762,7 +2762,7 @@
       },
       "question": "$.dependencies.chrono: _____",
       "retrieved": [
-        "3819"
+        "121"
       ],
       "source": "pyproject.toml"
     },
@@ -2788,7 +2788,7 @@
       },
       "question": "$.dependencies.polars: _____ $.profile.release.opt-level:",
       "retrieved": [
-        "3819"
+        "121"
       ],
       "source": "pyproject.toml"
     },
@@ -2816,7 +2816,7 @@
       },
       "question": "A rollback is triggered if the error rate exceeds _____ over any five minute window.\nduration_min: _____",
       "retrieved": [
-        "3822"
+        "124"
       ],
       "source": "report.docx"
     },
@@ -2842,7 +2842,7 @@
       },
       "question": "step: freeze\nowner: ana\nduration_min: _____\nreversible: no",
       "retrieved": [
-        "3824"
+        "126"
       ],
       "source": "report.docx"
     },
@@ -2868,7 +2868,7 @@
       },
       "question": "step: canary\nowner: sam\nduration_min: _____\nreversible: yes",
       "retrieved": [
-        "3824"
+        "126"
       ],
       "source": "report.docx"
     },
@@ -2894,7 +2894,7 @@
       },
       "question": "$.limits.requests_per_minute: _____",
       "retrieved": [
-        "3825"
+        "127"
       ],
       "source": "service.json"
     },
@@ -2920,7 +2920,7 @@
       },
       "question": "$.limits.burst: _____",
       "retrieved": [
-        "3825"
+        "127"
       ],
       "source": "service.json"
     },
@@ -2946,7 +2946,7 @@
       },
       "question": "$.limits.max_payload_bytes: _____",
       "retrieved": [
-        "3825"
+        "127"
       ],
       "source": "service.json"
     },
@@ -2972,7 +2972,7 @@
       },
       "question": "$.limits.max_channels: _____",
       "retrieved": [
-        "3825"
+        "127"
       ],
       "source": "service.json"
     },
@@ -2998,7 +2998,7 @@
       },
       "question": "$.retention.hot_days: _____",
       "retrieved": [
-        "3825"
+        "127"
       ],
       "source": "service.json"
     },
@@ -3024,9 +3024,9 @@
       },
       "question": "sensor_id: TH-001\nzone: storefront\nreading: _____\nunit: C\ntimestamp: 2024-05-01T08:00:00",
       "retrieved": [
-        "3826",
-        "3827",
-        "3828"
+        "128",
+        "129",
+        "130"
       ],
       "source": "temperatures.tsv"
     },
@@ -3052,9 +3052,9 @@
       },
       "question": "sensor_id: TH-002\nzone: storefront\nreading: _____\nunit: C\ntimestamp: 2024-05-01T08:00:00",
       "retrieved": [
-        "3826",
-        "3827",
-        "3828"
+        "128",
+        "129",
+        "130"
       ],
       "source": "temperatures.tsv"
     },
@@ -3080,9 +3080,9 @@
       },
       "question": "sensor_id: TH-003\nzone: warehouse\nreading: _____\nunit: C\ntimestamp: 2024-05-01T08:00:00",
       "retrieved": [
-        "3826",
-        "3828",
-        "3827"
+        "128",
+        "130",
+        "129"
       ],
       "source": "temperatures.tsv"
     },
@@ -3108,9 +3108,9 @@
       },
       "question": "sensor_id: TH-004\nzone: warehouse\nreading: _____\nunit: C\ntimestamp: 2024-05-01T08:00:00",
       "retrieved": [
-        "3826",
-        "3828",
-        "3827"
+        "128",
+        "130",
+        "129"
       ],
       "source": "temperatures.tsv"
     },
@@ -3136,9 +3136,9 @@
       },
       "question": "sensor_id: TH-005\nzone: coldroom\nreading: _____\nunit: C\ntimestamp: 2024-05-01T08:00:00",
       "retrieved": [
-        "3827",
-        "3826",
-        "3828"
+        "129",
+        "128",
+        "130"
       ],
       "source": "temperatures.tsv"
     },
@@ -3164,9 +3164,9 @@
       },
       "question": "sensor_id: TH-006\nzone: coldroom\nreading: _____\nunit: C\ntimestamp: 2024-05-01T08:00:00",
       "retrieved": [
-        "3827",
-        "3826",
-        "3828"
+        "129",
+        "128",
+        "130"
       ],
       "source": "temperatures.tsv"
     },
@@ -3192,8 +3192,8 @@
       },
       "question": "index: _____",
       "retrieved": [
-        "3832",
-        "3829"
+        "134",
+        "131"
       ],
       "source": "train.py"
     },
@@ -3219,7 +3219,7 @@
       },
       "question": "excluded_rows: _____",
       "retrieved": [
-        "3829"
+        "131"
       ],
       "source": "train.py"
     },
@@ -3245,8 +3245,8 @@
       },
       "question": "def spatial_folds(geometries, count: _____",
       "retrieved": [
-        "3830",
-        "3832"
+        "132",
+        "134"
       ],
       "source": "train.py"
     },
@@ -3272,7 +3272,7 @@
       },
       "question": "middle = _____",
       "retrieved": [
-        "3831"
+        "133"
       ],
       "source": "train.py"
     },
@@ -3298,7 +3298,7 @@
       },
       "question": "$.database.host: _____",
       "retrieved": [
-        "3833"
+        "135"
       ],
       "source": "warehouse.ini"
     },
@@ -3324,7 +3324,7 @@
       },
       "question": "$.database.port: _____",
       "retrieved": [
-        "3833"
+        "135"
       ],
       "source": "warehouse.ini"
     },
@@ -3350,7 +3350,7 @@
       },
       "question": "$.database.pool_size: _____",
       "retrieved": [
-        "3833"
+        "135"
       ],
       "source": "warehouse.ini"
     },
@@ -3376,7 +3376,7 @@
       },
       "question": "$.database.connect_timeout: _____",
       "retrieved": [
-        "3833"
+        "135"
       ],
       "source": "warehouse.ini"
     },
@@ -3402,7 +3402,7 @@
       },
       "question": "$.scheduler.interval_seconds: _____",
       "retrieved": [
-        "3833"
+        "135"
       ],
       "source": "warehouse.ini"
     },
@@ -3428,7 +3428,7 @@
       },
       "question": "$.scheduler.max_parallel_jobs: _____",
       "retrieved": [
-        "3833"
+        "135"
       ],
       "source": "warehouse.ini"
     }

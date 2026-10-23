@@ -304,11 +304,15 @@ text. The relevance floor is calibrated to its scores (~0.30-0.45 relevant vs
 with the real decision being the ANN index. This project extends Postgres with
 pgvector, and the honest answer is that **the index choice has not been forced
 yet**. An HNSW index exists, but at this corpus size Postgres does not reliably
-use it: it picks HNSW on a cold plan and a sequential scan once the plan is
-warm, because at ~1,000 rows both cost about the same (measured: ~1.0 ms
-sequential vs ~1.3 ms through the index). So "exact search is used" would be
-too strong - what is true is that **the exact path is available and costs
-nothing to take**. For a single-user notebook that is the right trade: recall
+use it. Checked with `EXPLAIN` (pgvector 0.8.6, 12 notebooks of 500 chunks):
+the question's query filters by notebook through a join, and the planner
+answers it as an exact scan of that notebook's chunks - index on `sources`,
+then `chunks_source_idx`, then a sort by distance - even with sequential scans
+disabled. HNSW is not used for it, which is also why a small notebook in a
+crowded database loses no recall (an HNSW scan returns its nearest neighbours
+across the whole table and filters by notebook afterwards). A test keeps it
+that way. Earlier I wrote that Postgres "picks HNSW on a cold plan"; that is not
+what this query does. For a single-user notebook that is the right trade: recall
 and legibility, not latency, are the constraint. Exact search is O(N) and
 becomes infeasible at millions of vectors; forcing HNSW would be the next step,
 and IVF-PQ only beyond what fits in memory. Stating this as a decision that has
@@ -507,7 +511,7 @@ At `MIN_SCORE=0.25`, over the committed corpus: **79/79 relevant questions
 answered, 42/42 traps rejected**, across 17 formats. Relevant questions score at
 worst 0.126; the worst trap scores 0.000.
 
-Ranked metrics over the same corpus, `k=5`: **recall 0.955, MRR 0.974, nDCG
+Ranked metrics on the cloze set (n=115, machine-labelled; its questions echo the document, so it flatters retrieval - paraphrased questions reach recall@5 0.855, n=55, and entity-overlap traps all clear the floor; see the README), `k=5`: **recall 0.955, MRR 0.974, nDCG
 0.943, precision 0.226, hit rate 1.000, fact coverage 0.922, trap leaks 0**.
 MRR and nDCG are measured with the cross-encoder re-ranker on; without it they
 are 0.952 and 0.928, and recall / precision / coverage / trap leaks are
@@ -532,15 +536,18 @@ Two honest notes about this number:
 
 ### 8.2 Generation (`experiments/eval_generation.py`)
 
-Measured on the documented sample:
+Measured on the full sets, `n` stated (details and caveats in the README, "What the
+numbers look like"). The earlier 0.917 was 11 of the first 12 items and is retired.
 
-| Metric | Score | Reads as |
-|---|---|---|
-| Faithfulness | 0.917 | Answers stay within supplied passages |
-| Citation precision | 1.000 | Every cited marker pointed at a real passage |
-| Substance | 0.725 | Answers were substantive |
-| Trap refusal | 1.000 | Off-topic questions were refused, not answered |
-| Relevancy | 0.167 | **Low - be ready to explain this** |
+| Run | Answered | Faithfulness | Citation precision | Substance |
+|---|---|---|---|---|
+| Paraphrase questions, gpt-oss-120b | 47 of 55 | 0.809 | 0.883 | 0.651 |
+| Cloze questions, gpt-oss-120b | 68 of 115 (provider daily cap hit; 47 unavailable) | 0.588 | 0.598 | 0.210 |
+| Cloze questions, local qwen3:4b | 115 of 115 | 0.099 | 0.104 | 0.291 |
+| Entity-overlap traps (24), gpt-oss-120b | declined 19 of the 21 that ran | | | |
+
+Relevancy is still lexical and still **not fit for purpose - be ready to explain
+this**.
 
 **Say this before anyone asks:** these are deterministic lexical metrics, not an
 LLM judge. They are regression alarms, not proof of quality. Relevancy is low
@@ -551,7 +558,7 @@ quality would be the fastest way to lose the room.
 
 ### 8.3 Tests
 
-`./run_tests.sh` — 130 backend, 182 frontend. Includes: relevance floor,
+`./run_tests.sh` — 162 backend, 216 frontend. Includes: relevance floor,
 citation validation, injection defence, history injection attempts, upload
 ownership, citation persistence across reload, greeting behaviour, and web-source
 ingestion (a found page becomes a citable source, one unreachable page does not
@@ -601,10 +608,10 @@ that is what bounds the numbers.
 | Hit rate@K | Implemented | `1.000` @5 |
 | Fact coverage | Implemented | `0.922` |
 | Trap leak rate | Implemented | `0.000` |
-| Faithfulness / groundedness | Implemented | `0.917` — fraction of answers with no unsupported claim |
-| Answer relevance | Implemented | `0.167`, explicitly reported as not fit for purpose |
-| Citation precision | Implemented | `1.000` |
-| Trap refusal | Implemented | `1.000` |
+| Faithfulness / groundedness | Implemented | `0.809` (paraphrase set, n=47 answers; `0.588` on the partial cloze run, n=68) |
+| Answer relevance | Implemented | `0.213` on the paraphrase set, explicitly reported as not fit for purpose |
+| Citation precision | Implemented | `0.883` (paraphrase set, n=47) |
+| Trap refusal | Implemented | unrelated topics `7/7` refused by the floor; entity-overlap traps: 24/24 clear the floor, model declined 19 of 21 that ran |
 | Answer correctness vs a reference answer | Implemented | Not quoted: one full run is ~114K tokens, a free-tier day |
 | Per-format breakdown | Partial | 17 formats, aggregated |
 
@@ -864,12 +871,14 @@ selected from what the retriever already returned, a miss is undetectable by
 construction. Here the gold set is derived from the *documents*, independent of
 what was retrieved, so a miss can and does score zero.
 
-**"Your relevancy score is 0.167. Isn't that bad?"**
+**"Your relevancy score is 0.2. Isn't that bad?"**
 That is a lexical metric being used outside its competence, and the honest answer
-is that it is not a quality measure. Faithfulness 0.917, citation precision 1.000,
-and trap refusal 1.000 are the numbers that speak to grounding, and a human
-reviews outputs per release. I would rather show you the weak metric and explain
-it than hide it.
+is that it is not a quality measure. Faithfulness (0.809 on the paraphrase set,
+n=47) and citation precision (0.883) are the numbers that speak to grounding - and
+the trap results speak to its limit: unrelated-topic questions are all refused by
+the floor, but all 24 entity-overlap traps clear it, so there the model's own
+refusal is the only guard (19 of 21 declined). I would rather show you the weak
+metric and the weak spot than hide them.
 
 **"How do you know it is not just keyword matching?"**
 The test at `test_app.py::test_a_real_question_that_opens_with_a_greeting_still_retrieves`

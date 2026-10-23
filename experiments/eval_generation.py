@@ -67,7 +67,12 @@ def index_all(store: VectorStore, items: list[dict], tag: str) -> str:
     is meant to be missing. An answerable item whose file really is gone still
     raises, because that one would silently drop coverage from the run.
     """
-    wanted = sorted({i["source"] for i in items if i["answerable"]})
+    wanted = sorted(
+        {i["source"] for i in items if i["answerable"]}
+        # Entity-overlap traps name the real files whose entities they reuse, so
+        # those files are in the notebook the trap has to be refused in.
+        | {name for i in items for name in i.get("sources", [])}
+    )
     missing = [name for name in wanted if not (CORPUS / name).exists()]
     if missing:
         raise FileNotFoundError(
@@ -77,6 +82,30 @@ def index_all(store: VectorStore, items: list[dict], tag: str) -> str:
     for name in wanted:
         store.add(CORPUS / name, display_name=name, session_id=str(session.id))
     return str(session.id)
+
+
+RATE_LIMIT_RETRIES = 6
+RATE_LIMIT_WAIT_S = 20
+
+
+def ask_model(question: str, hits: list[dict]):
+    """`llm.answer`, waiting out a provider's per-minute token limit.
+
+    A hosted free tier meters tokens per minute, and an evaluation sends a
+    full prompt every few seconds. An item that hit a 429 used to be recorded as
+    "unavailable" and silently left out of every average, which made the run
+    smaller and not obviously so. Waiting and asking again keeps the set whole;
+    a provider that is genuinely down still ends as "unavailable" after the
+    last try, and the report counts those.
+    """
+    for attempt in range(RATE_LIMIT_RETRIES + 1):
+        try:
+            return llm.answer(question, hits, [])
+        except llm.LLMUnavailable as exc:
+            limited = "429" in str(exc) or "rate limit" in str(exc).lower()
+            if not limited or attempt == RATE_LIMIT_RETRIES:
+                raise
+            time.sleep(RATE_LIMIT_WAIT_S)
 
 
 def answer_key(item: dict) -> list[str]:
@@ -133,7 +162,7 @@ def answer_one(store: VectorStore, item: dict, session_id: str, k: int) -> dict:
 
     started = time.perf_counter()
     try:
-        result = llm.answer(item["question"], search.hits, [])
+        result = ask_model(item["question"], search.hits)
     except llm.LLMUnavailable as exc:
         return {
             "id": item["id"],
@@ -183,7 +212,7 @@ def trap_one(store: VectorStore, item: dict, session_id: str, k: int) -> dict:
             "retrieved": len(search.hits),
         }
     try:
-        result = llm.answer(item["question"], search.hits, [])
+        result = ask_model(item["question"], search.hits)
     except llm.LLMUnavailable as exc:
         return {"id": item["id"], "question": item["question"], "refused": None, "error": str(exc)}
 
@@ -355,8 +384,10 @@ def run(
     allow_unverified: bool,
     limit: int | None,
     gold_path: Path,
+    traps_path: Path | None = None,
 ) -> dict:
     items = load_gold(gold_path)
+    extra_traps = load_gold(traps_path) if traps_path else []
     stale = machine_failures(items) if allow_machine else {}
     machine_ids = {i["id"] for i in items} - set(stale) if allow_machine else set()
     scorable, _excluded = partition(
@@ -368,6 +399,12 @@ def run(
         and i["answerable"] is False
         and not i["required_facts"]
     ]
+    # A separate set of hard-negative traps (entity-overlap) is scored alongside.
+    # Its labels are model-drafted and unreviewed, so it needs the same explicit
+    # opt-in as any unverified set.
+    if extra_traps and not (allow_unverified or allow_machine):
+        raise SystemExit("--traps names an unreviewed set; pass --allow-unverified to use it")
+    traps = traps + [i for i in extra_traps if i["answerable"] is False and not i["required_facts"]]
     scorable = scorable[:limit] if limit else scorable
     traps = traps[:limit] if limit else traps
 
@@ -384,7 +421,7 @@ def run(
     print()
 
     store = VectorStore()
-    session_id = index_all(store, items, "run")
+    session_id = index_all(store, items + extra_traps, "run")
 
     rows: list[dict] = []
     for n, item in enumerate(scorable, start=1):
@@ -464,6 +501,18 @@ def run(
         "support_threshold": generation.SUPPORT_THRESHOLD,
         "human_verified": any(i["verified_by_human"] for i in scorable),
         "gold_file": gold_path.name,
+        "traps_file": traps_path.name if traps_path else None,
+        # n on every number: a faithfulness of 0.917 means 11/12 or 110/120, and
+        # the report must say which. `limit` is recorded because a --limit run is a
+        # sample of the set, not the set.
+        "n": {
+            "items_in_set": len(items),
+            "answerable_scored": len(scorable),
+            "answered_by_model": report["answered"],
+            "refused_by_floor": report["refused_by_floor"],
+            "traps": len(trap_rows),
+            "limit": limit,
+        },
         "answer_key_items": sum(1 for i in scorable if answer_key(i)),
         "summary": report,
         "rows": rows,
@@ -476,6 +525,7 @@ def main() -> int:
     parser.add_argument("--k", type=int, default=5)
     parser.add_argument("--gold", type=Path, default=HERE / "gold" / "gold_set.json")
     parser.add_argument("--limit", type=int, default=None, help="score only the first N items")
+    parser.add_argument("--traps", type=Path, default=None, help="an extra set of unanswerable questions to refuse")
     parser.add_argument("--out", type=Path, default=None)
     parser.add_argument("--allow-machine", action="store_true")
     parser.add_argument("--allow-unverified", action="store_true")
@@ -483,7 +533,7 @@ def main() -> int:
     args = parser.parse_args()
 
     db.migrate()
-    report = run(args.k, args.allow_machine, args.allow_unverified, args.limit, args.gold)
+    report = run(args.k, args.allow_machine, args.allow_unverified, args.limit, args.gold, args.traps)
 
     if args.dry_run or not args.allow_machine and not args.allow_unverified:
         print()

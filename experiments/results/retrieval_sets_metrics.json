@@ -1,0 +1,270 @@
+{
+  "cloze": {
+    "by_overlap": {
+      "high (>=0.4)": {
+        "n": 75,
+        "recall_at_5": 0.973
+      },
+      "low (<0.15)": {
+        "n": 10,
+        "recall_at_5": 1.0
+      },
+      "mid (0.15-0.4)": {
+        "n": 30,
+        "recall_at_5": 0.567
+      }
+    },
+    "hit_at_1": 0.774,
+    "mean_question_overlap_with_span": 0.691,
+    "missed": [
+      "C010",
+      "C011",
+      "C012",
+      "C013",
+      "C014",
+      "C015",
+      "C020",
+      "C022",
+      "C056",
+      "C057",
+      "C058",
+      "C059",
+      "C060",
+      "C061",
+      "C076"
+    ],
+    "mrr_at_5": 0.82,
+    "n": 115,
+    "recall_at_5": 0.87,
+    "refused_by_floor": 0
+  },
+  "human_verified": false,
+  "k": 5,
+  "labels": "model-drafted and machine-checked; cloze labels machine-generated; none read by a person",
+  "paraphrase": {
+    "by_overlap": {
+      "high (>=0.4)": {
+        "n": 5,
+        "recall_at_5": 1.0
+      },
+      "low (<0.15)": {
+        "n": 32,
+        "recall_at_5": 0.812
+      },
+      "mid (0.15-0.4)": {
+        "n": 18,
+        "recall_at_5": 0.889
+      }
+    },
+    "hit_at_1": 0.836,
+    "mean_question_overlap_with_span": 0.161,
+    "missed": [
+      "P014",
+      "P019",
+      "P020",
+      "P039",
+      "P043",
+      "P044",
+      "P047",
+      "P050"
+    ],
+    "mrr_at_5": 0.845,
+    "n": 55,
+    "recall_at_5": 0.855,
+    "refused_by_floor": 3
+  },
+  "settings": {
+    "corpus_files": 27,
+    "embed_model": "sentence-transformers/all-MiniLM-L6-v2",
+    "hybrid": true,
+    "min_score": 0.25,
+    "rerank": true,
+    "top_k_returned": 5
+  },
+  "traps": {
+    "entity_overlap (trap set)": {
+      "leak_rate": 1.0,
+      "leaked_past_floor": 24,
+      "leaks": [
+        {
+          "best_score": 0.543,
+          "id": "T000",
+          "mode": "hybrid+rerank",
+          "question": "What is the maximum mash temperature before the enzymes denature?",
+          "top_source": "brew-guide.pdf"
+        },
+        {
+          "best_score": 0.659,
+          "id": "T001",
+          "mode": "hybrid",
+          "question": "What is the plot size in square metres for the field trials?",
+          "top_source": "agronomy.docx"
+        },
+        {
+          "best_score": 0.419,
+          "id": "T002",
+          "mode": "hybrid",
+          "question": "Who is the named account manager at the Supplier under the agreement?",
+          "top_source": "contract.html"
+        },
+        {
+          "best_score": 0.652,
+          "id": "T003",
+          "mode": "hybrid+rerank",
+          "question": "What cap applies to liability for data protection breaches under the agreement?",
+          "top_source": "contract.html"
+        },
+        {
+          "best_score": 0.515,
+          "id": "T004",
+          "mode": "hybrid",
+          "question": "What interest is charged on late invoice payments?",
+          "top_source": "contract.html"
+        },
+        {
+          "best_score": 0.459,
+          "id": "T005",
+          "mode": "hybrid+rerank",
+          "question": "What penalty applies for late delivery under the agreement?",
+          "top_source": "contract.html"
+        },
+        {
+          "best_score": 0.534,
+          "id": "T006",
+          "mode": "hybrid",
+          "question": "What dose of vancomycin is given to children?",
+          "top_source": "pharm-notes.txt"
+        },
+        {
+          "best_score": 0.519,
+          "id": "T007",
+          "mode": "hybrid+rerank",
+          "question": "Which antibiotic is used to treat tuberculosis?",
+          "top_source": "pharm-notes.txt"
+        },
+        {
+          "best_score": 0.463,
+          "id": "T008",
+          "mode": "hybrid+rerank",
+          "question": "What is the cross reactivity between penicillins and carbapenems?",
+          "top_source": "pharm-notes.txt"
+        },
+        {
+          "best_score": 0.667,
+          "id": "T009",
+          "mode": "hybrid",
+          "question": "At what dew point do potato blight spores germinate?",
+          "top_source": "horticulture.md"
+        },
+        {
+          "best_score": 0.462,
+          "id": "T010",
+          "mode": "hybrid+rerank",
+          "question": "How deep should brassica seeds be sown?",
+          "top_source": "horticulture.md"
+        },
+        {
+          "best_score": 0.507,
+          "id": "T011",
+          "mode": "hybrid",
+          "question": "What is the surge velocity of the glacier in metres per day?",
+          "top_source": "glaciology.pdf"
+        },
+        {
+          "best_score": 0.556,
+          "id": "T012",
+          "mode": "hybrid",
+          "question": "What fermentation temperature in Fahrenheit is recommended for lager yeast?",
+          "top_source": "brew-guide.pdf"
+        },
+        {
+          "best_score": 0.628,
+          "id": "T013",
+          "mode": "hybrid+rerank",
+          "question": "What was the Burr Grinder revenue in LATAM?",
+          "top_source": "coffee_sales.csv"
+        },
+        {
+          "best_score": 0.691,
+          "id": "T014",
+          "mode": "hybrid+rerank",
+          "question": "What time did the telemetry-ingest service start on 2024-11-03?",
+          "top_source": "app.log"
+        },
+        {
+          "best_score": 0.344,
+          "id": "T015",
+          "mode": "hybrid",
+          "question": "Which geometries were reprojected to EPSG:3857?",
+          "top_source": "harvest.log"
+        },
+        {
+          "best_score": 0.359,
+          "id": "T016",
+          "mode": "hybrid+rerank",
+          "question": "What was the RMSE of the baseline linear model?",
+          "top_source": "harvest.log"
+        },
+        {
+          "best_score": 0.58,
+          "id": "T017",
+          "mode": "hybrid",
+          "question": "What is the learning rate decay schedule of the wide-residual-cascade model?",
+          "top_source": "model.json"
+        },
+        {
+          "best_score": 0.501,
+          "id": "T018",
+          "mode": "hybrid+rerank",
+          "question": "How many replicas does the telemetry-ingest service run?",
+          "top_source": "service.json"
+        },
+        {
+          "best_score": 0.628,
+          "id": "T019",
+          "mode": "hybrid+rerank",
+          "question": "What database port does the harvest-planner package use?",
+          "top_source": "pyproject.toml"
+        },
+        {
+          "best_score": 0.311,
+          "id": "T020",
+          "mode": "hybrid+rerank",
+          "question": "What VAT rate applies to books in the cart?",
+          "top_source": "cart.js"
+        },
+        {
+          "best_score": 0.56,
+          "id": "T021",
+          "mode": "hybrid",
+          "question": "How many pages is the Orbital Debris Mitigation Handbook?",
+          "top_source": "handbook.pdf"
+        },
+        {
+          "best_score": 0.498,
+          "id": "T022",
+          "mode": "hybrid",
+          "question": "Which company manufactures the reaction wheel assemblies?",
+          "top_source": "handbook.pdf"
+        },
+        {
+          "best_score": 0.685,
+          "id": "T023",
+          "mode": "hybrid+rerank",
+          "question": "What is the staging rehearsal date for the rollback plan?",
+          "top_source": "report.docx"
+        }
+      ],
+      "n": 24,
+      "refused_by_floor": 0
+    },
+    "unrelated_topic (cloze set)": {
+      "leak_rate": 0.0,
+      "leaked_past_floor": 0,
+      "leaks": [],
+      "n": 7,
+      "refused_by_floor": 7
+    }
+  },
+  "what": "retrieval on three question styles, one shared notebook holding the whole corpus"
+}

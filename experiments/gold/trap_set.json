@@ -1,0 +1,548 @@
+{
+ "schema": 1,
+ "generated_by": "experiments/build_paraphrase_set.py",
+ "corpus": "experiments/corpus",
+ "warning": "Drafted by a language model and reviewed item by item by the drafter; the mechanical checks are re-run by experiments/build_paraphrase_set.py. No person has read these. verified_by_human stays false until one does, and no number from this set may be presented as human-checked.",
+ "items": [
+  {
+   "id": "T000",
+   "question": "What is the maximum mash temperature before the enzymes denature?",
+   "source": "entity-overlap trap: the entities are in the corpus, the fact asked for is not",
+   "sources": [
+    "brew-guide.pdf"
+   ],
+   "answerable": false,
+   "kind": "entity_trap",
+   "entities": [
+    "mash temperature"
+   ],
+   "answer": null,
+   "required_facts": [],
+   "absent_terms": [
+    "denature"
+   ],
+   "absent_in_source": [],
+   "label_provenance": "llm-drafted, mechanically checked (missing terms absent, entities present)",
+   "verified_by_human": false
+  },
+  {
+   "id": "T001",
+   "question": "What is the plot size in square metres for the field trials?",
+   "source": "entity-overlap trap: the entities are in the corpus, the fact asked for is not",
+   "sources": [
+    "agronomy.docx"
+   ],
+   "answerable": false,
+   "kind": "entity_trap",
+   "entities": [
+    "field trials",
+    "plot size"
+   ],
+   "answer": null,
+   "required_facts": [],
+   "absent_terms": [
+    "square metres"
+   ],
+   "absent_in_source": [],
+   "label_provenance": "llm-drafted, mechanically checked (missing terms absent, entities present)",
+   "verified_by_human": false
+  },
+  {
+   "id": "T002",
+   "question": "Who is the named account manager at the Supplier under the agreement?",
+   "source": "entity-overlap trap: the entities are in the corpus, the fact asked for is not",
+   "sources": [
+    "contract.html"
+   ],
+   "answerable": false,
+   "kind": "entity_trap",
+   "entities": [
+    "Supplier",
+    "agreement"
+   ],
+   "answer": null,
+   "required_facts": [],
+   "absent_terms": [
+    "account manager"
+   ],
+   "absent_in_source": [],
+   "label_provenance": "llm-drafted, mechanically checked (missing terms absent, entities present)",
+   "verified_by_human": false
+  },
+  {
+   "id": "T003",
+   "question": "What cap applies to liability for data protection breaches under the agreement?",
+   "source": "entity-overlap trap: the entities are in the corpus, the fact asked for is not",
+   "sources": [
+    "contract.html"
+   ],
+   "answerable": false,
+   "kind": "entity_trap",
+   "entities": [
+    "liability",
+    "agreement"
+   ],
+   "answer": null,
+   "required_facts": [],
+   "absent_terms": [
+    "data protection"
+   ],
+   "absent_in_source": [],
+   "label_provenance": "llm-drafted, mechanically checked (missing terms absent, entities present)",
+   "verified_by_human": false
+  },
+  {
+   "id": "T004",
+   "question": "What interest is charged on late invoice payments?",
+   "source": "entity-overlap trap: the entities are in the corpus, the fact asked for is not",
+   "sources": [
+    "contract.html"
+   ],
+   "answerable": false,
+   "kind": "entity_trap",
+   "entities": [
+    "invoice"
+   ],
+   "answer": null,
+   "required_facts": [],
+   "absent_terms": [
+    "interest"
+   ],
+   "absent_in_source": [],
+   "label_provenance": "llm-drafted, mechanically checked (missing terms absent, entities present)",
+   "verified_by_human": false
+  },
+  {
+   "id": "T005",
+   "question": "What penalty applies for late delivery under the agreement?",
+   "source": "entity-overlap trap: the entities are in the corpus, the fact asked for is not",
+   "sources": [
+    "contract.html"
+   ],
+   "answerable": false,
+   "kind": "entity_trap",
+   "entities": [
+    "agreement",
+    "Deliverable"
+   ],
+   "answer": null,
+   "required_facts": [],
+   "absent_terms": [
+    "late delivery",
+    "penalty"
+   ],
+   "absent_in_source": [],
+   "label_provenance": "llm-drafted, mechanically checked (missing terms absent, entities present)",
+   "verified_by_human": false
+  },
+  {
+   "id": "T006",
+   "question": "What dose of vancomycin is given to children?",
+   "source": "entity-overlap trap: the entities are in the corpus, the fact asked for is not",
+   "sources": [
+    "pharm-notes.txt"
+   ],
+   "answerable": false,
+   "kind": "entity_trap",
+   "entities": [
+    "vancomycin"
+   ],
+   "answer": null,
+   "required_facts": [],
+   "absent_terms": [
+    "children"
+   ],
+   "absent_in_source": [],
+   "label_provenance": "llm-drafted, mechanically checked (missing terms absent, entities present)",
+   "verified_by_human": false
+  },
+  {
+   "id": "T007",
+   "question": "Which antibiotic is used to treat tuberculosis?",
+   "source": "entity-overlap trap: the entities are in the corpus, the fact asked for is not",
+   "sources": [
+    "pharm-notes.txt"
+   ],
+   "answerable": false,
+   "kind": "entity_trap",
+   "entities": [
+    "antibiotic"
+   ],
+   "answer": null,
+   "required_facts": [],
+   "absent_terms": [
+    "tuberculosis"
+   ],
+   "absent_in_source": [],
+   "label_provenance": "llm-drafted, mechanically checked (missing terms absent, entities present)",
+   "verified_by_human": false
+  },
+  {
+   "id": "T008",
+   "question": "What is the cross reactivity between penicillins and carbapenems?",
+   "source": "entity-overlap trap: the entities are in the corpus, the fact asked for is not",
+   "sources": [
+    "pharm-notes.txt"
+   ],
+   "answerable": false,
+   "kind": "entity_trap",
+   "entities": [
+    "penicillins",
+    "cross reactivity"
+   ],
+   "answer": null,
+   "required_facts": [],
+   "absent_terms": [
+    "carbapenem"
+   ],
+   "absent_in_source": [],
+   "label_provenance": "llm-drafted, mechanically checked (missing terms absent, entities present)",
+   "verified_by_human": false
+  },
+  {
+   "id": "T009",
+   "question": "At what dew point do potato blight spores germinate?",
+   "source": "entity-overlap trap: the entities are in the corpus, the fact asked for is not",
+   "sources": [
+    "horticulture.md"
+   ],
+   "answerable": false,
+   "kind": "entity_trap",
+   "entities": [
+    "potato blight"
+   ],
+   "answer": null,
+   "required_facts": [],
+   "absent_terms": [
+    "dew point"
+   ],
+   "absent_in_source": [],
+   "label_provenance": "llm-drafted, mechanically checked (missing terms absent, entities present)",
+   "verified_by_human": false
+  },
+  {
+   "id": "T010",
+   "question": "How deep should brassica seeds be sown?",
+   "source": "entity-overlap trap: the entities are in the corpus, the fact asked for is not",
+   "sources": [
+    "horticulture.md"
+   ],
+   "answerable": false,
+   "kind": "entity_trap",
+   "entities": [
+    "brassicas"
+   ],
+   "answer": null,
+   "required_facts": [],
+   "absent_terms": [
+    "sowing",
+    "sown"
+   ],
+   "absent_in_source": [],
+   "label_provenance": "llm-drafted, mechanically checked (missing terms absent, entities present)",
+   "verified_by_human": false
+  },
+  {
+   "id": "T011",
+   "question": "What is the surge velocity of the glacier in metres per day?",
+   "source": "entity-overlap trap: the entities are in the corpus, the fact asked for is not",
+   "sources": [
+    "glaciology.pdf"
+   ],
+   "answerable": false,
+   "kind": "entity_trap",
+   "entities": [
+    "glacier",
+    "surge"
+   ],
+   "answer": null,
+   "required_facts": [],
+   "absent_terms": [
+    "metres per day"
+   ],
+   "absent_in_source": [],
+   "label_provenance": "llm-drafted, mechanically checked (missing terms absent, entities present)",
+   "verified_by_human": false
+  },
+  {
+   "id": "T012",
+   "question": "What fermentation temperature in Fahrenheit is recommended for lager yeast?",
+   "source": "entity-overlap trap: the entities are in the corpus, the fact asked for is not",
+   "sources": [
+    "brew-guide.pdf"
+   ],
+   "answerable": false,
+   "kind": "entity_trap",
+   "entities": [
+    "lager",
+    "fermentation"
+   ],
+   "answer": null,
+   "required_facts": [],
+   "absent_terms": [
+    "fahrenheit"
+   ],
+   "absent_in_source": [],
+   "label_provenance": "llm-drafted, mechanically checked (missing terms absent, entities present)",
+   "verified_by_human": false
+  },
+  {
+   "id": "T013",
+   "question": "What was the Burr Grinder revenue in LATAM?",
+   "source": "entity-overlap trap: the entities are in the corpus, the fact asked for is not",
+   "sources": [
+    "coffee_sales.csv",
+    "finance.csv"
+   ],
+   "answerable": false,
+   "kind": "entity_trap",
+   "entities": [
+    "Burr Grinder",
+    "LATAM"
+   ],
+   "answer": null,
+   "required_facts": [],
+   "absent_terms": [],
+   "absent_in_source": [
+    [
+     "coffee_sales.csv",
+     "LATAM"
+    ]
+   ],
+   "label_provenance": "llm-drafted, mechanically checked (missing terms absent, entities present)",
+   "verified_by_human": false
+  },
+  {
+   "id": "T014",
+   "question": "What time did the telemetry-ingest service start on 2024-11-03?",
+   "source": "entity-overlap trap: the entities are in the corpus, the fact asked for is not",
+   "sources": [
+    "app.log",
+    "harvest.log"
+   ],
+   "answerable": false,
+   "kind": "entity_trap",
+   "entities": [
+    "telemetry-ingest",
+    "2024-11-03"
+   ],
+   "answer": null,
+   "required_facts": [],
+   "absent_terms": [],
+   "absent_in_source": [
+    [
+     "app.log",
+     "2024-11-03"
+    ]
+   ],
+   "label_provenance": "llm-drafted, mechanically checked (missing terms absent, entities present)",
+   "verified_by_human": false
+  },
+  {
+   "id": "T015",
+   "question": "Which geometries were reprojected to EPSG:3857?",
+   "source": "entity-overlap trap: the entities are in the corpus, the fact asked for is not",
+   "sources": [
+    "harvest.log"
+   ],
+   "answerable": false,
+   "kind": "entity_trap",
+   "entities": [
+    "geometries",
+    "reprojected"
+   ],
+   "answer": null,
+   "required_facts": [],
+   "absent_terms": [
+    "3857"
+   ],
+   "absent_in_source": [],
+   "label_provenance": "llm-drafted, mechanically checked (missing terms absent, entities present)",
+   "verified_by_human": false
+  },
+  {
+   "id": "T016",
+   "question": "What was the RMSE of the baseline linear model?",
+   "source": "entity-overlap trap: the entities are in the corpus, the fact asked for is not",
+   "sources": [
+    "harvest.log"
+   ],
+   "answerable": false,
+   "kind": "entity_trap",
+   "entities": [
+    "rmse",
+    "model"
+   ],
+   "answer": null,
+   "required_facts": [],
+   "absent_terms": [
+    "baseline"
+   ],
+   "absent_in_source": [],
+   "label_provenance": "llm-drafted, mechanically checked (missing terms absent, entities present)",
+   "verified_by_human": false
+  },
+  {
+   "id": "T017",
+   "question": "What is the learning rate decay schedule of the wide-residual-cascade model?",
+   "source": "entity-overlap trap: the entities are in the corpus, the fact asked for is not",
+   "sources": [
+    "model.json"
+   ],
+   "answerable": false,
+   "kind": "entity_trap",
+   "entities": [
+    "wide-residual-cascade",
+    "learning_rate"
+   ],
+   "answer": null,
+   "required_facts": [],
+   "absent_terms": [
+    "decay schedule"
+   ],
+   "absent_in_source": [],
+   "label_provenance": "llm-drafted, mechanically checked (missing terms absent, entities present)",
+   "verified_by_human": false
+  },
+  {
+   "id": "T018",
+   "question": "How many replicas does the telemetry-ingest service run?",
+   "source": "entity-overlap trap: the entities are in the corpus, the fact asked for is not",
+   "sources": [
+    "service.json",
+    "app.yaml"
+   ],
+   "answerable": false,
+   "kind": "entity_trap",
+   "entities": [
+    "telemetry-ingest",
+    "replicas"
+   ],
+   "answer": null,
+   "required_facts": [],
+   "absent_terms": [],
+   "absent_in_source": [
+    [
+     "service.json",
+     "replicas"
+    ]
+   ],
+   "label_provenance": "llm-drafted, mechanically checked (missing terms absent, entities present)",
+   "verified_by_human": false
+  },
+  {
+   "id": "T019",
+   "question": "What database port does the harvest-planner package use?",
+   "source": "entity-overlap trap: the entities are in the corpus, the fact asked for is not",
+   "sources": [
+    "pyproject.toml",
+    "app.yaml"
+   ],
+   "answerable": false,
+   "kind": "entity_trap",
+   "entities": [
+    "harvest-planner"
+   ],
+   "answer": null,
+   "required_facts": [],
+   "absent_terms": [],
+   "absent_in_source": [
+    [
+     "pyproject.toml",
+     "port"
+    ]
+   ],
+   "label_provenance": "llm-drafted, mechanically checked (missing terms absent, entities present)",
+   "verified_by_human": false
+  },
+  {
+   "id": "T020",
+   "question": "What VAT rate applies to books in the cart?",
+   "source": "entity-overlap trap: the entities are in the corpus, the fact asked for is not",
+   "sources": [
+    "cart.js"
+   ],
+   "answerable": false,
+   "kind": "entity_trap",
+   "entities": [
+    "VAT",
+    "cart"
+   ],
+   "answer": null,
+   "required_facts": [],
+   "absent_terms": [
+    "books"
+   ],
+   "absent_in_source": [],
+   "label_provenance": "llm-drafted, mechanically checked (missing terms absent, entities present)",
+   "verified_by_human": false
+  },
+  {
+   "id": "T021",
+   "question": "How many pages is the Orbital Debris Mitigation Handbook?",
+   "source": "entity-overlap trap: the entities are in the corpus, the fact asked for is not",
+   "sources": [
+    "handbook.pdf"
+   ],
+   "answerable": false,
+   "kind": "entity_trap",
+   "entities": [
+    "Orbital Debris Mitigation Handbook"
+   ],
+   "answer": null,
+   "required_facts": [],
+   "absent_terms": [],
+   "absent_in_source": [
+    [
+     "handbook.pdf",
+     "pages"
+    ]
+   ],
+   "label_provenance": "llm-drafted, mechanically checked (missing terms absent, entities present)",
+   "verified_by_human": false
+  },
+  {
+   "id": "T022",
+   "question": "Which company manufactures the reaction wheel assemblies?",
+   "source": "entity-overlap trap: the entities are in the corpus, the fact asked for is not",
+   "sources": [
+    "handbook.pdf"
+   ],
+   "answerable": false,
+   "kind": "entity_trap",
+   "entities": [
+    "reaction wheel assemblies"
+   ],
+   "answer": null,
+   "required_facts": [],
+   "absent_terms": [
+    "manufactur"
+   ],
+   "absent_in_source": [],
+   "label_provenance": "llm-drafted, mechanically checked (missing terms absent, entities present)",
+   "verified_by_human": false
+  },
+  {
+   "id": "T023",
+   "question": "What is the staging rehearsal date for the rollback plan?",
+   "source": "entity-overlap trap: the entities are in the corpus, the fact asked for is not",
+   "sources": [
+    "report.docx"
+   ],
+   "answerable": false,
+   "kind": "entity_trap",
+   "entities": [
+    "rollback plan",
+    "staging"
+   ],
+   "answer": null,
+   "required_facts": [],
+   "absent_terms": [
+    "rehearsal date"
+   ],
+   "absent_in_source": [],
+   "label_provenance": "llm-drafted, mechanically checked (missing terms absent, entities present)",
+   "verified_by_human": false
+  }
+ ]
+}

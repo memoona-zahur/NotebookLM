@@ -1,0 +1,1108 @@
+{
+ "schema": 1,
+ "generated_by": "experiments/build_paraphrase_set.py",
+ "corpus": "experiments/corpus",
+ "warning": "Drafted by a language model and reviewed item by item by the drafter; the mechanical checks are re-run by experiments/build_paraphrase_set.py. No person has read these. verified_by_human stays false until one does, and no number from this set may be presented as human-checked.",
+ "items": [
+  {
+   "id": "P000",
+   "question": "How hot should the mash tun be held to give the beer a rounded mouthfeel?",
+   "source": "brew-guide.pdf",
+   "answerable": true,
+   "kind": "paraphrase",
+   "expected_positions": [
+    0
+   ],
+   "required_facts": [
+    "mash at sixty-six degrees Celsius favours a balanced body"
+   ],
+   "answers": [
+    "mash at sixty-six degrees Celsius favours a balanced body"
+   ],
+   "question_overlap_with_span": 0.12,
+   "question_overlap_with_block": 0.38,
+   "label_provenance": "llm-drafted, mechanically checked (span verbatim in block)",
+   "verified_by_human": false
+  },
+  {
+   "id": "P001",
+   "question": "What keeps oxygen from spoiling the beer once it is packaged?",
+   "source": "brew-guide.pdf",
+   "answerable": true,
+   "kind": "paraphrase",
+   "expected_positions": [
+    1
+   ],
+   "required_facts": [
+    "which also binds oxygen that would otherwise oxidise the finished beer"
+   ],
+   "answers": [
+    "which also binds oxygen that would otherwise oxidise the finished beer"
+   ],
+   "question_overlap_with_span": 0.33,
+   "question_overlap_with_block": 0.33,
+   "label_provenance": "llm-drafted, mechanically checked (span verbatim in block)",
+   "verified_by_human": false
+  },
+  {
+   "id": "P002",
+   "question": "What gravity readings suggest the fermentation went as expected for an ale?",
+   "source": "brew-guide.pdf",
+   "answerable": true,
+   "kind": "paraphrase",
+   "expected_positions": [
+    2
+   ],
+   "required_facts": [
+    "A wort that started at 1.048 and finished at 1.010 is about 79 percent apparent attenuation"
+   ],
+   "answers": [
+    "A wort that started at 1.048 and finished at 1.010 is about 79 percent apparent attenuation"
+   ],
+   "question_overlap_with_span": 0.0,
+   "question_overlap_with_block": 0.29,
+   "label_provenance": "llm-drafted, mechanically checked (span verbatim in block)",
+   "verified_by_human": false
+  },
+  {
+   "id": "P003",
+   "question": "How many repeat plots of each treatment are laid out in the field trials?",
+   "source": "agronomy.docx",
+   "answerable": true,
+   "kind": "paraphrase",
+   "expected_positions": [
+    0
+   ],
+   "required_facts": [
+    "four replicates per treatment"
+   ],
+   "answers": [
+    "four replicates per treatment"
+   ],
+   "question_overlap_with_span": 0.11,
+   "question_overlap_with_block": 0.56,
+   "label_provenance": "llm-drafted, mechanically checked (span verbatim in block)",
+   "verified_by_human": false
+  },
+  {
+   "id": "P004",
+   "question": "Who approves the random allocation seed before sowing starts?",
+   "source": "agronomy.docx",
+   "answerable": true,
+   "kind": "paraphrase",
+   "expected_positions": [
+    1
+   ],
+   "required_facts": [
+    "signs off the randomisation seed before drilling"
+   ],
+   "answers": [
+    "signs off the randomisation seed before drilling"
+   ],
+   "question_overlap_with_span": 0.29,
+   "question_overlap_with_block": 0.29,
+   "label_provenance": "llm-drafted, mechanically checked (span verbatim in block)",
+   "verified_by_human": false
+  },
+  {
+   "id": "P005",
+   "question": "At what water content are yields reported?",
+   "source": "agronomy.docx",
+   "answerable": true,
+   "kind": "paraphrase",
+   "expected_positions": [
+    2
+   ],
+   "required_facts": [
+    "Yield is recorded at a moisture content of fourteen percent"
+   ],
+   "answers": [
+    "Yield is recorded at a moisture content of fourteen percent"
+   ],
+   "question_overlap_with_span": 0.25,
+   "question_overlap_with_block": 0.25,
+   "label_provenance": "llm-drafted, mechanically checked (span verbatim in block)",
+   "verified_by_human": false
+  },
+  {
+   "id": "P006",
+   "question": "Within how many working days after harvest must a trial be processed?",
+   "source": "agronomy.docx",
+   "answerable": true,
+   "kind": "paraphrase",
+   "expected_positions": [
+    2
+   ],
+   "required_facts": [
+    "ten working days after harvest"
+   ],
+   "answers": [
+    "ten working days after harvest"
+   ],
+   "question_overlap_with_span": 0.44,
+   "question_overlap_with_block": 0.56,
+   "label_provenance": "llm-drafted, mechanically checked (span verbatim in block)",
+   "verified_by_human": false
+  },
+  {
+   "id": "P007",
+   "question": "How many days does the high nitrogen treatment take to reach harvest?",
+   "source": "agronomy.docx",
+   "answerable": true,
+   "kind": "paraphrase",
+   "expected_positions": [
+    3
+   ],
+   "required_facts": [
+    "days_to_harvest: 118"
+   ],
+   "answers": [
+    "days_to_harvest: 118"
+   ],
+   "question_overlap_with_span": 0.25,
+   "question_overlap_with_block": 0.62,
+   "label_provenance": "llm-drafted, mechanically checked (span verbatim in block)",
+   "verified_by_human": false
+  },
+  {
+   "id": "P008",
+   "question": "Which quantity counts the molecules converted at each active site every second?",
+   "source": "catalysis.txt",
+   "answerable": true,
+   "kind": "paraphrase",
+   "expected_positions": [
+    1
+   ],
+   "required_facts": [
+    "molecules converted per active site per second"
+   ],
+   "answers": [
+    "molecules converted per active site per second"
+   ],
+   "question_overlap_with_span": 0.56,
+   "question_overlap_with_block": 0.56,
+   "label_provenance": "llm-drafted, mechanically checked (span verbatim in block)",
+   "verified_by_human": false
+  },
+  {
+   "id": "P009",
+   "question": "Why is a catalyst that grips its reactant too tightly a problem?",
+   "source": "catalysis.txt",
+   "answerable": true,
+   "kind": "paraphrase",
+   "expected_positions": [
+    2
+   ],
+   "required_facts": [
+    "binding too strongly poisons the site and stops the cycle"
+   ],
+   "answers": [
+    "binding too strongly poisons the site and stops the cycle"
+   ],
+   "question_overlap_with_span": 0.17,
+   "question_overlap_with_block": 0.5,
+   "label_provenance": "llm-drafted, mechanically checked (span verbatim in block)",
+   "verified_by_human": false
+  },
+  {
+   "id": "P010",
+   "question": "What separates the Eley Rideal route from the Langmuir Hinshelwood one?",
+   "source": "catalysis.txt",
+   "answerable": true,
+   "kind": "paraphrase",
+   "expected_positions": [
+    3
+   ],
+   "required_facts": [
+    "in which a gas phase species collides directly with an adsorbed species"
+   ],
+   "answers": [
+    "in which a gas phase species collides directly with an adsorbed species"
+   ],
+   "question_overlap_with_span": 0.0,
+   "question_overlap_with_block": 0.57,
+   "label_provenance": "llm-drafted, mechanically checked (span verbatim in block)",
+   "verified_by_human": false
+  },
+  {
+   "id": "P011",
+   "question": "What makes small catalyst particles merge and lose area for good?",
+   "source": "catalysis.txt",
+   "answerable": true,
+   "kind": "paraphrase",
+   "expected_positions": [
+    4
+   ],
+   "required_facts": [
+    "Sintering is driven by the migration of small particles that merge into larger ones"
+   ],
+   "answers": [
+    "Sintering is driven by the migration of small particles that merge into larger ones"
+   ],
+   "question_overlap_with_span": 0.38,
+   "question_overlap_with_block": 0.62,
+   "label_provenance": "llm-drafted, mechanically checked (span verbatim in block)",
+   "verified_by_human": false
+  },
+  {
+   "id": "P012",
+   "question": "How much notice is needed to end the contract without any fault?",
+   "source": "contract.html",
+   "answerable": true,
+   "kind": "paraphrase",
+   "expected_positions": [
+    2
+   ],
+   "required_facts": [
+    "terminate for convenience on ninety days written notice"
+   ],
+   "answers": [
+    "terminate for convenience on ninety days written notice"
+   ],
+   "question_overlap_with_span": 0.12,
+   "question_overlap_with_block": 0.12,
+   "label_provenance": "llm-drafted, mechanically checked (span verbatim in block)",
+   "verified_by_human": false
+  },
+  {
+   "id": "P013",
+   "question": "How long does the initial contract period run?",
+   "source": "contract.html",
+   "answerable": true,
+   "kind": "paraphrase",
+   "expected_positions": [
+    2
+   ],
+   "required_facts": [
+    "initial term of thirty six months"
+   ],
+   "answers": [
+    "initial term of thirty six months"
+   ],
+   "question_overlap_with_span": 0.2,
+   "question_overlap_with_block": 0.2,
+   "label_provenance": "llm-drafted, mechanically checked (span verbatim in block)",
+   "verified_by_human": false
+  },
+  {
+   "id": "P014",
+   "question": "What limits the total amount either side can owe the other?",
+   "source": "contract.html",
+   "answerable": true,
+   "kind": "paraphrase",
+   "expected_positions": [
+    3
+   ],
+   "required_facts": [
+    "capped at the fees paid in the twelve months preceding the claim"
+   ],
+   "answers": [
+    "capped at the fees paid in the twelve months preceding the claim"
+   ],
+   "question_overlap_with_span": 0.0,
+   "question_overlap_with_block": 0.29,
+   "label_provenance": "llm-drafted, mechanically checked (span verbatim in block)",
+   "verified_by_human": false
+  },
+  {
+   "id": "P015",
+   "question": "How long does the buyer have to settle an invoice?",
+   "source": "contract.html",
+   "answerable": true,
+   "kind": "paraphrase",
+   "expected_positions": [
+    4
+   ],
+   "required_facts": [
+    "payable within forty five days of receipt"
+   ],
+   "answers": [
+    "payable within forty five days of receipt"
+   ],
+   "question_overlap_with_span": 0.0,
+   "question_overlap_with_block": 0.0,
+   "label_provenance": "llm-drafted, mechanically checked (span verbatim in block)",
+   "verified_by_human": false
+  },
+  {
+   "id": "P016",
+   "question": "How long can a serious breach go unremedied before the contract can be ended at once?",
+   "source": "contract.html",
+   "answerable": true,
+   "kind": "paraphrase",
+   "expected_positions": [
+    2
+   ],
+   "required_facts": [
+    "uncured after thirty days notice"
+   ],
+   "answers": [
+    "uncured after thirty days notice"
+   ],
+   "question_overlap_with_span": 0.0,
+   "question_overlap_with_block": 0.11,
+   "label_provenance": "llm-drafted, mechanically checked (span verbatim in block)",
+   "verified_by_human": false
+  },
+  {
+   "id": "P017",
+   "question": "How soon after losing possession should the team begin to press?",
+   "source": "football.md",
+   "answerable": true,
+   "kind": "paraphrase",
+   "expected_positions": [
+    1
+   ],
+   "required_facts": [
+    "Counter pressing starts within two seconds of losing the ball"
+   ],
+   "answers": [
+    "Counter pressing starts within two seconds of losing the ball"
+   ],
+   "question_overlap_with_span": 0.14,
+   "question_overlap_with_block": 0.14,
+   "label_provenance": "llm-drafted, mechanically checked (span verbatim in block)",
+   "verified_by_human": false
+  },
+  {
+   "id": "P018",
+   "question": "How narrow does the defensive block get behind the ball?",
+   "source": "football.md",
+   "answerable": true,
+   "kind": "paraphrase",
+   "expected_positions": [
+    2
+   ],
+   "required_facts": [
+    "nineteen metres in behind the ball"
+   ],
+   "answers": [
+    "nineteen metres in behind the ball"
+   ],
+   "question_overlap_with_span": 0.33,
+   "question_overlap_with_block": 0.5,
+   "label_provenance": "llm-drafted, mechanically checked (span verbatim in block)",
+   "verified_by_human": false
+  },
+  {
+   "id": "P019",
+   "question": "Who is placed where the cross is least likely to come in at set pieces?",
+   "source": "football.md",
+   "answerable": true,
+   "kind": "paraphrase",
+   "expected_positions": [
+    3
+   ],
+   "required_facts": [
+    "The two worst aerial defenders in the squad are assigned to the zone that is crossed least often"
+   ],
+   "answers": [
+    "The two worst aerial defenders in the squad are assigned to the zone that is crossed least often"
+   ],
+   "question_overlap_with_span": 0.14,
+   "question_overlap_with_block": 0.14,
+   "label_provenance": "llm-drafted, mechanically checked (span verbatim in block)",
+   "verified_by_human": false
+  },
+  {
+   "id": "P020",
+   "question": "What formation does the team use when building out of defence?",
+   "source": "football.md",
+   "answerable": true,
+   "kind": "paraphrase",
+   "expected_positions": [
+    0
+   ],
+   "required_facts": [
+    "2-3-5 shape"
+   ],
+   "answers": [
+    "2-3-5 shape"
+   ],
+   "question_overlap_with_span": 0.0,
+   "question_overlap_with_block": 0.0,
+   "label_provenance": "llm-drafted, mechanically checked (span verbatim in block)",
+   "verified_by_human": false
+  },
+  {
+   "id": "P021",
+   "question": "By when must a dead satellite have its stored energy discharged?",
+   "source": "handbook.pdf",
+   "answerable": true,
+   "kind": "paraphrase",
+   "expected_positions": [
+    0
+   ],
+   "required_facts": [
+    "Mandatory passivation is required within five years of end of life"
+   ],
+   "answers": [
+    "Mandatory passivation is required within five years of end of life"
+   ],
+   "question_overlap_with_span": 0.0,
+   "question_overlap_with_block": 0.67,
+   "label_provenance": "llm-drafted, mechanically checked (span verbatim in block)",
+   "verified_by_human": false
+  },
+  {
+   "id": "P022",
+   "question": "What generates a turning force on a spacecraft without using fuel?",
+   "source": "handbook.pdf",
+   "answerable": true,
+   "kind": "paraphrase",
+   "expected_positions": [
+    1
+   ],
+   "required_facts": [
+    "producing torque without consuming propellant"
+   ],
+   "answers": [
+    "producing torque without consuming propellant"
+   ],
+   "question_overlap_with_span": 0.14,
+   "question_overlap_with_block": 0.29,
+   "label_provenance": "llm-drafted, mechanically checked (span verbatim in block)",
+   "verified_by_human": false
+  },
+  {
+   "id": "P023",
+   "question": "Between which altitudes is the junk density at its worst?",
+   "source": "handbook.pdf",
+   "answerable": true,
+   "kind": "paraphrase",
+   "expected_positions": [
+    0
+   ],
+   "required_facts": [
+    "Debris density is highest between 700 and 1000 km"
+   ],
+   "answers": [
+    "Debris density is highest between 700 and 1000 km"
+   ],
+   "question_overlap_with_span": 0.4,
+   "question_overlap_with_block": 0.4,
+   "label_provenance": "llm-drafted, mechanically checked (span verbatim in block)",
+   "verified_by_human": false
+  },
+  {
+   "id": "P024",
+   "question": "How deep should allotment soil be dug when first taken on?",
+   "source": "horticulture.md",
+   "answerable": true,
+   "kind": "paraphrase",
+   "expected_positions": [
+    0
+   ],
+   "required_facts": [
+    "Break it to a depth of about thirty centimetres"
+   ],
+   "answers": [
+    "Break it to a depth of about thirty centimetres"
+   ],
+   "question_overlap_with_span": 0.0,
+   "question_overlap_with_block": 0.5,
+   "label_provenance": "llm-drafted, mechanically checked (span verbatim in block)",
+   "verified_by_human": false
+  },
+  {
+   "id": "P025",
+   "question": "How far apart should cabbages go in the bed?",
+   "source": "horticulture.md",
+   "answerable": true,
+   "kind": "paraphrase",
+   "expected_positions": [
+    1
+   ],
+   "required_facts": [
+    "Space cabbages at forty-five centimetres"
+   ],
+   "answers": [
+    "Space cabbages at forty-five centimetres"
+   ],
+   "question_overlap_with_span": 0.2,
+   "question_overlap_with_block": 0.4,
+   "label_provenance": "llm-drafted, mechanically checked (span verbatim in block)",
+   "verified_by_human": false
+  },
+  {
+   "id": "P026",
+   "question": "How often should brassica crops be moved to a fresh bed?",
+   "source": "horticulture.md",
+   "answerable": true,
+   "kind": "paraphrase",
+   "expected_positions": [
+    1
+   ],
+   "required_facts": [
+    "Rotate brassicas on a four year cycle"
+   ],
+   "answers": [
+    "Rotate brassicas on a four year cycle"
+   ],
+   "question_overlap_with_span": 0.0,
+   "question_overlap_with_block": 0.17,
+   "label_provenance": "llm-drafted, mechanically checked (span verbatim in block)",
+   "verified_by_human": false
+  },
+  {
+   "id": "P027",
+   "question": "When in the day should potatoes be watered so the leaves are dry overnight?",
+   "source": "horticulture.md",
+   "answerable": true,
+   "kind": "paraphrase",
+   "expected_positions": [
+    2
+   ],
+   "required_facts": [
+    "Water in the morning so that leaves dry before nightfall"
+   ],
+   "answers": [
+    "Water in the morning so that leaves dry before nightfall"
+   ],
+   "question_overlap_with_span": 0.33,
+   "question_overlap_with_block": 0.5,
+   "label_provenance": "llm-drafted, mechanically checked (span verbatim in block)",
+   "verified_by_human": false
+  },
+  {
+   "id": "P028",
+   "question": "How many separate fan stations are needed once a mine goes below 1500 metres?",
+   "source": "mining.rst",
+   "answerable": true,
+   "kind": "paraphrase",
+   "expected_positions": [
+    4
+   ],
+   "required_facts": [
+    "Two independent fan stations are required for depths beyond 1500 metres"
+   ],
+   "answers": [
+    "Two independent fan stations are required for depths beyond 1500 metres"
+   ],
+   "question_overlap_with_span": 0.36,
+   "question_overlap_with_block": 0.36,
+   "label_provenance": "llm-drafted, mechanically checked (span verbatim in block)",
+   "verified_by_human": false
+  },
+  {
+   "id": "P029",
+   "question": "At what methane concentration must power be cut and the workers leave?",
+   "source": "mining.rst",
+   "answerable": true,
+   "kind": "paraphrase",
+   "expected_positions": [
+    9
+   ],
+   "required_facts": [
+    "The statutory action level is 1.0 per cent"
+   ],
+   "answers": [
+    "The statutory action level is 1.0 per cent"
+   ],
+   "question_overlap_with_span": 0.0,
+   "question_overlap_with_block": 0.29,
+   "label_provenance": "llm-drafted, mechanically checked (span verbatim in block)",
+   "verified_by_human": false
+  },
+  {
+   "id": "P030",
+   "question": "How wide must the flexible duct be for headings far from the main airway?",
+   "source": "mining.rst",
+   "answerable": true,
+   "kind": "paraphrase",
+   "expected_positions": [
+    7
+   ],
+   "required_facts": [
+    "450 millimetres diameter is required beyond 300 metres from the main circuit"
+   ],
+   "answers": [
+    "450 millimetres diameter is required beyond 300 metres from the main circuit"
+   ],
+   "question_overlap_with_span": 0.12,
+   "question_overlap_with_block": 0.25,
+   "label_provenance": "llm-drafted, mechanically checked (span verbatim in block)",
+   "verified_by_human": false
+  },
+  {
+   "id": "P031",
+   "question": "What role does a cadential six four play?",
+   "source": "music.txt",
+   "answerable": true,
+   "kind": "paraphrase",
+   "expected_positions": [
+    2
+   ],
+   "required_facts": [
+    "functioned as a dominant embellishment rather than a stable chord"
+   ],
+   "answers": [
+    "functioned as a dominant embellishment rather than a stable chord"
+   ],
+   "question_overlap_with_span": 0.0,
+   "question_overlap_with_block": 0.6,
+   "label_provenance": "llm-drafted, mechanically checked (span verbatim in block)",
+   "verified_by_human": false
+  },
+  {
+   "id": "P032",
+   "question": "What is the rule of the octave good for?",
+   "source": "music.txt",
+   "answerable": true,
+   "kind": "paraphrase",
+   "expected_positions": [
+    3
+   ],
+   "required_facts": [
+    "a practical guide for harmonising a scale"
+   ],
+   "answers": [
+    "a practical guide for harmonising a scale"
+   ],
+   "question_overlap_with_span": 0.0,
+   "question_overlap_with_block": 0.67,
+   "label_provenance": "llm-drafted, mechanically checked (span verbatim in block)",
+   "verified_by_human": false
+  },
+  {
+   "id": "P033",
+   "question": "How long should vancomycin take to go in?",
+   "source": "pharm-notes.txt",
+   "answerable": true,
+   "kind": "paraphrase",
+   "expected_positions": [
+    3
+   ],
+   "required_facts": [
+    "infused slowly over at least one hour"
+   ],
+   "answers": [
+    "infused slowly over at least one hour"
+   ],
+   "question_overlap_with_span": 0.0,
+   "question_overlap_with_block": 0.25,
+   "label_provenance": "llm-drafted, mechanically checked (span verbatim in block)",
+   "verified_by_human": false
+  },
+  {
+   "id": "P034",
+   "question": "Why don't aminoglycosides work on bugs that live without oxygen?",
+   "source": "pharm-notes.txt",
+   "answerable": true,
+   "kind": "paraphrase",
+   "expected_positions": [
+    2
+   ],
+   "required_facts": [
+    "ineffective against anaerobes because uptake depends on oxygen dependent transport"
+   ],
+   "answers": [
+    "ineffective against anaerobes because uptake depends on oxygen dependent transport"
+   ],
+   "question_overlap_with_span": 0.12,
+   "question_overlap_with_block": 0.25,
+   "label_provenance": "llm-drafted, mechanically checked (span verbatim in block)",
+   "verified_by_human": false
+  },
+  {
+   "id": "P035",
+   "question": "Why are the quinolone antibiotics kept as a last resort?",
+   "source": "pharm-notes.txt",
+   "answerable": true,
+   "kind": "paraphrase",
+   "expected_positions": [
+    5
+   ],
+   "required_facts": [
+    "associated with tendinitis, peripheral neuropathy and aortic aneurysm"
+   ],
+   "answers": [
+    "associated with tendinitis, peripheral neuropathy and aortic aneurysm"
+   ],
+   "question_overlap_with_span": 0.0,
+   "question_overlap_with_block": 0.0,
+   "label_provenance": "llm-drafted, mechanically checked (span verbatim in block)",
+   "verified_by_human": false
+  },
+  {
+   "id": "P036",
+   "question": "Does being allergic to penicillin mean cephalosporins are unsafe too?",
+   "source": "pharm-notes.txt",
+   "answerable": true,
+   "kind": "paraphrase",
+   "expected_positions": [
+    1
+   ],
+   "required_facts": [
+    "There is no cross reactivity between the penicillins and the cephalosporins"
+   ],
+   "answers": [
+    "There is no cross reactivity between the penicillins and the cephalosporins"
+   ],
+   "question_overlap_with_span": 0.14,
+   "question_overlap_with_block": 0.29,
+   "label_provenance": "llm-drafted, mechanically checked (span verbatim in block)",
+   "verified_by_human": false
+  },
+  {
+   "id": "P037",
+   "question": "How long is the deployment lockout window?",
+   "source": "report.docx",
+   "answerable": true,
+   "kind": "paraphrase",
+   "expected_positions": [
+    1
+   ],
+   "required_facts": [
+    "the freeze window lasts 90 minutes"
+   ],
+   "answers": [
+    "the freeze window lasts 90 minutes"
+   ],
+   "question_overlap_with_span": 0.25,
+   "question_overlap_with_block": 0.5,
+   "label_provenance": "llm-drafted, mechanically checked (span verbatim in block)",
+   "verified_by_human": false
+  },
+  {
+   "id": "P038",
+   "question": "What failure rate triggers backing out a release?",
+   "source": "report.docx",
+   "answerable": true,
+   "kind": "paraphrase",
+   "expected_positions": [
+    2
+   ],
+   "required_facts": [
+    "A rollback is triggered if the error rate exceeds 0.5 percent over any five minute window"
+   ],
+   "answers": [
+    "A rollback is triggered if the error rate exceeds 0.5 percent over any five minute window"
+   ],
+   "question_overlap_with_span": 0.17,
+   "question_overlap_with_block": 0.17,
+   "label_provenance": "llm-drafted, mechanically checked (span verbatim in block)",
+   "verified_by_human": false
+  },
+  {
+   "id": "P039",
+   "question": "Who gets paged if the revert is not finished in time?",
+   "source": "report.docx",
+   "answerable": true,
+   "kind": "paraphrase",
+   "expected_positions": [
+    3
+   ],
+   "required_facts": [
+    "pages the platform lead if rollback is not complete"
+   ],
+   "answers": [
+    "pages the platform lead if rollback is not complete"
+   ],
+   "question_overlap_with_span": 0.29,
+   "question_overlap_with_block": 0.43,
+   "label_provenance": "llm-drafted, mechanically checked (span verbatim in block)",
+   "verified_by_human": false
+  },
+  {
+   "id": "P040",
+   "question": "At what time does the lockout start?",
+   "source": "report.docx",
+   "answerable": true,
+   "kind": "paraphrase",
+   "expected_positions": [
+    1
+   ],
+   "required_facts": [
+    "The change freeze opens at 18:00 UTC"
+   ],
+   "answers": [
+    "The change freeze opens at 18:00 UTC"
+   ],
+   "question_overlap_with_span": 0.0,
+   "question_overlap_with_block": 0.0,
+   "label_provenance": "llm-drafted, mechanically checked (span verbatim in block)",
+   "verified_by_human": false
+  },
+  {
+   "id": "P041",
+   "question": "How many days is recent telemetry kept in fast storage?",
+   "source": "service.json",
+   "answerable": true,
+   "kind": "paraphrase",
+   "expected_positions": [
+    0
+   ],
+   "required_facts": [
+    "$.retention.hot_days: 7"
+   ],
+   "answers": [
+    "$.retention.hot_days: 7"
+   ],
+   "question_overlap_with_span": 0.14,
+   "question_overlap_with_block": 0.29,
+   "label_provenance": "llm-drafted, mechanically checked (span verbatim in block)",
+   "verified_by_human": false
+  },
+  {
+   "id": "P042",
+   "question": "How long are cached entries kept before they expire?",
+   "source": "app.yaml",
+   "answerable": true,
+   "kind": "paraphrase",
+   "expected_positions": [
+    0
+   ],
+   "required_facts": [
+    "$.cache.ttl_seconds: 600"
+   ],
+   "answers": [
+    "$.cache.ttl_seconds: 600"
+   ],
+   "question_overlap_with_span": 0.0,
+   "question_overlap_with_block": 0.17,
+   "label_provenance": "llm-drafted, mechanically checked (span verbatim in block)",
+   "verified_by_human": false
+  },
+  {
+   "id": "P043",
+   "question": "After how many minutes does an unresolved alert get escalated?",
+   "source": "warehouse.ini",
+   "answerable": true,
+   "kind": "paraphrase",
+   "expected_positions": [
+    0
+   ],
+   "required_facts": [
+    "$.alerts.escalate_after_minutes: 15"
+   ],
+   "answers": [
+    "$.alerts.escalate_after_minutes: 15"
+   ],
+   "question_overlap_with_span": 0.29,
+   "question_overlap_with_block": 0.29,
+   "label_provenance": "llm-drafted, mechanically checked (span verbatim in block)",
+   "verified_by_human": false
+  },
+  {
+   "id": "P044",
+   "question": "How many samples go through the network in one training step?",
+   "source": "model.json",
+   "answerable": true,
+   "kind": "paraphrase",
+   "expected_positions": [
+    0
+   ],
+   "required_facts": [
+    "$.training.batch_size: 512"
+   ],
+   "answers": [
+    "$.training.batch_size: 512"
+   ],
+   "question_overlap_with_span": 0.12,
+   "question_overlap_with_block": 0.12,
+   "label_provenance": "llm-drafted, mechanically checked (span verbatim in block)",
+   "verified_by_human": false
+  },
+  {
+   "id": "P045",
+   "question": "Which database shard timed out on a query?",
+   "source": "app.log",
+   "answerable": true,
+   "kind": "paraphrase",
+   "expected_positions": [
+    6
+   ],
+   "required_facts": [
+    "query timeout after 30s on shard 3"
+   ],
+   "answers": [
+    "query timeout after 30s on shard 3"
+   ],
+   "question_overlap_with_span": 0.4,
+   "question_overlap_with_block": 0.4,
+   "label_provenance": "llm-drafted, mechanically checked (span verbatim in block)",
+   "verified_by_human": false
+  },
+  {
+   "id": "P046",
+   "question": "Why was client edge-11 turned away?",
+   "source": "app.log",
+   "answerable": true,
+   "kind": "paraphrase",
+   "expected_positions": [
+    20
+   ],
+   "required_facts": [
+    "client edge-11 presented expired certificate"
+   ],
+   "answers": [
+    "client edge-11 presented expired certificate"
+   ],
+   "question_overlap_with_span": 0.6,
+   "question_overlap_with_block": 0.6,
+   "label_provenance": "llm-drafted, mechanically checked (span verbatim in block)",
+   "verified_by_human": false
+  },
+  {
+   "id": "P047",
+   "question": "How well did the yield model fit its data?",
+   "source": "harvest.log",
+   "answerable": true,
+   "kind": "paraphrase",
+   "expected_positions": [
+    8
+   ],
+   "required_facts": [
+    "rmse 412.7 kg/ha, r2 0.71"
+   ],
+   "answers": [
+    "rmse 412.7 kg/ha, r2 0.71"
+   ],
+   "question_overlap_with_span": 0.0,
+   "question_overlap_with_block": 0.2,
+   "label_provenance": "llm-drafted, mechanically checked (span verbatim in block)",
+   "verified_by_human": false
+  },
+  {
+   "id": "P048",
+   "question": "How many Espresso Blend units were sold in Asia-Pacific?",
+   "source": "coffee_sales.csv",
+   "answerable": true,
+   "kind": "paraphrase",
+   "expected_positions": [
+    0
+   ],
+   "required_facts": [
+    "units_sold: 1402"
+   ],
+   "answers": [
+    "units_sold: 1402"
+   ],
+   "question_overlap_with_span": 0.29,
+   "question_overlap_with_block": 0.57,
+   "label_provenance": "llm-drafted, mechanically checked (span verbatim in block)",
+   "verified_by_human": false
+  },
+  {
+   "id": "P049",
+   "question": "What was EMEA's core product revenue in the first quarter?",
+   "source": "finance.csv",
+   "answerable": true,
+   "kind": "paraphrase",
+   "expected_positions": [
+    0
+   ],
+   "required_facts": [
+    "revenue_usd: 412300"
+   ],
+   "answers": [
+    "revenue_usd: 412300"
+   ],
+   "question_overlap_with_span": 0.14,
+   "question_overlap_with_block": 0.71,
+   "label_provenance": "llm-drafted, mechanically checked (span verbatim in block)",
+   "verified_by_human": false
+  },
+  {
+   "id": "P050",
+   "question": "Which spend level earns the biggest discount?",
+   "source": "cart.js",
+   "answerable": true,
+   "kind": "paraphrase",
+   "expected_positions": [
+    1
+   ],
+   "required_facts": [
+    "{ minSpend: 500, rate: 0.12 }"
+   ],
+   "answers": [
+    "{ minSpend: 500, rate: 0.12 }"
+   ],
+   "question_overlap_with_span": 0.0,
+   "question_overlap_with_block": 0.0,
+   "label_provenance": "llm-drafted, mechanically checked (span verbatim in block)",
+   "verified_by_human": false
+  },
+  {
+   "id": "P051",
+   "question": "How is the wait before each retry worked out?",
+   "source": "pipeline.py",
+   "answerable": true,
+   "kind": "paraphrase",
+   "expected_positions": [
+    1
+   ],
+   "required_facts": [
+    "return base * (2 ** (attempt - 1))"
+   ],
+   "answers": [
+    "return base * (2 ** (attempt - 1))"
+   ],
+   "question_overlap_with_span": 0.0,
+   "question_overlap_with_block": 0.5,
+   "label_provenance": "llm-drafted, mechanically checked (span verbatim in block)",
+   "verified_by_human": false
+  },
+  {
+   "id": "P052",
+   "question": "How is the data split so neighbouring plots do not leak between sets?",
+   "source": "train.py",
+   "answerable": true,
+   "kind": "paraphrase",
+   "expected_positions": [
+    1
+   ],
+   "required_facts": [
+    "Split by spatial block so neighbouring plots cannot straddle a split"
+   ],
+   "answers": [
+    "Split by spatial block so neighbouring plots cannot straddle a split"
+   ],
+   "question_overlap_with_span": 0.38,
+   "question_overlap_with_block": 0.38,
+   "label_provenance": "llm-drafted, mechanically checked (span verbatim in block)",
+   "verified_by_human": false
+  },
+  {
+   "id": "P053",
+   "question": "What triggers a sudden speed-up of a glacier?",
+   "source": "glaciology.pdf",
+   "answerable": true,
+   "kind": "paraphrase",
+   "expected_positions": [
+    0
+   ],
+   "required_facts": [
+    "caused by water reaching the bed, which decouples the ice from its substrate"
+   ],
+   "answers": [
+    "caused by water reaching the bed, which decouples the ice from its substrate"
+   ],
+   "question_overlap_with_span": 0.0,
+   "question_overlap_with_block": 0.2,
+   "label_provenance": "llm-drafted, mechanically checked (span verbatim in block)",
+   "verified_by_human": false
+  },
+  {
+   "id": "P054",
+   "question": "What do drumlins tell us about past ice?",
+   "source": "glaciology.pdf",
+   "answerable": true,
+   "kind": "paraphrase",
+   "expected_positions": [
+    1
+   ],
+   "required_facts": [
+    "long axis records the direction of ice flow"
+   ],
+   "answers": [
+    "long axis records the direction of ice flow"
+   ],
+   "question_overlap_with_span": 0.17,
+   "question_overlap_with_block": 0.33,
+   "label_provenance": "llm-drafted, mechanically checked (span verbatim in block)",
+   "verified_by_human": false
+  }
+ ]
+}

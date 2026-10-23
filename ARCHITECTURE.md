@@ -1,9 +1,12 @@
 # Architecture: how the whole app fits together
 
 Every flow in this document ends at a `module.py:line` reference so the picture can
-be checked against the code rather than trusted. References were verified against
-commit `d6ae9b8` on 2026-10-07; they drift as the code moves, and the line number
-is the thing to re-check, not the shape.
+be checked against the code rather than trusted. The line numbers were last
+verified against commit `d6ae9b8` on 2026-10-07 and have **not** been re-checked
+since: `app/store.py`, `app/llm.py`, `app/answering.py`, `app/parsers.py` and
+`app/routes/sources.py` have all changed (citation quotes and locations,
+migration 0007, indexing off the event loop). Treat a line number as a hint and
+search for the function name; the shape of each flow is current.
 
 Four things happen in this app: a document is uploaded and indexed, the web is
 searched and indexed, a question is answered from what was indexed, and a
@@ -83,19 +86,19 @@ sequenceDiagram
     API->>API: suffix in ALLOWED ? otherwise 400 (sources.py:82)
     API->>API: resolve_session() unknown id is 404 (payloads.py:33)
     API->>API: write UPLOAD_DIR / uuid4hex + suffix
-    API->>ST: store.add(path, display_name, session_id) (store.py:225)
+    API->>ST: await run_in_threadpool(store.add, ...) behind asyncio.Semaphore(INDEX_CONCURRENCY): parsing, OCR and embedding never run on the event loop
     ST->>DB: content hash, then _find_duplicate in this session (store.py:317)
     alt duplicate
         ST-->>API: existing Source flagged duplicate
         Note right of ST: stored file discarded, no parse, no embed
     else new document
-        ST->>PR: parsers.parse(path, stats) (parsers.py:1096)
-        PR-->>ST: Block(page, heading, text) per chunk
+        ST->>PR: parsers.parse_document(path, stats)
+        PR-->>ST: Block(page, heading, text, start, end) per chunk + parsed text + page offsets
         ST->>ST: drop empty blocks, flag is_numeric_heavy (parsers.py:206)
         ST->>DB: INSERT sources (token_max, fit_splits, size_splits, file_bytes)
         ST->>EM: embed_texts(block.text) (embeddings.py:13)
         EM-->>ST: normalised vectors, MiniLM-L6-v2, batch 32
-        ST->>DB: INSERT chunks (position, page, heading, text, numeric_heavy, embedding)
+        ST->>DB: INSERT chunks (position, page, heading, text, numeric_heavy, char_start, char_end, embedding)
         ST->>DB: UPDATE sources SET chunk_count, numeric_count
         ST->>ST: _invalidate(session_id) bumps the BM25 revision
         ST-->>API: Source(...)

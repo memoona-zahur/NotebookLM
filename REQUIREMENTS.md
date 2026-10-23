@@ -3,8 +3,8 @@
 **Document ID:** SRS-NBLM-001
 **Product:** Local NotebookLM — a local, source-grounded RAG research assistant
 **Version:** 1.0
-**Status:** Baselined against commit `83f1cef` (branch `main`)
-**Last updated:** 2026-10-15
+**Status:** Revised after the citation-viewer work and the review fixes (previously baselined against `83f1cef`)
+**Last updated:** 2026-10-23
 **Owner:** Memoona Zahur
 
 > This document is written so that a new engineer **or an AI agent** can pick up the
@@ -231,7 +231,9 @@ app/
 ├── store.py         Ingest (parse→chunk→embed→store), hybrid retrieval, duplicate/reindex/cache
 ├── answering.py     THE POLICY: classify → retrieve → floor → refuse/generate → audit
 ├── llm.py           SYSTEM_PROMPT, provider dispatch, citation validation, last-usage ContextVar
-├── parsers.py       Per-format extraction → Blocks(page, heading, text); numeric flagging
+├── parsers.py       Per-format extraction → Blocks(page, heading, text, start, end); numeric flagging; chunk offsets
+├── citing.py        Quote folding/validation, sentence matcher, UTF-16 offsets (the text behind a citation)
+├── pdfloc.py        Quote → PDF page rectangles from the page's own characters
 ├── embeddings.py    MiniLM (cached) — embed_texts, embed_query, score_against_query
 ├── lexical.py       Okapi BM25 (code-aware tokenizer), IDF coverage, RRF fusion
 ├── rerank.py        Cross-encoder gate; every failure path degrades to "keep order"
@@ -289,7 +291,7 @@ app/
 - **Output:** a list of `Block(page, heading, text)`.
 - **Failure rule:** a document that yields **no** text is **refused** with a reason (never
   indexed empty). A scan over `OCR_MAX_PAGES` is refused rather than partly indexed.
-- **Requirements:** FR-1, FR-2, FR-3, FR-4, FR-20.
+- **Requirements:** FR-5, FR-6, FR-7, FR-8 (§6.2).
 
 ### 5.2 Stage 2 — Chunk
 
@@ -305,7 +307,7 @@ app/
 - **Output:** ordered chunks with `(position, page, heading, text, numeric_heavy)`.
 - **Invariants:** every stored chunk is a chunk the vector actually describes; the two
   ceilings are counted separately.
-- **Requirements:** FR-5, FR-6, FR-7.
+- **Requirements:** FR-6, FR-12, FR-25, FR-48c (§6.2, §6.4, §6.7).
 
 ### 5.3 Stage 3 — Embed
 
@@ -313,19 +315,20 @@ app/
 - **Process:** `all-MiniLM-L6-v2`, batch 32, **locally** (no API key, no network),
   normalised 384-d vectors; model cached in process.
 - **Output:** one `vector(384)` per chunk.
-- **Requirements:** FR-8, NFR-3.
+- **Requirements:** NFR-12 (embeddings stay local).
 
 ### 5.4 Stage 4 — Store & index
 
 - **Input:** source record + chunks + vectors.
 - **Process:** INSERT `sources`, INSERT `chunks` (with `embedding`), UPDATE counts; an HNSW
-  cosine index exists (at this corpus size Postgres may still prefer an exact sequential
-  scan — both are measured at ~1 ms). A per-session BM25 index is built on demand and
+  cosine index exists, but the session-filtered dense query is planned as an exact scan of
+  the notebook's chunks and does not use it (measured with `EXPLAIN`; a test guards this, so a
+  small notebook in a large database cannot lose recall to an index that filters afterwards). A per-session BM25 index is built on demand and
   cached, invalidated when the session's chunk count changes.
 - **Duplicate rule:** a **SHA-256 of the bytes is taken before parsing**; if the same file
   already exists in *this session*, it is returned with `duplicate: true` and **not**
   re-indexed.
-- **Requirements:** FR-9, FR-10, FR-19, FR-23.
+- **Requirements:** FR-9, FR-10, FR-48c, NFR-28 (§6.2, §6.7).
 
 ### 5.5 Stage 5 — Classify (before any embedding)
 
@@ -335,7 +338,7 @@ app/
 - **Output:** `question | greeting | small_talk | assistant | empty-ish`.
 - **Rule:** every doubt resolves **towards retrieval** (a wrongly greeted real question is
   worse than a needlessly searched "hi").
-- **Requirements:** FR-11, FR-12.
+- **Requirements:** FR-38, FR-39 (§6.6).
 
 ### 5.6 Stage 6 — Retrieve (hybrid, over-fetch)
 
@@ -346,7 +349,7 @@ app/
   - **Lexical:** BM25 over the session's chunks with a **code-aware tokenizer**; unseen ids
     re-scored with `score_against_query`.
 - **Output:** two ranked lists over the union of candidates.
-- **Requirements:** FR-13, FR-14, FR-25.
+- **Requirements:** FR-18, FR-19 (§6.4).
 
 ### 5.7 Stage 7 — Fuse (RRF)
 
@@ -354,7 +357,7 @@ app/
   RRF is used because the scales are incomparable (cosine ~0.3–0.7 vs unbounded BM25), so
   any fixed weight would be corpus-specific.
 - **Output:** one fused ordering.
-- **Requirements:** FR-14.
+- **Requirements:** FR-18 (§6.4).
 
 ### 5.8 Stage 8 — Admit / Floor (the gate)
 
@@ -371,7 +374,7 @@ app/
   floor `max(MIN_SCORE, best_score × MIN_RATIO)` prunes the weak tail.
 - **Decision:** if **no** candidate survives → verdict `no_match`, **the LLM is never
   called**, cost is a measured zero.
-- **Requirements:** FR-15, FR-16, FR-17.
+- **Requirements:** FR-19, FR-20, FR-21, FR-25, FR-26 (§6.4, §6.5).
 
 ### 5.9 Stage 9 — Re-rank (shortlist only)
 
@@ -383,7 +386,7 @@ app/
   degrades to "leave the order alone". A ranking feature that can block a request is worse
   than no feature.
 - **Output:** final ordering.
-- **Requirements:** FR-18, NFR-9.
+- **Requirements:** FR-22, FR-23, NFR-16 (§6.4, §7.4).
 
 ### 5.10 Stage 10 — Diversify & assemble context
 
@@ -400,7 +403,7 @@ app/
 
 - **Rule:** SOURCES sit **last**, immediately before the question, so the citable passages
   are the freshest thing in the context window.
-- **Requirements:** FR-21, FR-22, FR-29.
+- **Requirements:** FR-24, FR-27, FR-28 (§6.4, §6.5).
 
 ### 5.11 Stage 11 — Generate
 
@@ -408,7 +411,7 @@ app/
   temperature (0.2), an instruction to cite `[n]`, and a system prompt that forbids
   outside knowledge. Only the question + retrieved chunks are sent (embeddings stay local).
 - **Output:** raw answer text; provider-reported token counts captured for cost.
-- **Requirements:** FR-24, FR-26, NFR-3.
+- **Requirements:** FR-36, FR-48a, NFR-11, NFR-12, NFR-15 (§6.5, §7).
 
 ### 5.12 Stage 12 — Validate citations
 
@@ -416,21 +419,21 @@ app/
   Out-of-range references are **stripped** and reported in `evidence.invalid`. CJK bracket
   variants (`【1】`, `［１］`) are normalised to ASCII.
 - **Rule:** a prompt is not a guarantee; the code enforces it.
-- **Requirements:** FR-27, FR-28.
+- **Requirements:** FR-30, FR-31, FR-48a, FR-48b (§6.5, §6.7).
 
 ### 5.13 Stage 13 — Grounding audit
 
 - **Process:** compute `ungrounded` = (answer cited nothing) OR (answer cited a number never
   supplied). Produce the `evidence` object: verdict, confidence, best score, floor,
   considered/returned/passages counts, `cited`, `invalid`, `injection`, and `cost`.
-- **Requirements:** FR-30, FR-31.
+- **Requirements:** FR-32, FR-33, FR-34, FR-35 (§6.5).
 
 ### 5.14 Stage 14 — Persist & report
 
 - **Process:** write `user` then `assistant` messages (with `citations` + `evidence` JSONB),
   touch the session, and return `{answer, citations, evidence}`. Provenance thus survives a
   reload.
-- **Requirements:** FR-32, FR-33, FR-35, FR-36.
+- **Requirements:** FR-29, FR-33, FR-48c, FR-49, FR-50, FR-51, FR-52 (§6.5, §6.7, §6.8).
 
 ---
 
@@ -466,7 +469,7 @@ Priority key: **M** = MUST, **S** = SHOULD, **C** = COULD, **W** = WON'T now.
 |---|---|---|---|
 | FR-13 | S | The system SHOULD support "search the web" to find pages and index them **as sources** (not as model prose). | web-ingest tests |
 | FR-14 | S | Web search MUST be unavailable (with a stated reason) unless the Groq provider + key are present and `WEB_SEARCH=1`; the UI control MUST disable, not fail. | `web_search_available()`; status tests |
-| FR-15 | M | The web fetcher MUST refuse loopback/private/link-local/reserved addresses **before** connecting, and MUST re-check **every** redirect hop. | SSRF tests assert on requested URLs |
+| FR-15 | M | The web fetcher MUST refuse every address that is not publicly routable (`ipaddress.is_global` false — loopback, private, link-local, carrier-grade NAT `100.64.0.0/10`, reserved, multicast, and their IPv4-mapped IPv6 forms) **before** connecting, and MUST re-check **every** redirect hop. It MUST NOT claim to honour `robots.txt` (it does not read it). | SSRF tests assert on requested URLs |
 | FR-16 | M | The web fetcher MUST cap response size (streamed), time, page count, and redirect hops. | config ceilings; tests |
 | FR-17 | S | A web ingest MUST return `200` with partial success (`added[]`, `failed[{url, reason}]`); `400` only when nothing could run; `502` when the search itself failed. | `webingest` tests |
 
@@ -571,7 +574,7 @@ Priority key: **M** = MUST, **S** = SHOULD, **C** = COULD, **W** = WON'T now.
 | NFR-6 | M | Provider API keys MUST remain server-side and never reach the browser. | status omits keys; tests |
 | NFR-7 | M | Untrusted files MUST NOT be executable on the app origin. | HTML/SVG served `text/plain` + `nosniff` |
 | NFR-8 | M | Uploads MUST be deletable only inside `UPLOAD_DIR`. | ownership/path tests |
-| NFR-9 | M | Web fetch MUST be SSRF-guarded per §5.3 FR-15. | SSRF tests |
+| NFR-9 | M | Web fetch MUST be SSRF-guarded as specified by FR-15 (§6.3). | SSRF tests |
 | NFR-10 | M | Answer rendering MUST be structurally inert (no HTML execution). | markdown builder tests |
 | NFR-11 | M | Retrieved passages MUST be treated as data in the prompt (injection defence). | prompt-defence test |
 
@@ -592,6 +595,8 @@ Priority key: **M** = MUST, **S** = SHOULD, **C** = COULD, **W** = WON'T now.
 | NFR-17 | M | A failed step MUST still close its trace span. |
 | NFR-18 | M | Cost recording MUST be best-effort and never fail the user's request. |
 | NFR-19 | M | The app MUST start even without an LLM key (and refuse to answer, not crash). |
+| NFR-32 | M | Parsing, OCR and embedding on upload MUST NOT run on the event loop (a request for `/api/status` during a slow upload MUST be answered at once); at most `INDEX_CONCURRENCY` uploads are indexed at once and the rest wait. Shared state touched by those threads (embedder load and tokenizer, re-ranker, DB pool, BM25 cache) MUST be guarded. | live-server test; thread-safety tests |
+| NFR-33 | M | Every LLM client call MUST have an explicit timeout (`LLM_TIMEOUT`) and a capped retry count. | timeout test |
 
 ### 7.5 Maintainability & testability
 
@@ -602,6 +607,8 @@ Priority key: **M** = MUST, **S** = SHOULD, **C** = COULD, **W** = WON'T now.
 | NFR-22 | M | Migrations MUST be hand-written SQL, reviewable, and match what the code reads. |
 | NFR-23 | M | Every module MUST state its policy and its trade-offs in a docstring. |
 | NFR-24 | S | A sensitivity sweep MUST show which tuning constants are load-bearing. |
+| NFR-34 | M | `./run_tests.sh` (and therefore CI) MUST run `ruff` and `eslint` before the test suites. | `ruff.toml`, `frontend/eslint.config.js` |
+| NFR-35 | M | Every reported evaluation number MUST state its `n`, MUST come from a committed artefact, and MUST say when its labels were not read by a person; a `--limit` sample MUST NOT be quoted as the result for the set. | `experiments/results/*.json` |
 
 ### 7.6 Portability & operability
 
@@ -837,27 +844,41 @@ number is quoted from a source that does not exist.
 
 ### 11.1 Retrieval
 
-| Metric | Value | Artifact |
-|---|---|---|
-| Relevant answered / traps rejected | **79/79 / 42/42** | `experiments/eval_retrieval.py` |
-| Recall@5 | **0.955** | `experiments/results/cloze_set_metrics.json` |
-| MRR@5 | **0.974** (0.952 without re-rank) | same |
-| nDCG@5 | **0.943** (0.928 without re-rank) | same |
-| Precision@5 | **0.226** | same |
-| Hit-rate@5 | **1.000** | same |
-| Fact coverage | **0.922** | same |
-| Trap leak rate | **0.000** | same |
+The cloze set (the question is the document line with a blank) is easy by
+construction, so it is reported next to a paraphrased set and a trap set, with `n`
+on every row. Labels on all three are **machine-checked or model-drafted, not read
+by a person** (`human_verified: false`).
+
+| Set / metric | n | Value | Artifact |
+|---|---|---|---|
+| Cloze, position-based (`eval_gold`): recall@5 | 115 | **0.955** | `experiments/results/cloze_set_metrics.json` |
+| Cloze: MRR@5 / nDCG@5 / precision@5 / hit-rate@5 | 115 | **0.974** (0.952 without re-rank) / **0.943** (0.928) / **0.226** / **1.000** | same |
+| Cloze: fact coverage | 115 | **0.922** | same |
+| Cloze, unrelated-topic traps leaked | 7 | **0** | same |
+| Cloze, span-in-chunk yardstick: recall@5 / hit@1 / MRR@5 | 115 | **0.870** / 0.774 / 0.820 | `experiments/results/retrieval_sets_metrics.json` |
+| Paraphrase, same yardstick: recall@5 / hit@1 / MRR@5 | 55 | **0.855** / 0.836 / 0.845 | same |
+| Paraphrase recall@5 where the question shares < 0.15 of its words with the answer | 32 | **0.812** (vs 0.973 for cloze items sharing >= 0.4, n=75) | same |
+| Entity-overlap traps leaked past the relevance floor | 24 | **24 (rate 1.000)** | same |
+| Relevant answered / traps rejected (`eval_retrieval.py`, hand-written questions) | 79 / 42 | **79/79 / 42/42** | `experiments/eval_retrieval.py` (not regenerated for this revision) |
 
 ### 11.2 Generation
 
-| Metric | Value | Note |
-|---|---|---|
-| Faithfulness | **0.917** | cited claims traceable to their passage |
-| Citation precision | **1.000** | every cited marker pointed at a real passage |
-| Substance | **0.725** | labelled facts covered, tolerant of rewording |
-| Trap refusal | **1.000** | off-topic refused, not answered |
-| Relevancy | **0.167** | **explicitly reported as unfit for purpose** (lexical overlap ≠ addressing the question) |
-| Verbatim | **0.000** | labels are whole sentences; measures paraphrase, not quality |
+Each row is one run of `experiments/eval_generation.py`; "answered" is the `n` the
+averages are over (unavailable items are excluded and counted, never scored 0).
+The earlier headline (`faithfulness 0.917`) was 11 of the first 12 items of a
+`--limit 12` run and is retired.
+
+| Run | Model | Answered / items | Faithfulness | Citation precision | Substance | Traps refused |
+|---|---|---|---|---|---|---|
+| Cloze (`generation_metrics.json`) | gpt-oss-120b | **68** / 115 (47 unavailable: Groq daily token cap) | 0.588 | 0.598 | 0.210 | 7/7 (floor) |
+| Cloze (`generation_cloze_ollama_metrics.json`) | qwen3:4b-instruct | 115 / 115 | 0.099 | 0.104 | 0.291 | 7/7 (floor) |
+| Paraphrase + entity traps (`generation_paraphrase_metrics.json`) | gpt-oss-120b | **47** / 55 (3 floor-refused, 5 unavailable) | 0.809 | 0.883 | 0.651 | 19 of 21 that ran (24 total) |
+| Paraphrase + entity traps (`generation_paraphrase_ollama_metrics.json`) | qwen3:4b-instruct | 52 / 55 (3 floor-refused) | 0.452 | 0.538 | 0.613 | 16 of 24 |
+
+Relevancy remains **explicitly reported as unfit for purpose** (lexical overlap is not
+"addresses the question"), and `verbatim` stays near zero because labels are whole
+sentences; both measure paraphrase, not quality. The hosted-model cloze run is
+incomplete and should be re-run when the provider quota resets.
 
 ### 11.3 Evaluation methodology principles
 
@@ -882,7 +903,7 @@ number is quoted from a source that does not exist.
 
 Runs, in order:
 
-1. **Backend** — `python test_app.py`: **151 checks**, against a scratch Postgres it
+1. **Backend** — `python test_app.py`: **162 checks**, against a scratch Postgres it
    creates and drops (never real data).
 2. **Frontend** — `npm test` (Vitest + jsdom): **216 checks**, `fetch` mocked.
 3. **Production build** — `npm run build` (Vite).
@@ -911,7 +932,7 @@ A green run is the definition of "done" for any change.
 
 The release is acceptable when **all** hold:
 
-- [ ] `./run_tests.sh` is green (151 + 216 + build).
+- [ ] `./run_tests.sh` is green (162 + 216 + build).
 - [ ] `GET /api/status` returns 200 and reports the live provider, model, counts.
 - [ ] A fresh notebook can upload a source, answer a covered question with citations, and
       refuse an uncovered one with `no_match`.
@@ -972,7 +993,7 @@ The release is acceptable when **all** hold:
 | Prompt injection | Document tries to instruct the model | Prompt rule (real defence) + regex detection (visibility). Regex paraphrase-able. |
 | Unpriced model in total | Understates spend | Unknown price = `None` → "no rate", never `0.0`. |
 | Inline indexing blocks event loop | Large PDF stalls the server | Documented; job queue is the recommended fix. **Open.** |
-| Entity-overlap trap leaks | Wrong-but-plausible answer | 4/10 of this trap class caught; re-rank added but not credited. **Open.** |
+| Entity-overlap trap leaks | Wrong-but-plausible answer | **24 of 24** such traps clear the relevance floor (§11.1); the model then declined 19 of 21 (gpt-oss-120b) and 16 of 24 (qwen3:4b). The floor does not protect against this class. **Open.** |
 | Hand-written migrations drift | Runtime failure vs migrate-time | Tests assert migrated columns match code. |
 | Machine-checked labels | Metrics optimistic | `human_verified: false` stated; `gold_set.json` 0/48 verified. |
 | `MIN_SCORE` model-specific | Changing embedder invalidates floor | Documented; must re-measure. |
@@ -1057,14 +1078,16 @@ defences, and audited per-query cost.
 - Enforced **grounding in code**: a calibrated relevance floor that *prevents* the LLM
   call below it, plus citation validation and an `ungrounded` audit — so the system fails
   visibly instead of hallucinating.
-- Built an **evaluation harness** (recall @5 **0.955**, MRR **0.974**, nDCG **0.943**,
-  faithfulness **0.917**, trap refusal **1.000**) with no LLM judge and no circular labels.
+- Built an **evaluation harness** that states `n` on every number: cloze recall@5 **0.955**
+  (n=115, machine-labelled), paraphrased-question recall@5 **0.855** (n=55), and a trap set
+  that found **24 of 24** entity-overlap questions clearing the relevance floor - a weakness
+  measured and written down, not hidden - with no LLM judge and no circular labels.
 - Hardened an **SSRF-prone** web-ingestion path: private/loopback blocking on every
   redirect hop, streamed size caps, and a test that asserts the URLs actually requested.
 - Delivered a **cost/observability** layer: provider-reported tokens, split latency
   percentiles, a dated price table where unknown prices are `None` not `$0`, and opt-in
   privacy-split tracing.
-- Shipped **151 backend + 216 frontend** tests and a **one-command gate**
+- Shipped **162 backend + 216 frontend** tests and a **one-command gate**
   (`./run_tests.sh`) covering grounding, injection, sessions, OCR, cost, and the frontend.
 
 **Skills demonstrated.** RAG architecture · hybrid retrieval & re-ranking · Postgres +
@@ -1076,7 +1099,7 @@ metrics design · security (SSRF, prompt injection) · observability · technica
 ## 20. Requirements checklist (definition of done)
 
 - [ ] All **MUST** requirements (§6, §7) are implemented and verified.
-- [ ] `./run_tests.sh` is green (151 backend + 216 frontend + build).
+- [ ] `./run_tests.sh` is green (162 backend + 216 frontend + build).
 - [ ] `/api/status`, `/api/ask`, `/api/sources`, `/api/sessions` match §9.
 - [ ] Schema matches §8 (migrations at head; tests assert column agreement).
 - [ ] Configuration matches §10.
@@ -1098,7 +1121,7 @@ metrics design · security (SSRF, prompt injection) · observability · technica
 ### Appendix B — Verified facts (spot-check list)
 
 - 39 file suffixes: `python -c "from app.parsers import SUPPORTED; print(len(SUPPORTED))"`.
-- Test counts: `./run_tests.sh` output (151 / 216).
+- Test counts: `./run_tests.sh` output (162 / 216).
 - Migrations: `ls migrations/versions/` → `0001`…`0007`.
 - Corpus: 28 files in `experiments/corpus/`; cloze set 122 items (115 answerable, 7 traps).
 - Prices (as of 2026-10-07): `gpt-oss-120b` $0.15/$0.60, `gpt-oss-20b` $0.075/$0.30 per 1M.

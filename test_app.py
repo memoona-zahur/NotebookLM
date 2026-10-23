@@ -2869,6 +2869,82 @@ def test_a_query_scores_the_whole_corpus_with_bm25_once(client: TestClient) -> N
     print("  one BM25 pass per query, coverage included: OK")
 
 
+def test_the_paraphrase_and_trap_sets_check_themselves_and_are_not_stale(client: TestClient) -> None:
+    """The sets are generated from data in `build_paraphrase_set.py`; the checks that
+    make them more than opinion run every time, and a committed file cannot drift
+    from the data it came from."""
+    import copy
+
+    from experiments import build_paraphrase_set as bp
+
+    para, trap = bp.build()
+    for name, built in (("paraphrase_set.json", para), ("trap_set.json", trap)):
+        committed = json.loads((ROOT / "experiments" / "gold" / name).read_text(encoding="utf-8"))
+        assert committed == built, f"{name} is stale: run python -m experiments.build_paraphrase_set"
+        assert all(item["verified_by_human"] is False for item in built["items"]), "nobody has read these"
+    assert len(para["items"]) >= 50 and len(trap["items"]) >= 20
+
+    # A paraphrase question must not just repeat the answer: low overlap is the point.
+    mean = sum(i["question_overlap_with_span"] for i in para["items"]) / len(para["items"])
+    assert mean < 0.3, mean
+
+    # The mechanical checks can fail. Break one of each and the build refuses.
+    saved = copy.deepcopy((bp.PARAPHRASES, bp.TRAPS))
+    try:
+        bp.PARAPHRASES[0] = (*bp.PARAPHRASES[0][:3], "a span that is not in the block")
+        try:
+            bp.build()
+        except SystemExit as exc:
+            assert "not verbatim" in str(exc), exc
+        else:
+            raise AssertionError("a span that is not in its block must fail the build")
+        bp.PARAPHRASES[:] = saved[0]
+        question, entities, files, _absent, absent_in = bp.TRAPS[0]
+        bp.TRAPS[0] = (question, entities, files, ["mash"], absent_in)  # "mash" is in the corpus
+        try:
+            bp.build()
+        except SystemExit as exc:
+            assert "answerable" in str(exc), exc
+        else:
+            raise AssertionError("a trap whose missing term is present must fail the build")
+    finally:
+        bp.PARAPHRASES[:], bp.TRAPS[:] = saved
+    print("  the paraphrase and trap sets re-check themselves, match their data, and claim no human review: OK")
+
+
+def test_the_generation_eval_waits_out_a_rate_limit_but_not_a_real_failure(client: TestClient, monkeypatch) -> None:
+    import time as _time
+
+    from experiments import eval_generation as eg
+
+    calls = []
+
+    def flaky(question, hits, history):
+        calls.append(1)
+        if len(calls) < 3:
+            raise llm.LLMUnavailable("Could not reach Groq: Error code: 429 - Rate limit reached ... TPM")
+        return "answer"
+
+    sleeps = []
+    monkeypatch.setattr(llm, "answer", flaky)
+    monkeypatch.setattr(_time, "sleep", lambda s: sleeps.append(s))
+    assert eg.ask_model("q", []) == "answer" and len(calls) == 3 and len(sleeps) == 2, (calls, sleeps)
+
+    def down(question, hits, history):
+        raise llm.LLMUnavailable("Could not reach Groq: connection refused")
+
+    monkeypatch.setattr(llm, "answer", down)
+    sleeps.clear()
+    try:
+        eg.ask_model("q", [])
+    except llm.LLMUnavailable:
+        pass
+    else:
+        raise AssertionError("a provider that is down is not retried forever")
+    assert sleeps == [], "only a rate limit is waited out"
+    print("  the generation eval retries a 429 and surfaces a real outage at once: OK")
+
+
 def test_a_chunking_config_that_could_hang_cannot_hang(client: TestClient) -> None:
     """`CHUNK_SIZE <= CHUNK_OVERLAP` looped backwards and appended forever.
 
@@ -5287,6 +5363,8 @@ ORDER = [
     ("user-agent honest", test_the_fetcher_does_not_claim_to_respect_robots),
     ("dense retrieval exact with many notebooks", test_dense_retrieval_stays_exact_with_many_notebooks),
     ("one bm25 pass", test_a_query_scores_the_whole_corpus_with_bm25_once),
+    ("eval sets self-check", test_the_paraphrase_and_trap_sets_check_themselves_and_are_not_stale),
+    ("eval waits out 429", test_the_generation_eval_waits_out_a_rate_limit_but_not_a_real_failure),
 ]
 
 
