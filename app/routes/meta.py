@@ -67,4 +67,6 @@ def status(request: Request, session_id: str | None = None) -> dict:
 
 @router.get("/")
 def index() -> FileResponse:
-    return FileResponse(config.STATIC_DIR / "index.html")
+    # no-cache: the page names the bundle, so a stale copy of it would pin a stale
+    # bundle too (see RevalidatingStatic in main.py).
+    return FileResponse(config.STATIC_DIR / "index.html", headers={"Cache-Control": "no-cache"})

@@ -903,7 +903,7 @@ incomplete and should be re-run when the provider quota resets.
 
 Runs, in order:
 
-1. **Backend** — `python test_app.py`: **162 checks**, against a scratch Postgres it
+1. **Backend** — `python test_app.py`: **163 checks**, against a scratch Postgres it
    creates and drops (never real data).
 2. **Frontend** — `npm test` (Vitest + jsdom): **216 checks**, `fetch` mocked.
 3. **Production build** — `npm run build` (Vite).
@@ -932,7 +932,7 @@ A green run is the definition of "done" for any change.
 
 The release is acceptable when **all** hold:
 
-- [ ] `./run_tests.sh` is green (162 + 216 + build).
+- [ ] `./run_tests.sh` is green (163 + 218 + build).
 - [ ] `GET /api/status` returns 200 and reports the live provider, model, counts.
 - [ ] A fresh notebook can upload a source, answer a covered question with citations, and
       refuse an uncovered one with `no_match`.
@@ -1087,7 +1087,7 @@ defences, and audited per-query cost.
 - Delivered a **cost/observability** layer: provider-reported tokens, split latency
   percentiles, a dated price table where unknown prices are `None` not `$0`, and opt-in
   privacy-split tracing.
-- Shipped **162 backend + 216 frontend** tests and a **one-command gate**
+- Shipped **163 backend + 218 frontend** tests and a **one-command gate**
   (`./run_tests.sh`) covering grounding, injection, sessions, OCR, cost, and the frontend.
 
 **Skills demonstrated.** RAG architecture · hybrid retrieval & re-ranking · Postgres +
@@ -1099,7 +1099,7 @@ metrics design · security (SSRF, prompt injection) · observability · technica
 ## 20. Requirements checklist (definition of done)
 
 - [ ] All **MUST** requirements (§6, §7) are implemented and verified.
-- [ ] `./run_tests.sh` is green (162 backend + 216 frontend + build).
+- [ ] `./run_tests.sh` is green (163 backend + 218 frontend + build).
 - [ ] `/api/status`, `/api/ask`, `/api/sources`, `/api/sessions` match §9.
 - [ ] Schema matches §8 (migrations at head; tests assert column agreement).
 - [ ] Configuration matches §10.
@@ -1120,7 +1120,7 @@ metrics design · security (SSRF, prompt injection) · observability · technica
 ### Appendix B — Verified facts (spot-check list)
 
 - 39 file suffixes: `python -c "from app.parsers import SUPPORTED; print(len(SUPPORTED))"`.
-- Test counts: `./run_tests.sh` output (162 / 216).
+- Test counts: `./run_tests.sh` output (163 / 218).
 - Migrations: `ls migrations/versions/` → `0001`…`0007`.
 - Corpus: 28 files in `experiments/corpus/`; cloze set 122 items (115 answerable, 7 traps).
 - Prices (as of 2026-10-07): `gpt-oss-120b` $0.15/$0.60, `gpt-oss-20b` $0.075/$0.30 per 1M.

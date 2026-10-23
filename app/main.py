@@ -45,4 +45,22 @@ if not config.ASSET_DIR.is_dir():
         "Run `npm install && npm run build` in frontend/."
     )
 
-app.mount("/assets", StaticFiles(directory=config.ASSET_DIR), name="assets")
+
+
+class RevalidatingStatic(StaticFiles):
+    """Static files that the browser must re-check before reusing.
+
+    The bundle keeps one filename (`assets/app.js`) on every build. With no
+    Cache-Control a browser may reuse its copy for a heuristic period after an
+    upgrade, and the page then runs the old interface against the new API. With
+    `no-cache` it still keeps the file but asks first; the ETag answers with a
+    304 and nothing is downloaded unless the file changed.
+    """
+
+    def file_response(self, *args, **kwargs):
+        response = super().file_response(*args, **kwargs)
+        response.headers["Cache-Control"] = "no-cache"
+        return response
+
+
+app.mount("/assets", RevalidatingStatic(directory=config.ASSET_DIR), name="assets")

@@ -238,7 +238,7 @@ all of them run.
 ```bash
 cd frontend
 npm install
-npm test           # 216 checks, jsdom, no database or API key needed
+npm test           # 218 checks, jsdom, no database or API key needed
 npm run test:watch # re-runs on save
 ```
 
@@ -1530,7 +1530,7 @@ retry a log line costs more than the line is worth.
 
 ## Tests
 
-162 checks covering upload, per-format parsing (including YAML/TOML/INI and hard-wrapped
+163 checks covering upload, per-format parsing (including YAML/TOML/INI and hard-wrapped
 text), OCR (a scanned page recovered and searchable, pages kept in order, both halves of a
 mixed PDF indexed, a blank scan refused with an actionable message, the missing-language
 message naming the install command, an over-cap document refused rather than indexed

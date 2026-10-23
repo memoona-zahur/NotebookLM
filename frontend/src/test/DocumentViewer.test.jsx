@@ -103,6 +103,25 @@ describe("Citation card", () => {
     expect(onReindex).toHaveBeenCalledWith(old);
   });
 
+  it("says what to do next once the re-index has finished, and shows progress while it runs", async () => {
+    let finish;
+    const onReindex = vi.fn(() => new Promise((resolve) => { finish = resolve; }));
+    render(<Citation citation={{ ...base, char_start: null }} index={0} cited={[1]} onReindex={onReindex} />);
+    await userEvent.click(screen.getByRole("button", { name: /re-index to open in document/i }));
+    expect(screen.getByRole("button", { name: /re-indexing/i })).toBeDisabled();
+    finish(true);
+    expect(await screen.findByText(/ask the question again/i)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /re-index/i })).toBeNull();
+  });
+
+  it("keeps the button when the re-index failed, so it can be tried again", async () => {
+    const onReindex = vi.fn().mockResolvedValue(false);
+    render(<Citation citation={{ ...base, char_start: null }} index={0} cited={[1]} onReindex={onReindex} />);
+    await userEvent.click(screen.getByRole("button", { name: /re-index to open in document/i }));
+    expect(await screen.findByRole("button", { name: /re-index to open in document/i })).toBeEnabled();
+    expect(screen.queryByText(/ask the question again/i)).toBeNull();
+  });
+
   it("does not ask for a re-index when the passage was not cited, or for a PDF page", () => {
     const { rerender } = render(<Citation citation={{ ...base, char_start: null }} index={1} cited={[1]} onReindex={() => {}} />);
     expect(screen.queryByRole("button", { name: /re-index/i })).toBeNull();

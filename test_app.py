@@ -1223,6 +1223,20 @@ def test_the_prompt_asks_for_the_citation_format_the_parser_reads(client: TestCl
     print("  the prompt asks for [N], the format the parser and the labels use: OK")
 
 
+def test_the_page_and_bundle_are_revalidated_not_served_from_a_stale_cache(client: TestClient) -> None:
+    """One bundle filename on every build means a browser can keep running the
+    old interface after an upgrade unless it is told to check first."""
+    page = client.get("/")
+    assert page.headers["cache-control"] == "no-cache", page.headers
+    asset = next(p for p in (ROOT / "static" / "assets").iterdir() if p.suffix == ".js")
+    res = client.get(f"/assets/{asset.name}")
+    assert res.status_code == 200 and res.headers["cache-control"] == "no-cache", res.headers
+    assert res.headers.get("etag"), "a validator is what makes no-cache cheap"
+    again = client.get(f"/assets/{asset.name}", headers={"If-None-Match": res.headers["etag"]})
+    assert again.status_code == 304, again.status_code
+    print("  the page and bundle are revalidated (no-cache + ETag), so an upgrade is not masked: OK")
+
+
 def test_static_and_empty_question(client: TestClient) -> None:
     assert client.get("/").status_code == 200
     assert client.post("/api/ask", json={"question": "   "}).status_code == 400
@@ -5365,6 +5379,7 @@ ORDER = [
     ("one bm25 pass", test_a_query_scores_the_whole_corpus_with_bm25_once),
     ("eval sets self-check", test_the_paraphrase_and_trap_sets_check_themselves_and_are_not_stale),
     ("eval waits out 429", test_the_generation_eval_waits_out_a_rate_limit_but_not_a_real_failure),
+    ("static revalidated", test_the_page_and_bundle_are_revalidated_not_served_from_a_stale_cache),
 ]
 
 

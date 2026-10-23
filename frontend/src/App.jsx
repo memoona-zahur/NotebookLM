@@ -257,8 +257,10 @@ export default function App() {
     try {
       await api.reindexSource(id, source.id);
       await refreshStatus(id);
+      return true;
     } catch (err) {
       toast(err.message);
+      return false;
     } finally {
       setReindexing(null);
     }

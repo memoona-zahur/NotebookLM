@@ -2081,3 +2081,14 @@ mark.hit,
   font-size: 13px;
   opacity: 0.7;
 }
+
+.cite-note {
+  margin: 6px 0 2px;
+  font-size: 12px;
+  opacity: 0.75;
+}
+
+.cite-open:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}

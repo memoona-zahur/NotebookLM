@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { Markdown } from "./markdown.jsx";
 import { highlightsOf } from "./offsets.js";
 
@@ -85,6 +85,10 @@ function SourceHighlight({ text, spans }) {
 
 /** A retrieved passage, collapsed to a header and expandable to the full text. */
 export function Citation({ citation, index, cited, onOpen, onReindex }) {
+  // Re-indexing fixes the source, not this answer: the place a quote sits is
+  // worked out when the question is answered, so an answer given before the
+  // re-index stays without one. Say so, instead of leaving the same button up.
+  const [reindex, setReindex] = useState("idle");
   const wasCited = !cited || !cited.length || cited.includes(index + 1);
   // Nothing to open: the source was indexed before positions were recorded (a
   // PDF is the exception - its page is enough to find the quote again).
@@ -129,10 +133,24 @@ export function Citation({ citation, index, cited, onOpen, onReindex }) {
           Open in document
         </button>
       ) : null}
-      {needsReindex && onReindex ? (
-        <button type="button" className="cite-open" onClick={() => onReindex(citation)}>
-          Re-index to open in document
+      {needsReindex && onReindex && reindex !== "done" ? (
+        <button
+          type="button"
+          className="cite-open"
+          disabled={reindex === "busy"}
+          onClick={async () => {
+            setReindex("busy");
+            const ok = await onReindex(citation);
+            setReindex(ok === false ? "idle" : "done");
+          }}
+        >
+          {reindex === "busy" ? "Re-indexing…" : "Re-index to open in document"}
         </button>
+      ) : null}
+      {needsReindex && reindex === "done" ? (
+        <p className="cite-note">
+          Re-indexed. Ask the question again and this passage will open in the document.
+        </p>
       ) : null}
     </div>
   );
