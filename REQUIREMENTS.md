@@ -1105,7 +1105,7 @@ metrics design · security (SSRF, prompt injection) · observability · technica
 - [ ] Configuration matches §10.
 - [ ] Evaluation artefacts regenerate and match §11.
 - [ ] Known limitations are documented and visible (§15, §16).
-- [ ] README, ARCHITECTURE, PRESENTATION, and this SRS agree with the code.
+- [ ] README, ARCHITECTURE, and this SRS agree with the code.
 
 ---
 
@@ -1116,7 +1116,6 @@ metrics design · security (SSRF, prompt injection) · observability · technica
 | `REQUIREMENTS.md` (this) | Numbered, testable specification; single source of truth for *what* | Specification |
 | `README.md` | Narrative of every flow, decision, and evaluation number | Deep narrative |
 | `ARCHITECTURE.md` | Diagrams + `file:line` references for each flow | Structural |
-| `PRESENTATION.md` | How to run, demo, and defend the project | Delivery |
 
 ### Appendix B — Verified facts (spot-check list)
 

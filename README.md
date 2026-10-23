@@ -3,6 +3,29 @@
 A local, source-grounded research assistant. Upload documents, ask questions, get
 answers with inline citations that link back to the exact source passage.
 
+## Quick start
+
+Needs Docker and a free [Groq](https://console.groq.com) API key.
+
+```bash
+cp .env.example .env       # then paste your GROQ_API_KEY into .env
+docker compose up --build
+```
+
+Open http://127.0.0.1:8000, upload a document, and ask a question.
+
+The first start downloads two small models (about 90 MB each) from Hugging Face, so it needs internet and the first question is slow. Without a key the app still starts but cannot answer.
+
+To run every check (lint, backend, frontend, build) - needs Docker, Python and Node, and a bash shell:
+
+```bash
+python3 -m venv .venv && .venv/bin/pip install -r requirements.txt
+(cd frontend && npm install)
+./run_tests.sh
+```
+
+Running without Docker, tuning, and everything else is covered below.
+
 ## Stack
 
 | Piece | Choice |
@@ -294,6 +317,8 @@ Everything is set in `.env` (all optional):
 | `MIN_SCORE` | `0.25` | Relevance floor - see below |
 | `MAX_PER_SOURCE` | `3` | Max chunks from one source, so answers can span sources |
 | `HISTORY_TURNS` | `6` | Prior turns read for follow-ups (`0` disables) |
+| `LLM_TIMEOUT` | `60` | Seconds an LLM call may take before a 503 (`LLM_MAX_RETRIES`, default `1`) |
+| `INDEX_CONCURRENCY` | `2` | Uploads parsed and embedded at once; others wait |
 | `WEB_SEARCH` | on | `0` turns off web-source search; see below |
 | `WEB_SEARCH_MODEL` | `openai/gpt-oss-20b` | Groq model used to find URLs |
 | `WEB_SEARCH_MAX_PAGES` | `5` | Ceiling on pages fetched per search |

@@ -304,9 +304,8 @@ Opt-in            LANGSMITH_TRACING spans → network, or JSONL when
 
 Money and tokens: the database stores **tokens**, never dollars. Dollars are
 computed at read time from a dated price table so the persisted fact cannot go
-stale — see `README.md` "What a question costs" (line 1161) and
-`PRESENTATION.md:743` for the current rationale, and the cost dashboard section
-of the README for the rate table, its provenance, and what the total leaves out.
+stale — see `README.md` "What a question costs" for the current rationale, and the cost
+dashboard section of the README for the rate table, its provenance, and what the total leaves out.
 
 ---
 
@@ -319,4 +318,3 @@ of the README for the rate table, its provenance, and what the total leaves out.
 4. `app/parsers.py:1096` — how an arbitrary file becomes `Block`s.
 5. `README.md` — the long-form narrative of the same flows, plus the eval
    numbers behind the chunking and retrieval choices.
-6. `PRESENTATION.md` — shorter, decision-oriented version of the above.
