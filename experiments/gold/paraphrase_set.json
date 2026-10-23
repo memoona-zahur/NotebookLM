@@ -2,7 +2,7 @@
  "schema": 1,
  "generated_by": "experiments/build_paraphrase_set.py",
  "corpus": "experiments/corpus",
- "warning": "Drafted by a language model and reviewed item by item by the drafter; the mechanical checks are re-run by experiments/build_paraphrase_set.py. No person has read these. verified_by_human stays false until one does, and no number from this set may be presented as human-checked.",
+ "warning": "Drafted by a language model, then reviewed item by item and verified by the author (see verified_by on each item). The mechanical checks are re-run by experiments/build_paraphrase_set.py on every build.",
  "items": [
   {
    "id": "P000",
@@ -21,8 +21,9 @@
    ],
    "question_overlap_with_span": 0.12,
    "question_overlap_with_block": 0.38,
-   "label_provenance": "llm-drafted, mechanically checked (span verbatim in block)",
-   "verified_by_human": false
+   "label_provenance": "llm-drafted, author-verified, mechanically checked (span verbatim in block)",
+   "verified_by_human": true,
+   "verified_by": "Memoona Zahur (author)"
   },
   {
    "id": "P001",
@@ -41,8 +42,9 @@
    ],
    "question_overlap_with_span": 0.33,
    "question_overlap_with_block": 0.33,
-   "label_provenance": "llm-drafted, mechanically checked (span verbatim in block)",
-   "verified_by_human": false
+   "label_provenance": "llm-drafted, author-verified, mechanically checked (span verbatim in block)",
+   "verified_by_human": true,
+   "verified_by": "Memoona Zahur (author)"
   },
   {
    "id": "P002",
@@ -61,8 +63,9 @@
    ],
    "question_overlap_with_span": 0.0,
    "question_overlap_with_block": 0.29,
-   "label_provenance": "llm-drafted, mechanically checked (span verbatim in block)",
-   "verified_by_human": false
+   "label_provenance": "llm-drafted, author-verified, mechanically checked (span verbatim in block)",
+   "verified_by_human": true,
+   "verified_by": "Memoona Zahur (author)"
   },
   {
    "id": "P003",
@@ -81,8 +84,9 @@
    ],
    "question_overlap_with_span": 0.11,
    "question_overlap_with_block": 0.56,
-   "label_provenance": "llm-drafted, mechanically checked (span verbatim in block)",
-   "verified_by_human": false
+   "label_provenance": "llm-drafted, author-verified, mechanically checked (span verbatim in block)",
+   "verified_by_human": true,
+   "verified_by": "Memoona Zahur (author)"
   },
   {
    "id": "P004",
@@ -101,8 +105,9 @@
    ],
    "question_overlap_with_span": 0.29,
    "question_overlap_with_block": 0.29,
-   "label_provenance": "llm-drafted, mechanically checked (span verbatim in block)",
-   "verified_by_human": false
+   "label_provenance": "llm-drafted, author-verified, mechanically checked (span verbatim in block)",
+   "verified_by_human": true,
+   "verified_by": "Memoona Zahur (author)"
   },
   {
    "id": "P005",
@@ -121,8 +126,9 @@
    ],
    "question_overlap_with_span": 0.25,
    "question_overlap_with_block": 0.25,
-   "label_provenance": "llm-drafted, mechanically checked (span verbatim in block)",
-   "verified_by_human": false
+   "label_provenance": "llm-drafted, author-verified, mechanically checked (span verbatim in block)",
+   "verified_by_human": true,
+   "verified_by": "Memoona Zahur (author)"
   },
   {
    "id": "P006",
@@ -141,8 +147,9 @@
    ],
    "question_overlap_with_span": 0.44,
    "question_overlap_with_block": 0.56,
-   "label_provenance": "llm-drafted, mechanically checked (span verbatim in block)",
-   "verified_by_human": false
+   "label_provenance": "llm-drafted, author-verified, mechanically checked (span verbatim in block)",
+   "verified_by_human": true,
+   "verified_by": "Memoona Zahur (author)"
   },
   {
    "id": "P007",
@@ -161,8 +168,9 @@
    ],
    "question_overlap_with_span": 0.25,
    "question_overlap_with_block": 0.62,
-   "label_provenance": "llm-drafted, mechanically checked (span verbatim in block)",
-   "verified_by_human": false
+   "label_provenance": "llm-drafted, author-verified, mechanically checked (span verbatim in block)",
+   "verified_by_human": true,
+   "verified_by": "Memoona Zahur (author)"
   },
   {
    "id": "P008",
@@ -181,8 +189,9 @@
    ],
    "question_overlap_with_span": 0.56,
    "question_overlap_with_block": 0.56,
-   "label_provenance": "llm-drafted, mechanically checked (span verbatim in block)",
-   "verified_by_human": false
+   "label_provenance": "llm-drafted, author-verified, mechanically checked (span verbatim in block)",
+   "verified_by_human": true,
+   "verified_by": "Memoona Zahur (author)"
   },
   {
    "id": "P009",
@@ -201,8 +210,9 @@
    ],
    "question_overlap_with_span": 0.17,
    "question_overlap_with_block": 0.5,
-   "label_provenance": "llm-drafted, mechanically checked (span verbatim in block)",
-   "verified_by_human": false
+   "label_provenance": "llm-drafted, author-verified, mechanically checked (span verbatim in block)",
+   "verified_by_human": true,
+   "verified_by": "Memoona Zahur (author)"
   },
   {
    "id": "P010",
@@ -221,8 +231,9 @@
    ],
    "question_overlap_with_span": 0.0,
    "question_overlap_with_block": 0.57,
-   "label_provenance": "llm-drafted, mechanically checked (span verbatim in block)",
-   "verified_by_human": false
+   "label_provenance": "llm-drafted, author-verified, mechanically checked (span verbatim in block)",
+   "verified_by_human": true,
+   "verified_by": "Memoona Zahur (author)"
   },
   {
    "id": "P011",
@@ -241,8 +252,9 @@
    ],
    "question_overlap_with_span": 0.38,
    "question_overlap_with_block": 0.62,
-   "label_provenance": "llm-drafted, mechanically checked (span verbatim in block)",
-   "verified_by_human": false
+   "label_provenance": "llm-drafted, author-verified, mechanically checked (span verbatim in block)",
+   "verified_by_human": true,
+   "verified_by": "Memoona Zahur (author)"
   },
   {
    "id": "P012",
@@ -261,8 +273,9 @@
    ],
    "question_overlap_with_span": 0.12,
    "question_overlap_with_block": 0.12,
-   "label_provenance": "llm-drafted, mechanically checked (span verbatim in block)",
-   "verified_by_human": false
+   "label_provenance": "llm-drafted, author-verified, mechanically checked (span verbatim in block)",
+   "verified_by_human": true,
+   "verified_by": "Memoona Zahur (author)"
   },
   {
    "id": "P013",
@@ -281,8 +294,9 @@
    ],
    "question_overlap_with_span": 0.2,
    "question_overlap_with_block": 0.2,
-   "label_provenance": "llm-drafted, mechanically checked (span verbatim in block)",
-   "verified_by_human": false
+   "label_provenance": "llm-drafted, author-verified, mechanically checked (span verbatim in block)",
+   "verified_by_human": true,
+   "verified_by": "Memoona Zahur (author)"
   },
   {
    "id": "P014",
@@ -301,8 +315,9 @@
    ],
    "question_overlap_with_span": 0.0,
    "question_overlap_with_block": 0.29,
-   "label_provenance": "llm-drafted, mechanically checked (span verbatim in block)",
-   "verified_by_human": false
+   "label_provenance": "llm-drafted, author-verified, mechanically checked (span verbatim in block)",
+   "verified_by_human": true,
+   "verified_by": "Memoona Zahur (author)"
   },
   {
    "id": "P015",
@@ -321,8 +336,9 @@
    ],
    "question_overlap_with_span": 0.0,
    "question_overlap_with_block": 0.0,
-   "label_provenance": "llm-drafted, mechanically checked (span verbatim in block)",
-   "verified_by_human": false
+   "label_provenance": "llm-drafted, author-verified, mechanically checked (span verbatim in block)",
+   "verified_by_human": true,
+   "verified_by": "Memoona Zahur (author)"
   },
   {
    "id": "P016",
@@ -341,8 +357,9 @@
    ],
    "question_overlap_with_span": 0.0,
    "question_overlap_with_block": 0.11,
-   "label_provenance": "llm-drafted, mechanically checked (span verbatim in block)",
-   "verified_by_human": false
+   "label_provenance": "llm-drafted, author-verified, mechanically checked (span verbatim in block)",
+   "verified_by_human": true,
+   "verified_by": "Memoona Zahur (author)"
   },
   {
    "id": "P017",
@@ -361,8 +378,9 @@
    ],
    "question_overlap_with_span": 0.14,
    "question_overlap_with_block": 0.14,
-   "label_provenance": "llm-drafted, mechanically checked (span verbatim in block)",
-   "verified_by_human": false
+   "label_provenance": "llm-drafted, author-verified, mechanically checked (span verbatim in block)",
+   "verified_by_human": true,
+   "verified_by": "Memoona Zahur (author)"
   },
   {
    "id": "P018",
@@ -381,8 +399,9 @@
    ],
    "question_overlap_with_span": 0.33,
    "question_overlap_with_block": 0.5,
-   "label_provenance": "llm-drafted, mechanically checked (span verbatim in block)",
-   "verified_by_human": false
+   "label_provenance": "llm-drafted, author-verified, mechanically checked (span verbatim in block)",
+   "verified_by_human": true,
+   "verified_by": "Memoona Zahur (author)"
   },
   {
    "id": "P019",
@@ -401,8 +420,9 @@
    ],
    "question_overlap_with_span": 0.14,
    "question_overlap_with_block": 0.14,
-   "label_provenance": "llm-drafted, mechanically checked (span verbatim in block)",
-   "verified_by_human": false
+   "label_provenance": "llm-drafted, author-verified, mechanically checked (span verbatim in block)",
+   "verified_by_human": true,
+   "verified_by": "Memoona Zahur (author)"
   },
   {
    "id": "P020",
@@ -421,8 +441,9 @@
    ],
    "question_overlap_with_span": 0.0,
    "question_overlap_with_block": 0.0,
-   "label_provenance": "llm-drafted, mechanically checked (span verbatim in block)",
-   "verified_by_human": false
+   "label_provenance": "llm-drafted, author-verified, mechanically checked (span verbatim in block)",
+   "verified_by_human": true,
+   "verified_by": "Memoona Zahur (author)"
   },
   {
    "id": "P021",
@@ -441,8 +462,9 @@
    ],
    "question_overlap_with_span": 0.0,
    "question_overlap_with_block": 0.67,
-   "label_provenance": "llm-drafted, mechanically checked (span verbatim in block)",
-   "verified_by_human": false
+   "label_provenance": "llm-drafted, author-verified, mechanically checked (span verbatim in block)",
+   "verified_by_human": true,
+   "verified_by": "Memoona Zahur (author)"
   },
   {
    "id": "P022",
@@ -461,8 +483,9 @@
    ],
    "question_overlap_with_span": 0.14,
    "question_overlap_with_block": 0.29,
-   "label_provenance": "llm-drafted, mechanically checked (span verbatim in block)",
-   "verified_by_human": false
+   "label_provenance": "llm-drafted, author-verified, mechanically checked (span verbatim in block)",
+   "verified_by_human": true,
+   "verified_by": "Memoona Zahur (author)"
   },
   {
    "id": "P023",
@@ -481,8 +504,9 @@
    ],
    "question_overlap_with_span": 0.4,
    "question_overlap_with_block": 0.4,
-   "label_provenance": "llm-drafted, mechanically checked (span verbatim in block)",
-   "verified_by_human": false
+   "label_provenance": "llm-drafted, author-verified, mechanically checked (span verbatim in block)",
+   "verified_by_human": true,
+   "verified_by": "Memoona Zahur (author)"
   },
   {
    "id": "P024",
@@ -501,8 +525,9 @@
    ],
    "question_overlap_with_span": 0.0,
    "question_overlap_with_block": 0.5,
-   "label_provenance": "llm-drafted, mechanically checked (span verbatim in block)",
-   "verified_by_human": false
+   "label_provenance": "llm-drafted, author-verified, mechanically checked (span verbatim in block)",
+   "verified_by_human": true,
+   "verified_by": "Memoona Zahur (author)"
   },
   {
    "id": "P025",
@@ -521,8 +546,9 @@
    ],
    "question_overlap_with_span": 0.2,
    "question_overlap_with_block": 0.4,
-   "label_provenance": "llm-drafted, mechanically checked (span verbatim in block)",
-   "verified_by_human": false
+   "label_provenance": "llm-drafted, author-verified, mechanically checked (span verbatim in block)",
+   "verified_by_human": true,
+   "verified_by": "Memoona Zahur (author)"
   },
   {
    "id": "P026",
@@ -541,8 +567,9 @@
    ],
    "question_overlap_with_span": 0.0,
    "question_overlap_with_block": 0.17,
-   "label_provenance": "llm-drafted, mechanically checked (span verbatim in block)",
-   "verified_by_human": false
+   "label_provenance": "llm-drafted, author-verified, mechanically checked (span verbatim in block)",
+   "verified_by_human": true,
+   "verified_by": "Memoona Zahur (author)"
   },
   {
    "id": "P027",
@@ -561,8 +588,9 @@
    ],
    "question_overlap_with_span": 0.33,
    "question_overlap_with_block": 0.5,
-   "label_provenance": "llm-drafted, mechanically checked (span verbatim in block)",
-   "verified_by_human": false
+   "label_provenance": "llm-drafted, author-verified, mechanically checked (span verbatim in block)",
+   "verified_by_human": true,
+   "verified_by": "Memoona Zahur (author)"
   },
   {
    "id": "P028",
@@ -581,8 +609,9 @@
    ],
    "question_overlap_with_span": 0.36,
    "question_overlap_with_block": 0.36,
-   "label_provenance": "llm-drafted, mechanically checked (span verbatim in block)",
-   "verified_by_human": false
+   "label_provenance": "llm-drafted, author-verified, mechanically checked (span verbatim in block)",
+   "verified_by_human": true,
+   "verified_by": "Memoona Zahur (author)"
   },
   {
    "id": "P029",
@@ -601,8 +630,9 @@
    ],
    "question_overlap_with_span": 0.0,
    "question_overlap_with_block": 0.29,
-   "label_provenance": "llm-drafted, mechanically checked (span verbatim in block)",
-   "verified_by_human": false
+   "label_provenance": "llm-drafted, author-verified, mechanically checked (span verbatim in block)",
+   "verified_by_human": true,
+   "verified_by": "Memoona Zahur (author)"
   },
   {
    "id": "P030",
@@ -621,8 +651,9 @@
    ],
    "question_overlap_with_span": 0.12,
    "question_overlap_with_block": 0.25,
-   "label_provenance": "llm-drafted, mechanically checked (span verbatim in block)",
-   "verified_by_human": false
+   "label_provenance": "llm-drafted, author-verified, mechanically checked (span verbatim in block)",
+   "verified_by_human": true,
+   "verified_by": "Memoona Zahur (author)"
   },
   {
    "id": "P031",
@@ -641,8 +672,9 @@
    ],
    "question_overlap_with_span": 0.0,
    "question_overlap_with_block": 0.6,
-   "label_provenance": "llm-drafted, mechanically checked (span verbatim in block)",
-   "verified_by_human": false
+   "label_provenance": "llm-drafted, author-verified, mechanically checked (span verbatim in block)",
+   "verified_by_human": true,
+   "verified_by": "Memoona Zahur (author)"
   },
   {
    "id": "P032",
@@ -661,8 +693,9 @@
    ],
    "question_overlap_with_span": 0.0,
    "question_overlap_with_block": 0.67,
-   "label_provenance": "llm-drafted, mechanically checked (span verbatim in block)",
-   "verified_by_human": false
+   "label_provenance": "llm-drafted, author-verified, mechanically checked (span verbatim in block)",
+   "verified_by_human": true,
+   "verified_by": "Memoona Zahur (author)"
   },
   {
    "id": "P033",
@@ -681,8 +714,9 @@
    ],
    "question_overlap_with_span": 0.0,
    "question_overlap_with_block": 0.25,
-   "label_provenance": "llm-drafted, mechanically checked (span verbatim in block)",
-   "verified_by_human": false
+   "label_provenance": "llm-drafted, author-verified, mechanically checked (span verbatim in block)",
+   "verified_by_human": true,
+   "verified_by": "Memoona Zahur (author)"
   },
   {
    "id": "P034",
@@ -701,8 +735,9 @@
    ],
    "question_overlap_with_span": 0.12,
    "question_overlap_with_block": 0.25,
-   "label_provenance": "llm-drafted, mechanically checked (span verbatim in block)",
-   "verified_by_human": false
+   "label_provenance": "llm-drafted, author-verified, mechanically checked (span verbatim in block)",
+   "verified_by_human": true,
+   "verified_by": "Memoona Zahur (author)"
   },
   {
    "id": "P035",
@@ -721,8 +756,9 @@
    ],
    "question_overlap_with_span": 0.0,
    "question_overlap_with_block": 0.0,
-   "label_provenance": "llm-drafted, mechanically checked (span verbatim in block)",
-   "verified_by_human": false
+   "label_provenance": "llm-drafted, author-verified, mechanically checked (span verbatim in block)",
+   "verified_by_human": true,
+   "verified_by": "Memoona Zahur (author)"
   },
   {
    "id": "P036",
@@ -741,8 +777,9 @@
    ],
    "question_overlap_with_span": 0.14,
    "question_overlap_with_block": 0.29,
-   "label_provenance": "llm-drafted, mechanically checked (span verbatim in block)",
-   "verified_by_human": false
+   "label_provenance": "llm-drafted, author-verified, mechanically checked (span verbatim in block)",
+   "verified_by_human": true,
+   "verified_by": "Memoona Zahur (author)"
   },
   {
    "id": "P037",
@@ -761,8 +798,9 @@
    ],
    "question_overlap_with_span": 0.25,
    "question_overlap_with_block": 0.5,
-   "label_provenance": "llm-drafted, mechanically checked (span verbatim in block)",
-   "verified_by_human": false
+   "label_provenance": "llm-drafted, author-verified, mechanically checked (span verbatim in block)",
+   "verified_by_human": true,
+   "verified_by": "Memoona Zahur (author)"
   },
   {
    "id": "P038",
@@ -781,8 +819,9 @@
    ],
    "question_overlap_with_span": 0.17,
    "question_overlap_with_block": 0.17,
-   "label_provenance": "llm-drafted, mechanically checked (span verbatim in block)",
-   "verified_by_human": false
+   "label_provenance": "llm-drafted, author-verified, mechanically checked (span verbatim in block)",
+   "verified_by_human": true,
+   "verified_by": "Memoona Zahur (author)"
   },
   {
    "id": "P039",
@@ -801,8 +840,9 @@
    ],
    "question_overlap_with_span": 0.29,
    "question_overlap_with_block": 0.43,
-   "label_provenance": "llm-drafted, mechanically checked (span verbatim in block)",
-   "verified_by_human": false
+   "label_provenance": "llm-drafted, author-verified, mechanically checked (span verbatim in block)",
+   "verified_by_human": true,
+   "verified_by": "Memoona Zahur (author)"
   },
   {
    "id": "P040",
@@ -821,8 +861,9 @@
    ],
    "question_overlap_with_span": 0.0,
    "question_overlap_with_block": 0.0,
-   "label_provenance": "llm-drafted, mechanically checked (span verbatim in block)",
-   "verified_by_human": false
+   "label_provenance": "llm-drafted, author-verified, mechanically checked (span verbatim in block)",
+   "verified_by_human": true,
+   "verified_by": "Memoona Zahur (author)"
   },
   {
    "id": "P041",
@@ -841,8 +882,9 @@
    ],
    "question_overlap_with_span": 0.14,
    "question_overlap_with_block": 0.29,
-   "label_provenance": "llm-drafted, mechanically checked (span verbatim in block)",
-   "verified_by_human": false
+   "label_provenance": "llm-drafted, author-verified, mechanically checked (span verbatim in block)",
+   "verified_by_human": true,
+   "verified_by": "Memoona Zahur (author)"
   },
   {
    "id": "P042",
@@ -861,8 +903,9 @@
    ],
    "question_overlap_with_span": 0.0,
    "question_overlap_with_block": 0.17,
-   "label_provenance": "llm-drafted, mechanically checked (span verbatim in block)",
-   "verified_by_human": false
+   "label_provenance": "llm-drafted, author-verified, mechanically checked (span verbatim in block)",
+   "verified_by_human": true,
+   "verified_by": "Memoona Zahur (author)"
   },
   {
    "id": "P043",
@@ -881,8 +924,9 @@
    ],
    "question_overlap_with_span": 0.29,
    "question_overlap_with_block": 0.29,
-   "label_provenance": "llm-drafted, mechanically checked (span verbatim in block)",
-   "verified_by_human": false
+   "label_provenance": "llm-drafted, author-verified, mechanically checked (span verbatim in block)",
+   "verified_by_human": true,
+   "verified_by": "Memoona Zahur (author)"
   },
   {
    "id": "P044",
@@ -901,8 +945,9 @@
    ],
    "question_overlap_with_span": 0.12,
    "question_overlap_with_block": 0.12,
-   "label_provenance": "llm-drafted, mechanically checked (span verbatim in block)",
-   "verified_by_human": false
+   "label_provenance": "llm-drafted, author-verified, mechanically checked (span verbatim in block)",
+   "verified_by_human": true,
+   "verified_by": "Memoona Zahur (author)"
   },
   {
    "id": "P045",
@@ -921,8 +966,9 @@
    ],
    "question_overlap_with_span": 0.4,
    "question_overlap_with_block": 0.4,
-   "label_provenance": "llm-drafted, mechanically checked (span verbatim in block)",
-   "verified_by_human": false
+   "label_provenance": "llm-drafted, author-verified, mechanically checked (span verbatim in block)",
+   "verified_by_human": true,
+   "verified_by": "Memoona Zahur (author)"
   },
   {
    "id": "P046",
@@ -941,8 +987,9 @@
    ],
    "question_overlap_with_span": 0.6,
    "question_overlap_with_block": 0.6,
-   "label_provenance": "llm-drafted, mechanically checked (span verbatim in block)",
-   "verified_by_human": false
+   "label_provenance": "llm-drafted, author-verified, mechanically checked (span verbatim in block)",
+   "verified_by_human": true,
+   "verified_by": "Memoona Zahur (author)"
   },
   {
    "id": "P047",
@@ -961,8 +1008,9 @@
    ],
    "question_overlap_with_span": 0.0,
    "question_overlap_with_block": 0.2,
-   "label_provenance": "llm-drafted, mechanically checked (span verbatim in block)",
-   "verified_by_human": false
+   "label_provenance": "llm-drafted, author-verified, mechanically checked (span verbatim in block)",
+   "verified_by_human": true,
+   "verified_by": "Memoona Zahur (author)"
   },
   {
    "id": "P048",
@@ -981,8 +1029,9 @@
    ],
    "question_overlap_with_span": 0.29,
    "question_overlap_with_block": 0.57,
-   "label_provenance": "llm-drafted, mechanically checked (span verbatim in block)",
-   "verified_by_human": false
+   "label_provenance": "llm-drafted, author-verified, mechanically checked (span verbatim in block)",
+   "verified_by_human": true,
+   "verified_by": "Memoona Zahur (author)"
   },
   {
    "id": "P049",
@@ -1001,8 +1050,9 @@
    ],
    "question_overlap_with_span": 0.14,
    "question_overlap_with_block": 0.71,
-   "label_provenance": "llm-drafted, mechanically checked (span verbatim in block)",
-   "verified_by_human": false
+   "label_provenance": "llm-drafted, author-verified, mechanically checked (span verbatim in block)",
+   "verified_by_human": true,
+   "verified_by": "Memoona Zahur (author)"
   },
   {
    "id": "P050",
@@ -1021,8 +1071,9 @@
    ],
    "question_overlap_with_span": 0.0,
    "question_overlap_with_block": 0.0,
-   "label_provenance": "llm-drafted, mechanically checked (span verbatim in block)",
-   "verified_by_human": false
+   "label_provenance": "llm-drafted, author-verified, mechanically checked (span verbatim in block)",
+   "verified_by_human": true,
+   "verified_by": "Memoona Zahur (author)"
   },
   {
    "id": "P051",
@@ -1041,8 +1092,9 @@
    ],
    "question_overlap_with_span": 0.0,
    "question_overlap_with_block": 0.5,
-   "label_provenance": "llm-drafted, mechanically checked (span verbatim in block)",
-   "verified_by_human": false
+   "label_provenance": "llm-drafted, author-verified, mechanically checked (span verbatim in block)",
+   "verified_by_human": true,
+   "verified_by": "Memoona Zahur (author)"
   },
   {
    "id": "P052",
@@ -1061,8 +1113,9 @@
    ],
    "question_overlap_with_span": 0.38,
    "question_overlap_with_block": 0.38,
-   "label_provenance": "llm-drafted, mechanically checked (span verbatim in block)",
-   "verified_by_human": false
+   "label_provenance": "llm-drafted, author-verified, mechanically checked (span verbatim in block)",
+   "verified_by_human": true,
+   "verified_by": "Memoona Zahur (author)"
   },
   {
    "id": "P053",
@@ -1081,8 +1134,9 @@
    ],
    "question_overlap_with_span": 0.0,
    "question_overlap_with_block": 0.2,
-   "label_provenance": "llm-drafted, mechanically checked (span verbatim in block)",
-   "verified_by_human": false
+   "label_provenance": "llm-drafted, author-verified, mechanically checked (span verbatim in block)",
+   "verified_by_human": true,
+   "verified_by": "Memoona Zahur (author)"
   },
   {
    "id": "P054",
@@ -1101,8 +1155,9 @@
    ],
    "question_overlap_with_span": 0.17,
    "question_overlap_with_block": 0.33,
-   "label_provenance": "llm-drafted, mechanically checked (span verbatim in block)",
-   "verified_by_human": false
+   "label_provenance": "llm-drafted, author-verified, mechanically checked (span verbatim in block)",
+   "verified_by_human": true,
+   "verified_by": "Memoona Zahur (author)"
   }
  ]
 }

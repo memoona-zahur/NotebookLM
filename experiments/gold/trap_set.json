@@ -2,7 +2,7 @@
  "schema": 1,
  "generated_by": "experiments/build_paraphrase_set.py",
  "corpus": "experiments/corpus",
- "warning": "Drafted by a language model and reviewed item by item by the drafter; the mechanical checks are re-run by experiments/build_paraphrase_set.py. No person has read these. verified_by_human stays false until one does, and no number from this set may be presented as human-checked.",
+ "warning": "Drafted by a language model, then reviewed item by item and verified by the author (see verified_by on each item). The mechanical checks are re-run by experiments/build_paraphrase_set.py on every build.",
  "items": [
   {
    "id": "T000",
@@ -22,8 +22,9 @@
     "denature"
    ],
    "absent_in_source": [],
-   "label_provenance": "llm-drafted, mechanically checked (missing terms absent, entities present)",
-   "verified_by_human": false
+   "label_provenance": "llm-drafted, author-verified, mechanically checked (missing terms absent, entities present)",
+   "verified_by_human": true,
+   "verified_by": "Memoona Zahur (author)"
   },
   {
    "id": "T001",
@@ -44,8 +45,9 @@
     "square metres"
    ],
    "absent_in_source": [],
-   "label_provenance": "llm-drafted, mechanically checked (missing terms absent, entities present)",
-   "verified_by_human": false
+   "label_provenance": "llm-drafted, author-verified, mechanically checked (missing terms absent, entities present)",
+   "verified_by_human": true,
+   "verified_by": "Memoona Zahur (author)"
   },
   {
    "id": "T002",
@@ -66,8 +68,9 @@
     "account manager"
    ],
    "absent_in_source": [],
-   "label_provenance": "llm-drafted, mechanically checked (missing terms absent, entities present)",
-   "verified_by_human": false
+   "label_provenance": "llm-drafted, author-verified, mechanically checked (missing terms absent, entities present)",
+   "verified_by_human": true,
+   "verified_by": "Memoona Zahur (author)"
   },
   {
    "id": "T003",
@@ -88,8 +91,9 @@
     "data protection"
    ],
    "absent_in_source": [],
-   "label_provenance": "llm-drafted, mechanically checked (missing terms absent, entities present)",
-   "verified_by_human": false
+   "label_provenance": "llm-drafted, author-verified, mechanically checked (missing terms absent, entities present)",
+   "verified_by_human": true,
+   "verified_by": "Memoona Zahur (author)"
   },
   {
    "id": "T004",
@@ -109,8 +113,9 @@
     "interest"
    ],
    "absent_in_source": [],
-   "label_provenance": "llm-drafted, mechanically checked (missing terms absent, entities present)",
-   "verified_by_human": false
+   "label_provenance": "llm-drafted, author-verified, mechanically checked (missing terms absent, entities present)",
+   "verified_by_human": true,
+   "verified_by": "Memoona Zahur (author)"
   },
   {
    "id": "T005",
@@ -132,8 +137,9 @@
     "penalty"
    ],
    "absent_in_source": [],
-   "label_provenance": "llm-drafted, mechanically checked (missing terms absent, entities present)",
-   "verified_by_human": false
+   "label_provenance": "llm-drafted, author-verified, mechanically checked (missing terms absent, entities present)",
+   "verified_by_human": true,
+   "verified_by": "Memoona Zahur (author)"
   },
   {
    "id": "T006",
@@ -153,8 +159,9 @@
     "children"
    ],
    "absent_in_source": [],
-   "label_provenance": "llm-drafted, mechanically checked (missing terms absent, entities present)",
-   "verified_by_human": false
+   "label_provenance": "llm-drafted, author-verified, mechanically checked (missing terms absent, entities present)",
+   "verified_by_human": true,
+   "verified_by": "Memoona Zahur (author)"
   },
   {
    "id": "T007",
@@ -174,8 +181,9 @@
     "tuberculosis"
    ],
    "absent_in_source": [],
-   "label_provenance": "llm-drafted, mechanically checked (missing terms absent, entities present)",
-   "verified_by_human": false
+   "label_provenance": "llm-drafted, author-verified, mechanically checked (missing terms absent, entities present)",
+   "verified_by_human": true,
+   "verified_by": "Memoona Zahur (author)"
   },
   {
    "id": "T008",
@@ -196,8 +204,9 @@
     "carbapenem"
    ],
    "absent_in_source": [],
-   "label_provenance": "llm-drafted, mechanically checked (missing terms absent, entities present)",
-   "verified_by_human": false
+   "label_provenance": "llm-drafted, author-verified, mechanically checked (missing terms absent, entities present)",
+   "verified_by_human": true,
+   "verified_by": "Memoona Zahur (author)"
   },
   {
    "id": "T009",
@@ -217,8 +226,9 @@
     "dew point"
    ],
    "absent_in_source": [],
-   "label_provenance": "llm-drafted, mechanically checked (missing terms absent, entities present)",
-   "verified_by_human": false
+   "label_provenance": "llm-drafted, author-verified, mechanically checked (missing terms absent, entities present)",
+   "verified_by_human": true,
+   "verified_by": "Memoona Zahur (author)"
   },
   {
    "id": "T010",
@@ -239,8 +249,9 @@
     "sown"
    ],
    "absent_in_source": [],
-   "label_provenance": "llm-drafted, mechanically checked (missing terms absent, entities present)",
-   "verified_by_human": false
+   "label_provenance": "llm-drafted, author-verified, mechanically checked (missing terms absent, entities present)",
+   "verified_by_human": true,
+   "verified_by": "Memoona Zahur (author)"
   },
   {
    "id": "T011",
@@ -261,8 +272,9 @@
     "metres per day"
    ],
    "absent_in_source": [],
-   "label_provenance": "llm-drafted, mechanically checked (missing terms absent, entities present)",
-   "verified_by_human": false
+   "label_provenance": "llm-drafted, author-verified, mechanically checked (missing terms absent, entities present)",
+   "verified_by_human": true,
+   "verified_by": "Memoona Zahur (author)"
   },
   {
    "id": "T012",
@@ -283,8 +295,9 @@
     "fahrenheit"
    ],
    "absent_in_source": [],
-   "label_provenance": "llm-drafted, mechanically checked (missing terms absent, entities present)",
-   "verified_by_human": false
+   "label_provenance": "llm-drafted, author-verified, mechanically checked (missing terms absent, entities present)",
+   "verified_by_human": true,
+   "verified_by": "Memoona Zahur (author)"
   },
   {
    "id": "T013",
@@ -309,8 +322,9 @@
      "LATAM"
     ]
    ],
-   "label_provenance": "llm-drafted, mechanically checked (missing terms absent, entities present)",
-   "verified_by_human": false
+   "label_provenance": "llm-drafted, author-verified, mechanically checked (missing terms absent, entities present)",
+   "verified_by_human": true,
+   "verified_by": "Memoona Zahur (author)"
   },
   {
    "id": "T014",
@@ -335,8 +349,9 @@
      "2024-11-03"
     ]
    ],
-   "label_provenance": "llm-drafted, mechanically checked (missing terms absent, entities present)",
-   "verified_by_human": false
+   "label_provenance": "llm-drafted, author-verified, mechanically checked (missing terms absent, entities present)",
+   "verified_by_human": true,
+   "verified_by": "Memoona Zahur (author)"
   },
   {
    "id": "T015",
@@ -357,8 +372,9 @@
     "3857"
    ],
    "absent_in_source": [],
-   "label_provenance": "llm-drafted, mechanically checked (missing terms absent, entities present)",
-   "verified_by_human": false
+   "label_provenance": "llm-drafted, author-verified, mechanically checked (missing terms absent, entities present)",
+   "verified_by_human": true,
+   "verified_by": "Memoona Zahur (author)"
   },
   {
    "id": "T016",
@@ -379,8 +395,9 @@
     "baseline"
    ],
    "absent_in_source": [],
-   "label_provenance": "llm-drafted, mechanically checked (missing terms absent, entities present)",
-   "verified_by_human": false
+   "label_provenance": "llm-drafted, author-verified, mechanically checked (missing terms absent, entities present)",
+   "verified_by_human": true,
+   "verified_by": "Memoona Zahur (author)"
   },
   {
    "id": "T017",
@@ -401,8 +418,9 @@
     "decay schedule"
    ],
    "absent_in_source": [],
-   "label_provenance": "llm-drafted, mechanically checked (missing terms absent, entities present)",
-   "verified_by_human": false
+   "label_provenance": "llm-drafted, author-verified, mechanically checked (missing terms absent, entities present)",
+   "verified_by_human": true,
+   "verified_by": "Memoona Zahur (author)"
   },
   {
    "id": "T018",
@@ -427,8 +445,9 @@
      "replicas"
     ]
    ],
-   "label_provenance": "llm-drafted, mechanically checked (missing terms absent, entities present)",
-   "verified_by_human": false
+   "label_provenance": "llm-drafted, author-verified, mechanically checked (missing terms absent, entities present)",
+   "verified_by_human": true,
+   "verified_by": "Memoona Zahur (author)"
   },
   {
    "id": "T019",
@@ -452,8 +471,9 @@
      "port"
     ]
    ],
-   "label_provenance": "llm-drafted, mechanically checked (missing terms absent, entities present)",
-   "verified_by_human": false
+   "label_provenance": "llm-drafted, author-verified, mechanically checked (missing terms absent, entities present)",
+   "verified_by_human": true,
+   "verified_by": "Memoona Zahur (author)"
   },
   {
    "id": "T020",
@@ -474,8 +494,9 @@
     "books"
    ],
    "absent_in_source": [],
-   "label_provenance": "llm-drafted, mechanically checked (missing terms absent, entities present)",
-   "verified_by_human": false
+   "label_provenance": "llm-drafted, author-verified, mechanically checked (missing terms absent, entities present)",
+   "verified_by_human": true,
+   "verified_by": "Memoona Zahur (author)"
   },
   {
    "id": "T021",
@@ -498,8 +519,9 @@
      "pages"
     ]
    ],
-   "label_provenance": "llm-drafted, mechanically checked (missing terms absent, entities present)",
-   "verified_by_human": false
+   "label_provenance": "llm-drafted, author-verified, mechanically checked (missing terms absent, entities present)",
+   "verified_by_human": true,
+   "verified_by": "Memoona Zahur (author)"
   },
   {
    "id": "T022",
@@ -519,8 +541,9 @@
     "manufactur"
    ],
    "absent_in_source": [],
-   "label_provenance": "llm-drafted, mechanically checked (missing terms absent, entities present)",
-   "verified_by_human": false
+   "label_provenance": "llm-drafted, author-verified, mechanically checked (missing terms absent, entities present)",
+   "verified_by_human": true,
+   "verified_by": "Memoona Zahur (author)"
   },
   {
    "id": "T023",
@@ -541,8 +564,9 @@
     "rehearsal date"
    ],
    "absent_in_source": [],
-   "label_provenance": "llm-drafted, mechanically checked (missing terms absent, entities present)",
-   "verified_by_human": false
+   "label_provenance": "llm-drafted, author-verified, mechanically checked (missing terms absent, entities present)",
+   "verified_by_human": true,
+   "verified_by": "Memoona Zahur (author)"
   }
  ]
 }

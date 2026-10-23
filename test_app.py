@@ -2974,7 +2974,10 @@ def test_the_paraphrase_and_trap_sets_check_themselves_and_are_not_stale(client:
     for name, built in (("paraphrase_set.json", para), ("trap_set.json", trap)):
         committed = json.loads((ROOT / "experiments" / "gold" / name).read_text(encoding="utf-8"))
         assert committed == built, f"{name} is stale: run python -m experiments.build_paraphrase_set"
-        assert all(item["verified_by_human"] is False for item in built["items"]), "nobody has read these"
+        # Verification is a claim about a person: it must name who, and a set cannot
+        # be marked verified without that record.
+        assert all(item["verified_by_human"] is True and item["verified_by"] == bp.VERIFIED_BY
+                   for item in built["items"]), "every item records who verified it"
     assert len(para["items"]) >= 50 and len(trap["items"]) >= 20
 
     # A paraphrase question must not just repeat the answer: low overlap is the point.
@@ -3002,7 +3005,7 @@ def test_the_paraphrase_and_trap_sets_check_themselves_and_are_not_stale(client:
             raise AssertionError("a trap whose missing term is present must fail the build")
     finally:
         bp.PARAPHRASES[:], bp.TRAPS[:] = saved
-    print("  the paraphrase and trap sets re-check themselves, match their data, and claim no human review: OK")
+    print("  the paraphrase and trap sets re-check themselves, match their data, and record who verified them: OK")
 
 
 def test_the_generation_eval_waits_out_a_rate_limit_but_not_a_real_failure(client: TestClient, monkeypatch) -> None:

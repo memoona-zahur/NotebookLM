@@ -38,9 +38,13 @@
     "recall_at_5": 0.87,
     "refused_by_floor": 0
   },
-  "human_verified": false,
+  "human_verified": {
+    "cloze": false,
+    "paraphrase": true,
+    "traps": true
+  },
   "k": 5,
-  "labels": "model-drafted and machine-checked; cloze labels machine-generated; none read by a person",
+  "labels": "cloze: machine-generated and machine-checked; paraphrase and traps: model-drafted, author-verified, machine-checked",
   "paraphrase": {
     "by_overlap": {
       "high (>=0.4)": {

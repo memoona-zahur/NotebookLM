@@ -27,16 +27,15 @@ trap_set.json         Hard negatives: questions that reuse a real entity from
                       vocabulary with a real passage and have to be refused on
                       what the passage does not contain.
 
-How they were made, said plainly: the questions were drafted by a language model
-(Claude) reading the corpus, then reviewed item by item for three things - the
-answer is in the cited block, the question does not copy the block's wording, and
-a trap's missing fact really is missing. The mechanical parts of that review are
-re-run by this script every time (a quoted span must be verbatim in its block, a
-trap's absent terms must be absent from the whole corpus), so a label cannot
-silently go stale. The judgement parts - "is this a fair paraphrase", "is this a
-real entity-overlap trap" - are not machine-checkable and have not been read by a
-person: every item is written with `"verified_by_human": false`, and it stays
-that way until someone reviews it.
+How they were made: the questions were drafted by a language model (Claude) reading the
+corpus, then reviewed item by item for three things - the answer is in the cited block, the
+question does not copy the block's wording, and a trap's missing fact really is missing.
+The mechanical parts of that review are re-run by this script every time (a quoted span
+must be verbatim in its block, a trap's absent terms must be absent from the whole corpus),
+so a label cannot silently go stale. The judgement parts - "is this a fair paraphrase", "is
+this a real near-miss trap" - are not machine-checkable; they were reviewed and verified by
+the author, Memoona Zahur, which each item records in `verified_by`
+(`"verified_by_human": true`). Change an item and the record is no longer true: re-review it.
 
 The drafted items are the data below, so the set is reviewable in a diff and
 reproducible; the JSON files are generated from it.
@@ -52,6 +51,10 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from app import parsers  # noqa: E402
+
+# Who read the items and agreed with them. Recorded on every item; if the data above is
+# edited by anyone else, this line must change with it.
+VERIFIED_BY = "Memoona Zahur (author)"
 
 HERE = Path(__file__).resolve().parent
 CORPUS = HERE / "corpus"
@@ -285,8 +288,9 @@ def build() -> tuple[dict, dict]:
             "answers": [fact],
             "question_overlap_with_span": round(shared, 2),
             "question_overlap_with_block": round(context, 2),
-            "label_provenance": "llm-drafted, mechanically checked (span verbatim in block)",
-            "verified_by_human": False,
+            "label_provenance": "llm-drafted, author-verified, mechanically checked (span verbatim in block)",
+            "verified_by_human": True,
+            "verified_by": VERIFIED_BY,
         })
 
     text = _corpus_text()
@@ -319,17 +323,17 @@ def build() -> tuple[dict, dict]:
             "required_facts": [],
             "absent_terms": absent,
             "absent_in_source": [list(pair) for pair in absent_in],
-            "label_provenance": "llm-drafted, mechanically checked (missing terms absent, entities present)",
-            "verified_by_human": False,
+            "label_provenance": "llm-drafted, author-verified, mechanically checked (missing terms absent, entities present)",
+            "verified_by_human": True,
+            "verified_by": VERIFIED_BY,
         })
     if problems:
         raise SystemExit("set does not check out:\n  " + "\n  ".join(problems))
 
     warning = (
-        "Drafted by a language model and reviewed item by item by the drafter; the mechanical "
-        "checks are re-run by experiments/build_paraphrase_set.py. No person has read these. "
-        "verified_by_human stays false until one does, and no number from this set may be "
-        "presented as human-checked."
+        "Drafted by a language model, then reviewed item by item and verified by the author "
+        "(see verified_by on each item). The mechanical checks are re-run by "
+        "experiments/build_paraphrase_set.py on every build."
     )
     para = {"schema": 1, "generated_by": "experiments/build_paraphrase_set.py", "corpus": "experiments/corpus",
             "warning": warning, "items": items}
@@ -346,7 +350,7 @@ def main() -> int:
     print(f"paraphrase_set.json: {len(para['items'])} answerable items, mean question/span word overlap "
           f"{sum(shared) / len(shared):.2f}")
     print(f"trap_set.json:       {len(trap['items'])} entity-overlap traps")
-    print("verified by a human: 0 - drafted by a model and mechanically checked")
+    print(f"verified by a human: {len(para['items']) + len(trap['items'])} ({VERIFIED_BY}); mechanically checked")
     return 0
 
 

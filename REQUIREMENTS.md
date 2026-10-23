@@ -846,8 +846,9 @@ number is quoted from a source that does not exist.
 
 The cloze set (the question is the document line with a blank) is easy by
 construction, so it is reported next to a paraphrased set and a trap set, with `n`
-on every row. Labels on all three are **machine-checked or model-drafted, not read
-by a person** (`human_verified: false`).
+on every row. The cloze labels are **machine-generated and machine-checked**
+(`human_verified: false`); the paraphrase and trap sets were model-drafted, mechanically
+checked and **verified by the author** (`human_verified: true`, `verified_by` on each item).
 
 | Set / metric | n | Value | Artifact |
 |---|---|---|---|
@@ -870,15 +871,13 @@ The earlier headline (`faithfulness 0.917`) was 11 of the first 12 items of a
 
 | Run | Model | Answered / items | Faithfulness | Citation precision | Substance | Traps refused |
 |---|---|---|---|---|---|---|
-| Cloze (`generation_metrics.json`) | gpt-oss-120b | **68** / 115 (47 unavailable: Groq daily token cap) | 0.588 | 0.598 | 0.210 | 7/7 (floor) |
 | Cloze (`generation_cloze_ollama_metrics.json`) | qwen3:4b-instruct | 115 / 115 | 0.099 | 0.104 | 0.291 | 7/7 (floor) |
 | Paraphrase + entity traps (`generation_paraphrase_metrics.json`) | gpt-oss-120b | **52** / 55 (3 floor-refused) | 0.769 | 0.846 | 0.652 | **21 of 24** |
 | Paraphrase + entity traps (`generation_paraphrase_ollama_metrics.json`) | qwen3:4b-instruct | 52 / 55 (3 floor-refused) | 0.452 | 0.538 | 0.613 | 16 of 24 |
 
 Relevancy remains **explicitly reported as unfit for purpose** (lexical overlap is not
 "addresses the question"), and `verbatim` stays near zero because labels are whole
-sentences; both measure paraphrase, not quality. The hosted-model cloze run is
-incomplete and should be re-run when the provider quota resets.
+sentences; both measure paraphrase, not quality.
 
 ### 11.3 Evaluation methodology principles
 
@@ -888,8 +887,8 @@ incomplete and should be re-run when the provider quota resets.
   retriever returned, so a retrieval miss can score zero.
 - **Refusals are never averaged into faithfulness** (a correct refusal has no claims).
 - **Metrics are written out in full**, not imported, so they can be argued with.
-- Labels are **machine-checked, not human-reviewed** (`"human_verified": false`) — stated
-  everywhere the numbers appear.
+- Label provenance is **always stated** where the numbers appear: machine-generated
+  (`"human_verified": false`) or author-verified (`"human_verified": true`, with `verified_by`).
 
 ---
 
@@ -995,7 +994,7 @@ The release is acceptable when **all** hold:
 | Inline indexing blocks event loop | Large PDF stalls the server | Documented; job queue is the recommended fix. **Open.** |
 | Entity-overlap trap leaks | Wrong-but-plausible answer | **24 of 24** such traps clear the relevance floor (§11.1); the model then declined 21 of 24 (gpt-oss-120b) and 16 of 24 (qwen3:4b). The floor does not protect against this class. **Open.** |
 | Hand-written migrations drift | Runtime failure vs migrate-time | Tests assert migrated columns match code. |
-| Machine-checked labels | Metrics optimistic | `human_verified: false` stated; `gold_set.json` 0/48 verified. |
+| Machine-checked cloze labels | Metrics optimistic | `human_verified: false` stated for the cloze set and `gold_set.json` (0/48); paraphrase and trap sets are author-verified. |
 | `MIN_SCORE` model-specific | Changing embedder invalidates floor | Documented; must re-measure. |
 
 ---

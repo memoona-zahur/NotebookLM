@@ -20,8 +20,9 @@ of 1/r. This is stricter and simpler than the position-based scoring in
 `eval_gold.py`, and it reads the retrieved text itself rather than trusting a
 position index.
 
-The labels are machine-checked and model-drafted, not human-reviewed; the output
-says so and carries `human_verified: false`.
+Label provenance is recorded per set in the output: the cloze labels are machine-generated
+(`human_verified: false`); the paraphrase and trap sets were drafted by a model and verified
+by the author (`human_verified: true`, see `verified_by` on each item).
 """
 
 from __future__ import annotations
@@ -141,8 +142,13 @@ def run() -> dict:
 
     report = {
         "what": "retrieval on three question styles, one shared notebook holding the whole corpus",
-        "human_verified": False,
-        "labels": "model-drafted and machine-checked; cloze labels machine-generated; none read by a person",
+        "human_verified": {
+            "cloze": all(i.get("verified_by_human") for i in cloze),
+            "paraphrase": all(i.get("verified_by_human") for i in paraphrase),
+            "traps": all(i.get("verified_by_human") for i in entity_traps),
+        },
+        "labels": "cloze: machine-generated and machine-checked; paraphrase and traps: "
+                  "model-drafted, author-verified, machine-checked",
         "k": K,
         "settings": {
             "min_score": config.MIN_SCORE, "top_k_returned": K, "rerank": config.RERANK_ENABLED,
@@ -177,7 +183,8 @@ def main() -> int:
     for name, r in report["traps"].items():
         print(f"traps: {name:30} n={r['n']:<3} leaked past the floor {r['leaked_past_floor']}/{r['n']} "
               f"(rate {r['leak_rate']:.3f})")
-    print("labels: model-drafted / machine-generated, human_verified = false")
+    print("labels: cloze machine-generated; paraphrase + traps author-verified "
+          f"(human_verified = {report['human_verified']})")
 
     args.out.parent.mkdir(parents=True, exist_ok=True)
     args.out.write_text(json.dumps(report, indent=2, sort_keys=True), encoding="utf-8")
