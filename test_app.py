@@ -28,7 +28,7 @@ import pytest
 
 ADMIN_URL = os.getenv(
     "TEST_DATABASE_ADMIN_URL",
-    "postgresql://notebooklm:notebooklm@localhost:5432/notebooklm",
+    "postgresql://notebooklm:notebooklm@localhost:5433/notebooklm",
 )
 TEST_DB = os.getenv("TEST_DATABASE_NAME", "notebooklm_test")
 
@@ -1235,6 +1235,85 @@ def test_the_page_and_bundle_are_revalidated_not_served_from_a_stale_cache(clien
     again = client.get(f"/assets/{asset.name}", headers={"If-None-Match": res.headers["etag"]})
     assert again.status_code == 304, again.status_code
     print("  the page and bundle are revalidated (no-cache + ETag), so an upgrade is not masked: OK")
+
+
+def test_an_unreachable_database_says_what_to_do_instead_of_exiting_silently(client: TestClient) -> None:
+    """`python run.py` against a database that refuses the login used to print
+    two log lines and exit with no error at all: alembic's logging setup had
+    silenced uvicorn's loggers, so the traceback was never shown."""
+    import asyncio
+    import logging
+
+    from app.main import app as application, lifespan
+
+    real = db.migrate
+
+    def refuse():
+        raise RuntimeError("connection failed: password authentication failed for user \"notebooklm\"")
+
+    db.migrate = refuse
+    saved_url = os.environ["DATABASE_URL"]
+    os.environ["DATABASE_URL"] = "postgresql://notebooklm:s3cretpass@localhost:5433/notebooklm"
+
+    async def start():
+        async with lifespan(application):
+            pass
+
+    try:
+        try:
+            asyncio.run(start())
+        except RuntimeError as exc:
+            message = str(exc)
+        else:
+            raise AssertionError("an unusable database must stop the start-up")
+    finally:
+        db.migrate = real
+        os.environ["DATABASE_URL"] = saved_url
+    assert "docker compose up -d db" in message and "DATABASE_URL" in message, message
+    assert "localhost:5433" in message and "s3cretpass" not in message and "***" in message, message
+
+    # And the loggers survive a migration run, so the next failure is visible.
+    uvicorn_logger = logging.getLogger("uvicorn.error")
+    uvicorn_logger.disabled = False
+    db.migrate()
+    assert uvicorn_logger.disabled is False, "migrating must not silence uvicorn's logger"
+    print("  an unreachable database is explained (no password shown) and loggers stay on: OK")
+
+
+def test_general_conversation_with_two_social_phrases_is_still_conversation(client: TestClient) -> None:
+    """"thanks, that is great" and "who are you and what can you do?" were refused as
+    if they were questions about the documents ("I could not find anything relevant"),
+    because only a *single* known phrase counted. A message made entirely of known
+    phrases is conversation; one unknown piece makes it a question."""
+    from app import intent
+
+    for message, kind in (
+        ("thanks, that is great", "small_talk"),
+        ("Thanks! That's great.", "small_talk"),
+        ("good job and thanks", "small_talk"),
+        ("who are you and what can you do?", "assistant"),
+        ("hi, who are you?", "assistant"),
+        ("hello and thanks", "greeting"),
+        ("hi there, how are you", "greeting"),
+        ("hello, thanks", "greeting"),
+        ("thx", "small_talk"),
+        ("awesome", "small_talk"),
+    ):
+        assert intent.classify(message) == kind, (message, intent.classify(message))
+
+    # Social words never swallow a real question.
+    for message in (
+        "thanks for the refund policy, now what about the 30 day window?",
+        "hi, what is the refund window?",
+        "who are you and who is the CEO named in this filing",
+        "thanks, what does the contract say about notice?",
+        "great, now summarise the report",
+        "what can you do with a CSV like this",
+        "and",
+        ", ,",
+    ):
+        assert intent.classify(message) == "question", (message, intent.classify(message))
+    print("  messages made only of greetings, thanks or assistant questions are conversation; any real question stays one: OK")
 
 
 def test_static_and_empty_question(client: TestClient) -> None:
@@ -5380,6 +5459,8 @@ ORDER = [
     ("eval sets self-check", test_the_paraphrase_and_trap_sets_check_themselves_and_are_not_stale),
     ("eval waits out 429", test_the_generation_eval_waits_out_a_rate_limit_but_not_a_real_failure),
     ("static revalidated", test_the_page_and_bundle_are_revalidated_not_served_from_a_stale_cache),
+    ("unreachable database explained", test_an_unreachable_database_says_what_to_do_instead_of_exiting_silently),
+    ("compound small talk", test_general_conversation_with_two_social_phrases_is_still_conversation),
 ]
 
 

@@ -184,8 +184,10 @@ cp .env.example .env        # then paste your GROQ_API_KEY into .env
 .venv/bin/python run.py
 ```
 
-Point `DATABASE_URL` in `.env` at your server if it is not on
-`localhost:5432` with the default credentials.
+`docker compose up -d db` publishes the database on `localhost:5433` (not 5432, so
+it cannot collide with a Postgres you already run), which is what `.env.example`
+and the default `DATABASE_URL` use. Point `DATABASE_URL` in `.env` at your own
+server instead if you prefer one.
 
 Fetch the OCR language data so scanned PDFs work too - the Docker image already
 has it, but a local run does not:
@@ -305,7 +307,7 @@ Everything is set in `.env` (all optional):
 | `OPENAI_API_KEY` | – | Fallback provider |
 | `OLLAMA_MODEL` | `llama3.1` | Used when no API key is set |
 | `LLM_PROVIDER` | auto | Force `groq` / `openai` / `ollama` |
-| `DATABASE_URL` | `postgresql://notebooklm:notebooklm@localhost:5432/notebooklm` | Use host `db` under Compose |
+| `DATABASE_URL` | `postgresql://notebooklm:notebooklm@localhost:5433/notebooklm` | Use host `db` under Compose |
 | `DB_POOL_MAX` | `8` | Connection pool size |
 | `UPLOAD_DIR` | `./data/uploads` | Where originals are kept for re-indexing |
 | `MAX_UPLOAD_MB` | `100` | Upload ceiling; larger files get HTTP 413 |
@@ -1530,7 +1532,7 @@ retry a log line costs more than the line is worth.
 
 ## Tests
 
-163 checks covering upload, per-format parsing (including YAML/TOML/INI and hard-wrapped
+165 checks covering upload, per-format parsing (including YAML/TOML/INI and hard-wrapped
 text), OCR (a scanned page recovered and searchable, pages kept in order, both halves of a
 mixed PDF indexed, a blank scan refused with an actionable message, the missing-language
 message naming the install command, an over-cap document refused rather than indexed

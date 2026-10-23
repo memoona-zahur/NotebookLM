@@ -104,7 +104,7 @@ LATENCY_WINDOW = int(os.getenv("LATENCY_WINDOW", "200"))
 # `db` service, so the app reaches the database by service name.
 DEFAULT_DATABASE_URL = os.getenv(
     "DEFAULT_DATABASE_URL",
-    "postgresql://notebooklm:notebooklm@localhost:5432/notebooklm",
+    "postgresql://notebooklm:notebooklm@localhost:5433/notebooklm",
 )
 
 CHUNK_SIZE = int(os.getenv("CHUNK_SIZE", "900"))

@@ -11,9 +11,13 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql/data
     ports:
-      # Exposed for psql during development. Comment this out in production so
-      # the database is only reachable from the app container.
-      - "${POSTGRES_PORT:-5432}:5432"
+      # Exposed for psql, and for running the app on the host with `python
+      # run.py`. 5433 rather than Postgres's own 5432 on purpose: a machine that
+      # already runs a local Postgres holds 5432, and a published port that
+      # collides makes `docker compose up` fail or, worse, makes the host app
+      # talk to the wrong database. Comment this out in production so the
+      # database is only reachable from the app container.
+      - "127.0.0.1:${POSTGRES_PORT:-5433}:5432"
     healthcheck:
       # The app must not start before the database can actually accept
       # connections; a bare "container is running" check is not enough.

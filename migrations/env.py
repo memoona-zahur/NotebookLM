@@ -22,7 +22,10 @@ from app import db
 config_alembic = context.config
 
 if config_alembic.config_file_name is not None:
-    fileConfig(config_alembic.config_file_name)
+    # disable_existing_loggers=False: the default silences every logger created
+    # before this runs - including uvicorn's - so a failed start-up (an
+    # unreachable database) printed nothing and the server just exited.
+    fileConfig(config_alembic.config_file_name, disable_existing_loggers=False)
 
 target_metadata = None
 

@@ -508,7 +508,7 @@ Priority key: **M** = MUST, **S** = SHOULD, **C** = COULD, **W** = WON'T now.
 | ID | Pri | Requirement | Verification |
 |---|---|---|---|
 | FR-38 | M | The system MUST classify greetings/small-talk/assistant questions **before** any embedding. | intent tests |
-| FR-39 | M | Classification MUST match the **whole** message (so "hey, what is the refund window?" is a question). | greeting-prefix test |
+| FR-39 | M | Classification MUST match the **whole** message (so "hey, what is the refund window?" is a question). A message made *entirely* of known social phrases ("thanks, that is great", "who are you and what can you do?") is conversation; one unknown piece makes it a question. | greeting-prefix test |
 | FR-40 | M | A greeting in a notebook with sources SHOULD be answered by the model (`llm.chat()`) with history and **no** passages, and its cost recorded. | conversational tests |
 | FR-41 | M | A greeting in an empty notebook, or when the provider is unreachable, MUST fall back to a fixed local reply (measured zero cost). | conversational tests |
 | FR-42 | M | `verdict` MUST be one of `answered`, `no_match`, `conversational`. | evidence contract |
@@ -594,7 +594,7 @@ Priority key: **M** = MUST, **S** = SHOULD, **C** = COULD, **W** = WON'T now.
 | NFR-16 | M | The re-ranker and tracer MUST NEVER break a request (swallow-and-continue). |
 | NFR-17 | M | A failed step MUST still close its trace span. |
 | NFR-18 | M | Cost recording MUST be best-effort and never fail the user's request. |
-| NFR-19 | M | The app MUST start even without an LLM key (and refuse to answer, not crash). |
+| NFR-19 | M | The app MUST start even without an LLM key (and refuse to answer, not crash). If the database cannot be reached it MUST stop with a message that names the database (password hidden) and says how to start one, never silently. |
 | NFR-32 | M | Parsing, OCR and embedding on upload MUST NOT run on the event loop (a request for `/api/status` during a slow upload MUST be answered at once); at most `INDEX_CONCURRENCY` uploads are indexed at once and the rest wait. Shared state touched by those threads (embedder load and tokenizer, re-ranker, DB pool, BM25 cache) MUST be guarded. | live-server test; thread-safety tests |
 | NFR-33 | M | Every LLM client call MUST have an explicit timeout (`LLM_TIMEOUT`) and a capped retry count. | timeout test |
 
@@ -785,7 +785,7 @@ All optional, read from `.env`. Defaults shown.
 
 | Variable | Default | Meaning |
 |---|---|---|
-| `DATABASE_URL` | `postgresql://notebooklm:notebooklm@localhost:5432/notebooklm` | Postgres DSN (`db:5432` under Compose) |
+| `DATABASE_URL` | `postgresql://notebooklm:notebooklm@localhost:5433/notebooklm` | Postgres DSN (`db:5432` inside Compose; the host-published port is 5433) |
 | `DB_POOL_MAX` | `8` | Connection pool size |
 | `UPLOAD_DIR` | `./data/uploads` | Originals; deletion boundary |
 | `MAX_UPLOAD_MB` | `100` | Upload ceiling (413 beyond) |
@@ -903,7 +903,7 @@ incomplete and should be re-run when the provider quota resets.
 
 Runs, in order:
 
-1. **Backend** — `python test_app.py`: **163 checks**, against a scratch Postgres it
+1. **Backend** — `python test_app.py`: **165 checks**, against a scratch Postgres it
    creates and drops (never real data).
 2. **Frontend** — `npm test` (Vitest + jsdom): **216 checks**, `fetch` mocked.
 3. **Production build** — `npm run build` (Vite).
@@ -932,7 +932,7 @@ A green run is the definition of "done" for any change.
 
 The release is acceptable when **all** hold:
 
-- [ ] `./run_tests.sh` is green (163 + 218 + build).
+- [ ] `./run_tests.sh` is green (165 + 218 + build).
 - [ ] `GET /api/status` returns 200 and reports the live provider, model, counts.
 - [ ] A fresh notebook can upload a source, answer a covered question with citations, and
       refuse an uncovered one with `no_match`.
@@ -1087,7 +1087,7 @@ defences, and audited per-query cost.
 - Delivered a **cost/observability** layer: provider-reported tokens, split latency
   percentiles, a dated price table where unknown prices are `None` not `$0`, and opt-in
   privacy-split tracing.
-- Shipped **163 backend + 218 frontend** tests and a **one-command gate**
+- Shipped **165 backend + 218 frontend** tests and a **one-command gate**
   (`./run_tests.sh`) covering grounding, injection, sessions, OCR, cost, and the frontend.
 
 **Skills demonstrated.** RAG architecture · hybrid retrieval & re-ranking · Postgres +
@@ -1099,7 +1099,7 @@ metrics design · security (SSRF, prompt injection) · observability · technica
 ## 20. Requirements checklist (definition of done)
 
 - [ ] All **MUST** requirements (§6, §7) are implemented and verified.
-- [ ] `./run_tests.sh` is green (163 backend + 218 frontend + build).
+- [ ] `./run_tests.sh` is green (165 backend + 218 frontend + build).
 - [ ] `/api/status`, `/api/ask`, `/api/sources`, `/api/sessions` match §9.
 - [ ] Schema matches §8 (migrations at head; tests assert column agreement).
 - [ ] Configuration matches §10.
@@ -1120,7 +1120,7 @@ metrics design · security (SSRF, prompt injection) · observability · technica
 ### Appendix B — Verified facts (spot-check list)
 
 - 39 file suffixes: `python -c "from app.parsers import SUPPORTED; print(len(SUPPORTED))"`.
-- Test counts: `./run_tests.sh` output (163 / 218).
+- Test counts: `./run_tests.sh` output (165 / 218).
 - Migrations: `ls migrations/versions/` → `0001`…`0007`.
 - Corpus: 28 files in `experiments/corpus/`; cloze set 122 items (115 answerable, 7 traps).
 - Prices (as of 2026-10-07): `gpt-oss-120b` $0.15/$0.60, `gpt-oss-20b` $0.075/$0.30 per 1M.

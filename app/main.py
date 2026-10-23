@@ -23,8 +23,11 @@ from .routes import chat, meta, sessions, sources
 async def lifespan(_: FastAPI):
     # Brings a fresh volume up to head and leaves an existing one where it
     # already is, so neither needs a manual migration step before first use.
-    db.migrate()
-    db.ensure_default_session()
+    try:
+        db.migrate()
+        db.ensure_default_session()
+    except Exception as exc:  # noqa: BLE001 - re-raised below with the one thing to do
+        raise RuntimeError(db.unreachable_message(exc)) from exc
     yield
     # Without this the pool's connections are only reclaimed when the process
     # dies, which matters because uvicorn runs several workers under a reload.

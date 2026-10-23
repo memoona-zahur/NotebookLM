@@ -54,6 +54,7 @@ GREETINGS = frozenset(
         "howdy",
         "heya",
         "sup",
+        "hi there",
         "hiya there",
         "hello there",
         "hey there",
@@ -97,6 +98,33 @@ SMALL_TALK = frozenset(
         "understood",
         "perfect",
         "lol",
+        "thx",
+        "thank u",
+        "many thanks",
+        "thanks so much",
+        "appreciate it",
+        "awesome",
+        "amazing",
+        "wow",
+        "good job",
+        "great job",
+        "well done",
+        "nice one",
+        "that is great",
+        "thats great",
+        "that's great",
+        "that is awesome",
+        "that is perfect",
+        "sounds good",
+        "makes sense",
+        "i see",
+        "alright",
+        "all right",
+        "no worries",
+        "no problem",
+        "take care",
+        "see you later",
+        "have a nice day",
     }
 )
 
@@ -176,6 +204,27 @@ def normalize(text: str) -> str:
     return " ".join(_NOISE.sub(" ", (text or "").lower()).split())
 
 
+# Where one message holds several social phrases: "thanks, that is great", "hi and
+# who are you". Cut at punctuation and at "and"/"then"/"plus", then every piece
+# must be a known phrase - one unknown piece and the whole message is a question.
+_JOINERS = re.compile(r"[,;.!?]+|\b(?:and|then|plus)\b")
+
+
+def _segments(question: str) -> list[str]:
+    pieces = (normalize(piece) for piece in _JOINERS.split((question or "").lower()))
+    return [piece for piece in pieces if piece]
+
+
+def _kind_of(phrase: str) -> str | None:
+    if phrase in GREETINGS:
+        return "greeting"
+    if phrase in SMALL_TALK:
+        return "small_talk"
+    if phrase in ASSISTANT or _ASSISTANT_VARIANTS.fullmatch(phrase):
+        return "assistant"
+    return None
+
+
 def classify(question: str) -> str:
     """One of ``"small_talk"``, ``"greeting"``, ``"assistant"`` or ``"question"``.
 
@@ -193,6 +242,18 @@ def classify(question: str) -> str:
         return "small_talk"
     if cleaned in ASSISTANT or _ASSISTANT_VARIANTS.fullmatch(cleaned):
         return "assistant"
+    # Several social phrases in one message. Every piece has to be one; a single
+    # piece that is not ("thanks for the refund policy, now what about 30 days")
+    # makes the whole message a question, so a real question can never be
+    # swallowed by the social words in front of it. The most informative kind
+    # wins: asking who the assistant is outranks saying hello.
+    parts = _segments(question)
+    if len(parts) > 1:
+        kinds = [_kind_of(part) for part in parts]
+        if all(kinds):
+            for kind in ("assistant", "greeting", "small_talk"):
+                if kind in kinds:
+                    return kind
     # The default is a question. Every doubt resolves towards retrieval, because
     # the failure modes are not symmetric: a wrongly-greeted real question gets a
     # useless reply, while a wrongly-queried "hi" costs one embedding and gets

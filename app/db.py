@@ -37,6 +37,26 @@ def dsn() -> str:
     return os.getenv("DATABASE_URL", config.DEFAULT_DATABASE_URL)
 
 
+def unreachable_message(exc: BaseException) -> str:
+    """What to tell someone whose app will not start because of the database.
+
+    A bare `OperationalError` from three layers down says the password failed;
+    it does not say which database was tried or what to do. The password is left
+    out: this ends up in a terminal and in pasted bug reports.
+    """
+    import re
+
+    shown = re.sub(r"://([^:/@]+):[^@]*@", r"://\1:***@", dsn())
+    reason = str(exc).strip().splitlines()[0] if str(exc).strip() else type(exc).__name__
+    return (
+        f"Could not start: the database at {shown} is not usable ({reason}).\n"
+        "  - Start the bundled one:   docker compose up -d db   (published on localhost:5433)\n"
+        "  - or run everything in Docker:   docker compose up --build\n"
+        "  - or point DATABASE_URL in .env at a Postgres 16 with the pgvector extension.\n"
+        "If a Postgres of your own already uses this port, its credentials may differ."
+    )
+
+
 def pool():
     """Lazily built connection pool. Rebuilt when DATABASE_URL changes."""
     global _pool
